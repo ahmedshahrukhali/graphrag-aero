@@ -1,0 +1,183 @@
+"""CLI: walk ``data/corpus/`` → emit ``data/chunks/{doc_id}.jsonl``.
+
+Idempotent: a doc whose output JSONL mtime is newer than the source PDF is
+skipped. Cross-document chunk dedup applies (first occurrence wins).
+
+Run::
+
+    python -m ingestion.processing.run --in data/corpus --out data/chunks
+    python -m ingestion.processing.run --in data/corpus --out data/chunks --source tsb --limit 5
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import logging
+import sys
+from pathlib import Path
+from typing import Iterable
+
+from . import pdf as pdf_mod
+from .chunk import Chunk, Tokenizer, chunk_pages
+from .dedup import Dedup
+from .doc_id import DocRef, doc_ref_for_path
+from .ocr import ocr_page
+
+logger = logging.getLogger(__name__)
+
+
+# ─── tokenizer factory ───────────────────────────────────────────────────────
+
+def default_tokenizer() -> Tokenizer:
+    """BGE-M3 tokenizer; downloads/caches via ``tokenizers`` on first call."""
+    from tokenizers import Tokenizer as _Tok
+    return _Tok.from_pretrained("BAAI/bge-m3")
+
+
+# ─── per-doc extraction (text + OCR fallback) ────────────────────────────────
+
+def extract_pages_with_ocr(path: Path) -> list[pdf_mod.PageExtract]:
+    """Open ``path`` once; use pdfplumber per page, OCR-fall-back on image-only pages."""
+    out: list[pdf_mod.PageExtract] = []
+    with pdf_mod.open_pdf(path) as pdfdoc:
+        for i, page in enumerate(pdfdoc.pages, start=1):
+            extracted = pdf_mod.extract_page(page, i)
+            if extracted.image_only:
+                logger.info("ocr fallback: %s page %d", path.name, i)
+                try:
+                    extracted = ocr_page(page, i)
+                except Exception as e:
+                    logger.warning("ocr failed for %s page %d: %s", path.name, i, e)
+            out.append(extracted)
+    return out
+
+
+# ─── jsonl writing ───────────────────────────────────────────────────────────
+
+def _chunk_to_record(ref: DocRef, c: Chunk) -> dict:
+    return {
+        "doc_id": ref.doc_id,
+        "source_url": ref.source_url,
+        "section_title": c.section_title,
+        "page": c.page,
+        "bbox": list(c.bbox),
+        "chunk_hash": c.chunk_hash,
+        "lang": ref.lang,
+        "text": c.text,
+    }
+
+
+def write_jsonl(dest: Path, records: Iterable[dict]) -> int:
+    """Atomic write — `<dest>.part` then rename. Returns count written."""
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    tmp = dest.with_suffix(dest.suffix + ".part")
+    n = 0
+    try:
+        with tmp.open("w", encoding="utf-8") as f:
+            for r in records:
+                f.write(json.dumps(r, ensure_ascii=False))
+                f.write("\n")
+                n += 1
+        tmp.replace(dest)
+    except BaseException:
+        if tmp.exists():
+            tmp.unlink()
+        raise
+    return n
+
+
+# ─── per-doc orchestration ───────────────────────────────────────────────────
+
+def _is_fresh(out_path: Path, src_path: Path) -> bool:
+    if not out_path.exists():
+        return False
+    return out_path.stat().st_mtime >= src_path.stat().st_mtime
+
+
+def process_doc(
+    src: Path,
+    out_root: Path,
+    tokenizer: Tokenizer,
+    dedup: Dedup,
+    *,
+    force: bool = False,
+) -> int:
+    """Process one PDF. Returns number of chunks written (0 if skipped/fresh)."""
+    ref = doc_ref_for_path(src)
+    # Output mirrors corpus layout but under out_root and with .jsonl: {lang}/{source}/{stem}.jsonl
+    dest = out_root / ref.lang / ref.source / f"{ref.stem}.jsonl"
+    if not force and _is_fresh(dest, src):
+        logger.info("skip (fresh): %s", dest)
+        return 0
+
+    pages = extract_pages_with_ocr(src)
+    chunks = chunk_pages(pages, tokenizer)
+    kept = [c for c in chunks if dedup.is_new(c.chunk_hash)]
+    records = (_chunk_to_record(ref, c) for c in kept)
+    n = write_jsonl(dest, records)
+    logger.info(
+        "wrote %d chunks (%d before dedup) -> %s",
+        n, len(chunks), dest,
+    )
+    return n
+
+
+# ─── CLI ─────────────────────────────────────────────────────────────────────
+
+def iter_corpus_pdfs(corpus_root: Path, source: str | None) -> list[Path]:
+    """All PDFs under ``corpus_root/{en,fr}/{tsb,tc}/*.pdf``, deterministic order."""
+    sources = ("tsb", "tc") if source in (None, "all") else (source,)
+    paths: list[Path] = []
+    for lang in ("en", "fr"):
+        for src in sources:
+            d = corpus_root / lang / src
+            if not d.is_dir():
+                continue
+            paths.extend(sorted(d.glob("*.pdf")))
+    return paths
+
+
+def main(argv: list[str] | None = None) -> int:
+    p = argparse.ArgumentParser(description="Chunk corpus PDFs into JSONL.")
+    p.add_argument("--in", dest="in_root", type=Path, default=Path("data/corpus"))
+    p.add_argument("--out", dest="out_root", type=Path, default=Path("data/chunks"))
+    p.add_argument("--source", choices=["tsb", "tc", "all"], default="all")
+    p.add_argument("--limit", type=int, default=None,
+                   help="Max docs to process — handy for sample runs.")
+    p.add_argument("--force", action="store_true",
+                   help="Reprocess even if the destination is fresh.")
+    p.add_argument("-v", "--verbose", action="store_true")
+    args = p.parse_args(argv)
+
+    logging.basicConfig(
+        level=logging.DEBUG if args.verbose else logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
+    # pdfminer and PIL are chatty at DEBUG; we don't need their internals.
+    for noisy in ("pdfminer", "pdfminer.pdfdocument", "pdfminer.pdfpage",
+                  "pdfminer.pdfinterp", "pdfminer.cmapdb", "pdfminer.converter",
+                  "PIL"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
+
+    paths = iter_corpus_pdfs(args.in_root, args.source)
+    if args.limit is not None:
+        paths = paths[: args.limit]
+    logger.info("ingesting %d PDFs from %s", len(paths), args.in_root)
+
+    tokenizer = default_tokenizer()
+    dedup = Dedup()
+    total_chunks = 0
+    for src in paths:
+        try:
+            total_chunks += process_doc(src, args.out_root, tokenizer, dedup, force=args.force)
+        except Exception as e:
+            logger.exception("failed: %s: %s", src, e)
+    logger.info(
+        "done: %d chunks across %d docs (%d unique hashes)",
+        total_chunks, len(paths), len(dedup),
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

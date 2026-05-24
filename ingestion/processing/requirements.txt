@@ -1,0 +1,5 @@
+# Core ingestion deps — kept slim. PaddleOCR is in requirements-ocr.txt because
+# it pulls in paddlepaddle (~hundreds of MB) and we only need it for image-only
+# pages. Build images that need OCR install both files.
+pdfplumber==0.11.9
+tokenizers==0.15.1

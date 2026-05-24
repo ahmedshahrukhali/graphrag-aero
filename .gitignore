@@ -1,0 +1,12 @@
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
+node_modules/
+.next/
+data/corpus/*
+!data/corpus/.gitkeep
+data/chunks/
+data/recon/
+data/*.log
+.claude/

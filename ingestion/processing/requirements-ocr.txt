@@ -1,0 +1,4 @@
+# Optional: PaddleOCR fallback for image-only pages. Only install in images
+# that need OCR. Heavy: paddlepaddle is hundreds of MB.
+paddleocr>=2.7,<3.0
+paddlepaddle>=2.6,<3.0
