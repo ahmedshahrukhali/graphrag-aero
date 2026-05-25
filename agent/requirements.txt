@@ -1,0 +1,7 @@
+# P4 agent runtime deps. Heavy: pulls langgraph + neo4j + ollama + retrieve's torch stack.
+-r ../retrieve/requirements.txt
+-r ../graph/requirements.txt
+langgraph>=0.2,<0.6
+langgraph-checkpoint-postgres>=2.0
+psycopg[binary]>=3.1
+ollama>=0.3

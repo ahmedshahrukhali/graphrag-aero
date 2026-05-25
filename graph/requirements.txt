@@ -1,0 +1,2 @@
+# P4 graph module — Neo4j Python driver. Light: no torch, no LLM here.
+neo4j>=5,<6
