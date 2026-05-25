@@ -132,7 +132,11 @@ services:
       - ./data:/app/data
 
   frontend:
-    build: ./frontend
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        NEXT_PUBLIC_BACKEND_URL: "${NEXT_PUBLIC_BACKEND_URL:-http://localhost:8080}"
     env_file: .env
     depends_on:
       - backend
