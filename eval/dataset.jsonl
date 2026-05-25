@@ -1,0 +1,4 @@
+{"id": "q01", "query": "Fox Harbour visual approach Astra SPX collision with trees", "expected": ["tsb/a00a0051"], "lang": "en"}
+{"id": "q02", "query": "Keystone Air Service Piper PA-31 fuel starvation water froze flapper valve", "expected": ["tsb/a00c0260"], "lang": "en"}
+{"id": "q03", "query": "Select Aviation College Cessna 150M mid-air collision Gatineau Airport", "expected": ["tsb/a23q0069"], "lang": "en"}
+{"id": "q04", "query": "Saint-Rémi Cessna 150G décrochage et collision avec le relief", "expected": ["tsb/a23q0041"], "lang": "fr"}

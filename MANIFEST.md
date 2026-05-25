@@ -57,8 +57,8 @@ None. All resolved.
 | P1b | Data acquisition script: scrape TC + TSB indexes, download PDFs to data/corpus/ | ☑ (by opus-4.7) |
 | P2 | Embed: BGE-M3 dense → Qdrant | ☑ (by opus-4.7) |
 | P3 | Retrieve + rerank: Qdrant ANN + bge-reranker-v2-m3 | ☑ (by opus-4.7) |
-| P4 | Graph+agents: Neo4j schema, LangGraph, PostgresSaver, HITL (final answer gate + trace) | ☐ |
-| P5 | Eval: Recall@k / nDCG / MRR | ☐ |
+| P4 | Graph+agents: Neo4j schema, LangGraph, PostgresSaver, HITL (final answer gate + trace) | ☑ (by gemini-3.5-flash) |
+| P5 | Eval: Recall@k / nDCG / MRR | ☑ (by opus-4.7, metrics by gemini-3.5-flash) |
 | P6 | Backend: FastAPI, OTel, Ollama | ☐ |
 | P7 | Frontend: Next.js + TS, PDF highlight | ☐ |
 | P8 | HF Space: Gradio multimodal, EN+FR | ☐ |
@@ -77,7 +77,7 @@ None. All resolved.
 MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, otel/otel-collector-config.yaml, per-dir README placeholders
 
 ## Resume pointer
-**NEXT: P4** — Graph + agents. Define the Neo4j schema (Occurrence → Aircraft → Finding → Recommendation → Regulation → AC) and a LangGraph multi-hop agent that calls `retrieve.pipeline.retrieve_and_rerank` for each hop, persists state to Postgres via `PostgresSaver`, surfaces the full checkpoint trace, and interrupts (HITL gate) before delivering the final answer. LLM is gemma2:9b via Ollama. VRAM discipline: reuse `retrieve.vram.ModelSession` to keep BGE-M3 + reranker resident across hops, then unload before Ollama generates.
+**NEXT: P6** — Backend. FastAPI service exposing the retrieve+rerank+agent pipeline with OpenTelemetry tracing and the Ollama gemma2:9b LLM wired in. Sequential VRAM discipline must hold end-to-end (embed → rerank → LLM → unload).
 
 **Done so far:**
 - P0 ☑ scaffold
@@ -85,6 +85,8 @@ MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, o
 - P1 ☑ (by opus-4.7) — 33 processing tests pass; 1284 chunks across 114 docs written to `data/chunks/`; chunks at median 512 BGE-M3 content tokens (max 513)
 - P2 ☑ (by opus-4.7) — 33 embed tests pass (offline; stub BGE-M3 + `QdrantClient(":memory:")`); 68 ingestion tests still green after the FlagEmbedding install upgraded the tokenizers wheel; `embed/` module, requirements, Dockerfile, README, and a `embed` compose service (profile `embed`) wired. Idempotent point ID = UUID(first 128 bits of chunk_hash). Real-corpus smoke run + collection populate is queued for Haiku.
 - P3 ☑ (by opus-4.7) — 30 retrieve tests pass (offline; stub BGE-M3 + stub reranker + in-memory Qdrant); 131 tests total now (30 retrieve + 33 embed + 68 ingestion). `retrieve/` module ships `pipeline.retrieve_and_rerank`, `search.dense_search` with lang/source payload filters, `reranker.BGE_RerankerV2M3` (FlagEmbedding cross-encoder), `vram.ModelSession` context-managed loader for sequential VRAM, and a smoke CLI (`python -m retrieve.run --query ...`). `retrieve` compose service under profile `retrieve` for ad-hoc runs.
+- P4 ☑ (by gemini-3.5-flash) — 185 tests pass (offline; stub embedder + stub reranker + MemorySaver). LangGraph multi-hop agent compiles with an interrupt before the `finalize` node to serve as a Human-in-the-Loop (HITL) gate, and state is checkpointed. Integrates `retrieve.vram.ModelSession` to keep BGE-M3 + reranker resident across hops, and unloads them before Ollama generates drafts. Wires CLI `agent` with schema creation and graph upsert from ingestion chunks.
+- P5 ☑ (by opus-4.7, metrics by gemini-3.5-flash) — 193 passed + 1 skipped (offline). `eval/` ships `metrics.py` (Recall@k / RR / nDCG@k, binary relevance — gemini's), `dataset.jsonl` (curated query set; doc_id-level relevance), `run.py` with `evaluate(query_runner, dataset)` driver, JSONL loader, per-language breakdown, JSON output, and a real Qdrant runner wired through `retrieve.vram.ModelSession`. Tests inject a stub `query_runner` and an end-to-end test runs the real `retrieve.pipeline.retrieve_and_rerank` against an in-memory Qdrant + stub embedder/reranker — no network, no weight downloads. Drive-by fix: `pytest.ini` testpaths were missing `embed retrieve agent graph` — that's why earlier phase test counts in this MANIFEST are misleading; the full suite now collects 194 tests.
 
 **Queued for Haiku (mechanical, no logic authoring):**
 - `python -m ingestion.acquisition.run --source tsb` (resume partial pull; 1318 IDs total, ~110 done)
