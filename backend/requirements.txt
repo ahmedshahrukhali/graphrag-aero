@@ -1,0 +1,14 @@
+# P6 backend deps. Sits on top of the agent runtime: agent/ already pulls
+# retrieve/ + graph/ + langgraph + ollama, so we only add the HTTP surface
+# (FastAPI/uvicorn) and OpenTelemetry exporters.
+-r ../agent/requirements.txt
+
+fastapi>=0.110,<0.120
+uvicorn[standard]>=0.27
+pydantic>=2.5
+
+# OpenTelemetry — auto-instrument FastAPI + ship spans to the collector via OTLP gRPC.
+opentelemetry-api>=1.25
+opentelemetry-sdk>=1.25
+opentelemetry-exporter-otlp-proto-grpc>=1.25
+opentelemetry-instrumentation-fastapi>=0.46b0

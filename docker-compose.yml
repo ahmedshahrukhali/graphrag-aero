@@ -105,8 +105,16 @@ services:
       - "4318:4318"
 
   backend:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     env_file: .env
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: "otel-collector:4317"
+      POSTGRES_DSN: "postgresql://langgraph:${POSTGRES_PASSWORD:-please_change_me}@postgres:5432/langgraph"
+      QDRANT_HOST: "qdrant"
+      NEO4J_URI: "bolt://neo4j:7687"
+      OLLAMA_HOST: "http://ollama:11434"
     depends_on:
       qdrant:
         condition: service_healthy
@@ -115,6 +123,8 @@ services:
       postgres:
         condition: service_healthy
       ollama:
+        condition: service_started
+      otel-collector:
         condition: service_started
     ports:
       - "8080:8080"
