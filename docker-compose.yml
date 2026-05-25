@@ -83,6 +83,18 @@ services:
     volumes:
       - ./data:/app/data
 
+  retrieve:
+    build:
+      context: .
+      dockerfile: retrieve/Dockerfile
+    profiles: ["retrieve"] # one-shot smoke-runner; backend (P6) is the real consumer
+    env_file: .env
+    depends_on:
+      qdrant:
+        condition: service_healthy
+    volumes:
+      - ./data:/app/data
+
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
     command: ["--config=/etc/otel/config.yaml"]

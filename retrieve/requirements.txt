@@ -1,0 +1,5 @@
+# P3 retrieve + rerank deps. Re-uses the embed/ stack (FlagEmbedding + torch +
+# qdrant-client) — pinning here separately so this module can be installed
+# without P2 if a caller wants only the agent runtime side.
+qdrant-client>=1.7,<2
+FlagEmbedding>=1.2.5
