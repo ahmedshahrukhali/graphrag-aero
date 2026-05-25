@@ -1,0 +1,4 @@
+# P2 dense-embedding deps. Heavy (torch + FlagEmbedding) — kept separate from
+# the ingestion stack to avoid PaddleOCR/paddle vs torch CUDA conflicts.
+qdrant-client>=1.7,<2
+FlagEmbedding>=1.2.5

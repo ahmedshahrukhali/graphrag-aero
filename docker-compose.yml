@@ -71,6 +71,18 @@ services:
     volumes:
       - ./data:/app/data
 
+  embed:
+    build:
+      context: .
+      dockerfile: embed/Dockerfile
+    profiles: ["embed"]    # one-shot; doesn't auto-start with infra
+    env_file: .env
+    depends_on:
+      qdrant:
+        condition: service_healthy
+    volumes:
+      - ./data:/app/data
+
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
     command: ["--config=/etc/otel/config.yaml"]
