@@ -143,6 +143,18 @@ services:
     ports:
       - "3000:3000"
 
+  hf-space:
+    build:
+      context: .
+      dockerfile: hf_space/Dockerfile
+    profiles: ["hf-space"]
+    environment:
+      BACKEND_URL: "http://backend:8080"
+    depends_on:
+      - backend
+    ports:
+      - "7860:7860"
+
 volumes:
   qdrant_data:
   neo4j_data:
