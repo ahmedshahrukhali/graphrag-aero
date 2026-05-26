@@ -41,11 +41,24 @@ def ndcg_at_k(actual: Sequence[str], expected: Sequence[str], k: int) -> float:
     """Calculate Normalized Discounted Cumulative Gain at k (nDCG@k).
 
     Uses binary relevance (1 if document is in expected, 0 otherwise).
+
+    Relevance is judged at the doc_id level, but the ranked ``actual`` list is
+    chunk-level and may repeat a doc_id across ranks. Collapse to unique docs
+    (keeping each doc's best/first rank) before scoring; otherwise a single
+    relevant doc appearing at several ranks double-counts and DCG can exceed
+    IDCG, producing nDCG > 1.
     """
     if not expected:
         return 0.0
 
-    actual_k = actual[:k]
+    seen: set[str] = set()
+    unique_actual: list[str] = []
+    for doc_id in actual:
+        if doc_id not in seen:
+            seen.add(doc_id)
+            unique_actual.append(doc_id)
+
+    actual_k = unique_actual[:k]
     expected_set = set(expected)
 
     # Calculate Discounted Cumulative Gain (DCG)

@@ -41,3 +41,19 @@ def test_ndcg_at_k():
 
     # Empty expected:
     assert ndcg_at_k(actual, [], k=3) == 0.0
+
+
+def test_ndcg_at_k_dedupes_repeated_docids():
+    # Chunk-level ranking repeats a relevant doc across ranks. Doc-level nDCG
+    # must collapse to unique docs so it never exceeds 1.0.
+    actual = ["doc1", "doc2", "doc1", "doc3", "doc1"]
+    expected = ["doc1"]
+    score = ndcg_at_k(actual, expected, k=5)
+    assert score == 1.0  # doc1 is the top unique doc → perfect
+
+    # Relevant doc first appears at rank 2 (0-indexed 1) among unique docs.
+    actual2 = ["doc9", "doc2", "doc9", "doc2"]
+    expected2 = ["doc2"]
+    score2 = ndcg_at_k(actual2, expected2, k=5)
+    assert math.isclose(score2, 1.0 / math.log2(3))
+    assert score2 <= 1.0
