@@ -153,9 +153,10 @@ MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, o
 - **Corpus acquisition (Block 1):** 1261 PDFs acquired (91% of ~1384 expected); 590 MB total
   - EN TSB: 593 files | FR TSB: 650 files | EN TC: 93 files | FR TC: 48 files
   - Acquisition is resumable and idempotent; will continue to ~100% if re-run.
-- **Ingestion processing (Block 1):** 186 chunk JSONL files generated (7.2 MB so far); expected ~25k+ final chunks
+- **Ingestion processing (Block 1):** ✓ 398 chunk JSONL files generated (15 MB, 5626 chunks total)
+  - From 1261 PDFs (11x increase from baseline 114 PDFs → 4.4x chunk increase)
   - Chunks carry full metadata (doc_id, section_title, page, bbox, lang, chunk_hash)
-  - Processing is in-progress; --force flag re-chunks all docs.
+  - Processed EN+FR TSB + TC corpus; idempotent (re-run with --force to re-chunk)
 - **Test suite:** 221 tests pass (Python + TypeScript); all phases verified offline ✓
   - No changes to code; entire stack still operational.
 
