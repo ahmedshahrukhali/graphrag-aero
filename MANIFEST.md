@@ -144,3 +144,34 @@ MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, o
 - `cd frontend && npm test` — expect 18 passed.
 - Walk through [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) front-to-back as a fresh reader; flag any step that's stale.
 - If pushing the HF Space: `huggingface-cli upload <user>/graphrag-aero hf_space/ . --repo-type=space` (only after a publicly-reachable backend exists).
+
+---
+
+## Smoke-pass progress (by opus-4.7, May 25 2026)
+
+### Completed ✓
+- **Corpus acquisition (Block 1):** 1261 PDFs acquired (91% of ~1384 expected); 590 MB total
+  - EN TSB: 593 files | FR TSB: 650 files | EN TC: 93 files | FR TC: 48 files
+  - Acquisition is resumable and idempotent; will continue to ~100% if re-run.
+- **Ingestion processing (Block 1):** 186 chunk JSONL files generated (7.2 MB so far); expected ~25k+ final chunks
+  - Chunks carry full metadata (doc_id, section_title, page, bbox, lang, chunk_hash)
+  - Processing is in-progress; --force flag re-chunks all docs.
+- **Test suite:** 221 tests pass (Python + TypeScript); all phases verified offline ✓
+  - No changes to code; entire stack still operational.
+
+### Blocked ⚠️
+- **Docker daemon:** Not available; daemon startup failed via PowerShell / com.docker.service start
+  - Blocks: Blocks 2–9 (embed, retrieve, graph, backend, frontend, hf-space, final)
+  - Root cause: Docker Desktop GUI not responding to CLI / service start; may require manual start or elevated permissions
+  - Workaround: User must manually start Docker Desktop or troubleshoot daemon availability
+- **Infrastructure services (Blocks 2–9):** Queued but unreachable without Docker
+  - Qdrant, Neo4j, Postgres, Ollama, otel-collector cannot start
+  - Embedding, retrieval, graph, and agent tests can run offline (stub models), but live integration requires Docker
+
+### Resumed for human input
+- Docker daemon availability is a critical blocker. Once Docker is running:
+  1. Resume with: `docker compose up -d qdrant neo4j postgres ollama otel-collector`
+  2. Continue with Block 2 (Embed): `python -m embed.run` → Qdrant population
+  3. Proceed through Blocks 3–9 as outlined in the queue above
+  4. Final cross-cut: run pytest + Vitest + docs walkthrough
+- Corpus acquisition can continue in background; full corpus (~1384 files) will further boost chunk count and search quality (expect ~35k+ chunks at 100% corpus coverage)
