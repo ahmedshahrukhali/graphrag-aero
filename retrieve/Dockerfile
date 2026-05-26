@@ -18,7 +18,10 @@ RUN apt-get update \
 
 # Re-use embed/'s requirements so we don't drift on pin versions.
 COPY embed/requirements.txt /tmp/requirements.txt
-RUN pip install --no-cache-dir -r /tmp/requirements.txt
+# Install CUDA-enabled torch first against PyTorch's index; subsequent pip
+# installs see torch already satisfied and skip the CPU wheel from PyPI.
+RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cu124 "torch>=2.2,<3" \
+ && pip install --no-cache-dir -r /tmp/requirements.txt
 
 # Pre-cache BGE-M3 (query encoder) and the cross-encoder reranker.
 RUN python -c "from FlagEmbedding import BGEM3FlagModel; BGEM3FlagModel('BAAI/bge-m3', use_fp16=True)" \

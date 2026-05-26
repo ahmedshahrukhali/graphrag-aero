@@ -19,7 +19,11 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 COPY embed/requirements.txt /tmp/requirements.txt
-RUN pip install --no-cache-dir -r /tmp/requirements.txt
+# Install CUDA-enabled torch first against PyTorch's index; subsequent pip
+# installs see torch already satisfied and skip the CPU wheel from PyPI.
+# Wheels bundle CUDA runtime libs, so python:3.11-slim base is fine.
+RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cu124 "torch>=2.2,<3" \
+ && pip install --no-cache-dir -r /tmp/requirements.txt
 
 # Pre-cache the BGE-M3 model weights (~1 GB fp16) so the first run on machines
 # without network completes successfully. Comment this out if you'd rather

@@ -53,14 +53,13 @@ services:
       - "11434:11434"
     volumes:
       - ollama_models:/root/.ollama
-    # --- Uncomment for NVIDIA GPU ---
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: all
-    #           capabilities: [gpu]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
 
   ingestion:
     build:
@@ -81,6 +80,13 @@ services:
         condition: service_started
     volumes:
       - ./data:/app/data
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
 
   retrieve:
     build:
@@ -93,6 +99,13 @@ services:
         condition: service_started
     volumes:
       - ./data:/app/data
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
 
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
@@ -129,6 +142,13 @@ services:
       - "8080:8080"
     volumes:
       - ./data:/app/data
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
 
   frontend:
     build:

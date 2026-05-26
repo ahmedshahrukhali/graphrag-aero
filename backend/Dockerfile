@@ -26,7 +26,10 @@ COPY agent/requirements.txt    /tmp/build/agent/requirements.txt
 COPY retrieve/requirements.txt /tmp/build/retrieve/requirements.txt
 COPY graph/requirements.txt    /tmp/build/graph/requirements.txt
 COPY embed/requirements.txt    /tmp/build/embed/requirements.txt
-RUN pip install --no-cache-dir -r /tmp/build/backend/requirements.txt
+# Install CUDA-enabled torch first against PyTorch's index; the nested
+# requirements files see torch already satisfied and skip the CPU wheel.
+RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cu124 "torch>=2.2,<3" \
+ && pip install --no-cache-dir -r /tmp/build/backend/requirements.txt
 
 # Pre-cache BGE-M3 + reranker so cold-start doesn't hit HuggingFace.
 RUN python -c "from FlagEmbedding import BGEM3FlagModel; BGEM3FlagModel('BAAI/bge-m3', use_fp16=True)" \
