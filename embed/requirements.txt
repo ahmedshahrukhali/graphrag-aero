@@ -1,4 +1,10 @@
 # P2 dense-embedding deps. Heavy (torch + FlagEmbedding) — kept separate from
 # the ingestion stack to avoid PaddleOCR/paddle vs torch CUDA conflicts.
 qdrant-client>=1.7,<2
-FlagEmbedding>=1.2.5
+FlagEmbedding>=1.2.5,<2
+# transformers 5.x (released Q1 2026) breaks BGE-M3 — its torch-availability
+# guards leave `nn` undefined when torch is older than 5.x expects, surfacing
+# as `NameError: name 'nn' is not defined` at import time. Hold at 4.4x.
+transformers>=4.44,<5
+# FlagEmbedding's bge-reranker-v2-m3 path expects torch >= 2.2.
+torch>=2.2,<3

@@ -2,4 +2,8 @@
 # qdrant-client) — pinning here separately so this module can be installed
 # without P2 if a caller wants only the agent runtime side.
 qdrant-client>=1.7,<2
-FlagEmbedding>=1.2.5
+FlagEmbedding>=1.2.5,<2
+# See embed/requirements.txt for why transformers 5.x is pinned out — same
+# `NameError: name 'nn' is not defined` import failure hits the reranker.
+transformers>=4.44,<5
+torch>=2.2,<3
