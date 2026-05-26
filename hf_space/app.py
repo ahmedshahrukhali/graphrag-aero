@@ -172,62 +172,116 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
             f"{flag} backend: qdrant={h.qdrant.ok} · neo4j={h.neo4j.ok} · ollama={h.ollama.ok}"
         )
 
-    with gr.Blocks(title="GraphRAG Aero") as app:
-        gr.Markdown(
-            "# GraphRAG Aero — TC + TSB aviation safety\n"
-            "Ask a question in **English or French**. The agent retrieves passages from "
-            "Transport Canada Advisory Circulars and TSB investigation reports, drafts an "
-            "answer, and pauses at the HITL gate so you can edit before finalising."
-        )
+    theme = gr.themes.Soft(primary_hue="blue", secondary_hue="indigo").set(
+        body_background_fill="*neutral_50",
+        block_background_fill="white",
+        block_border_width="1px",
+        block_shadow="*shadow_drop_lg",
+    )
+
+    with gr.Blocks(
+        title="GraphRAG Aero",
+        theme=theme,
+        css=".gradio-container{max-width:1200px!important;margin:auto}"
+            " .hero h1{margin-bottom:.25em} .hero p{color:#475569;margin-top:0}"
+            " .pill{display:inline-block;padding:2px 8px;border-radius:999px;"
+            "background:#eff6ff;color:#1e40af;font-size:12px;margin-right:6px}",
+    ) as app:
+        with gr.Row(elem_classes="hero"):
+            gr.Markdown(
+                "# 🛩️ GraphRAG Aero\n"
+                "**Multilingual Graph RAG over Transport Canada Advisory Circulars + "
+                "TSB aviation investigation reports.** Ask in English or French; the "
+                "agent retrieves cited passages, drafts an answer, and pauses at a "
+                "Human-in-the-Loop gate so you can edit before finalising.\n\n"
+                "<span class='pill'>BGE-M3 + reranker-v2-m3</span>"
+                "<span class='pill'>Qdrant 54k chunks</span>"
+                "<span class='pill'>Neo4j knowledge graph</span>"
+                "<span class='pill'>gemma2:9b · Ollama</span>"
+                "<span class='pill'>EN + FR</span>"
+            )
 
         state = gr.State({})
+
         with gr.Row():
-            status = gr.Markdown("_ready._")
-        with gr.Row():
-            health_btn = gr.Button("Check backend", scale=0)
-            health_md = gr.Markdown("")
+            health_md = gr.Markdown("_checking backend…_")
+            health_btn = gr.Button("↻ Refresh", scale=0, size="sm")
             health_btn.click(on_healthz, inputs=[state], outputs=[health_md])
 
         with gr.Row():
             query = gr.Textbox(
-                label="Question",
+                label="Your question",
                 placeholder="e.g. fuel exhaustion forced landing",
                 lines=2,
                 scale=4,
+                autofocus=True,
             )
         with gr.Row():
             lang = gr.Radio(["all", "en", "fr"], value="all", label="Language")
             source = gr.Radio(["all", "tsb", "tc"], value="all", label="Source")
             max_hops = gr.Slider(1, 5, value=2, step=1, label="Max hops")
-            ask_btn = gr.Button("Ask agent", variant="primary")
+            ask_btn = gr.Button("🔍 Ask agent", variant="primary", size="lg")
+
+        gr.Examples(
+            examples=[
+                ["fuel exhaustion forced landing", "en", "tsb", 2],
+                ["engine failure after takeoff", "en", "tsb", 2],
+                ["carburetor icing", "en", "all", 2],
+                ["VFR flight into IMC", "en", "tsb", 2],
+                ["alimentation en carburant", "fr", "tsb", 2],
+                ["atterrissage forcé moteur en panne", "fr", "tsb", 2],
+            ],
+            inputs=[query, lang, source, max_hops],
+            label="Try a sample query",
+        )
+
+        status = gr.Markdown("_ready._")
 
         with gr.Row():
             with gr.Column(scale=3):
                 draft = gr.Textbox(
-                    label="Draft (HITL gate — edit before finalising)",
+                    label="✏️ Draft answer — edit before finalising (HITL gate)",
                     lines=10,
                     visible=False,
                     interactive=True,
                 )
-                finalize_btn = gr.Button("Finalize", visible=True)
-                final_md = gr.Markdown(visible=False)
+                finalize_btn = gr.Button("✅ Finalize", variant="primary", visible=True)
+                final_md = gr.Markdown(visible=False, label="Final answer")
             with gr.Column(scale=2):
                 gallery = gr.Gallery(
-                    label="Cited PDF snippets",
+                    label="📄 Cited PDF snippets (bbox highlighted)",
                     columns=1,
                     rows=2,
                     height="auto",
                     visible=False,
+                    object_fit="contain",
                 )
-        chunks_md = gr.Markdown(visible=False)
 
-        gr.Markdown("### Agent trace")
-        trace = gr.Dataframe(
-            headers=["node", "elapsed_ms", "extras"],
-            datatype=["str", "number", "str"],
-            interactive=False,
-            visible=False,
-        )
+        with gr.Accordion("📚 Cited passages (text)", open=False):
+            chunks_md = gr.Markdown("_run a query to see cited passages._")
+
+        with gr.Accordion("🔬 Agent trace", open=False):
+            trace = gr.Dataframe(
+                headers=["node", "elapsed_ms", "extras"],
+                datatype=["str", "number", "str"],
+                interactive=False,
+                wrap=True,
+            )
+
+        with gr.Accordion("ℹ️ About", open=False):
+            gr.Markdown(
+                "- **Corpus:** ~54k chunks across 1,860 docs from TSB aviation "
+                "investigation reports (1991–present, EN + FR) and Transport Canada "
+                "Advisory Circulars.\n"
+                "- **Pipeline:** Qdrant ANN over BGE-M3 dense embeddings → "
+                "bge-reranker-v2-m3 cross-encoder → multi-hop LangGraph agent → "
+                "HITL gate → gemma2:9b synthesis.\n"
+                "- **Multimodal:** for every cited chunk the Space fetches the source "
+                "PDF and renders the page with the chunk's bounding box highlighted.\n"
+                "- **Source code:** https://github.com/ahmedshahrukhali/graphrag-aero\n"
+                "- This Space is a thin client; all inference happens on a backend "
+                "exposed via `BACKEND_URL`."
+            )
 
         ask_btn.click(
             on_ask,
@@ -239,6 +293,8 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
             inputs=[draft, state],
             outputs=[state, final_md, trace, status],
         )
+
+        app.load(on_healthz, inputs=[state], outputs=[health_md])
 
     return app
 
