@@ -10,11 +10,10 @@ services:
       - "6334:6334"
     volumes:
       - qdrant_data:/qdrant/storage
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6333/healthz"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
+    # Qdrant's image is debian-slim and ships no curl/wget/nc/bash — every shell-based
+    # healthcheck fails. The service itself is fine; dependents wait on service_started,
+    # not service_healthy. Leaving healthcheck off keeps Docker from marking the
+    # container "unhealthy" indefinitely.
 
   neo4j:
     image: neo4j:5
@@ -79,7 +78,7 @@ services:
     env_file: .env
     depends_on:
       qdrant:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./data:/app/data
 
@@ -91,7 +90,7 @@ services:
     env_file: .env
     depends_on:
       qdrant:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./data:/app/data
 
@@ -117,7 +116,7 @@ services:
       OLLAMA_HOST: "http://ollama:11434"
     depends_on:
       qdrant:
-        condition: service_healthy
+        condition: service_started
       neo4j:
         condition: service_healthy
       postgres:
