@@ -84,6 +84,9 @@ class BackendDeps:
     ping_qdrant: Callable[[], None]
     ping_neo4j: Callable[[], None]
     ping_ollama: Callable[[], None]
+    # Releases resources opened at startup (e.g. the Postgres connection behind
+    # the checkpointer). Called by the lifespan's shutdown. None for stubs.
+    closer: Callable[[], None] | None = None
 
 
 def build_default_deps() -> BackendDeps:
@@ -120,9 +123,20 @@ def build_default_deps() -> BackendDeps:
         qdrant=qdrant, neo4j=neo4j, llm=llm,
         collection=cfg.collection,
     )
-    checkpointer = (
-        make_postgres_saver() if os.environ.get("POSTGRES_DSN") else make_memory_saver()
-    )
+    # PostgresSaver.from_conn_string is a context manager that owns a live DB
+    # connection — it must be *entered* to yield a usable saver, and kept open
+    # for the whole app lifetime (the agent CLI enters it per-command, but the
+    # backend builds deps once). Enter it via an ExitStack and hand the close
+    # back as ``closer`` so the lifespan can release the connection on shutdown.
+    closer: Callable[[], None] | None = None
+    if os.environ.get("POSTGRES_DSN"):
+        from contextlib import ExitStack
+        stack = ExitStack()
+        checkpointer = stack.enter_context(make_postgres_saver())
+        checkpointer.setup()  # idempotent: CREATE TABLE IF NOT EXISTS
+        closer = stack.close
+    else:
+        checkpointer = make_memory_saver()
 
     def _ping_qdrant():
         qdrant.get_collections()
@@ -143,4 +157,5 @@ def build_default_deps() -> BackendDeps:
         ping_qdrant=_ping_qdrant,
         ping_neo4j=_ping_neo4j,
         ping_ollama=_ping_ollama,
+        closer=closer,
     )

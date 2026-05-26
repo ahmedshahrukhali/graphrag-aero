@@ -55,6 +55,12 @@ async def lifespan(app: FastAPI):
             deps.agent_deps.reranker.unload()
         except Exception:  # noqa: BLE001
             pass
+        # Close the checkpointer's DB connection (Postgres) if one was opened.
+        try:
+            if deps.closer is not None:
+                deps.closer()
+        except Exception:  # noqa: BLE001
+            pass
 
 
 def create_app(*, deps_builder: Callable[[], BackendDeps] | None = None,
