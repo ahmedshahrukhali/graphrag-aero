@@ -26,6 +26,32 @@ from hf_space.pdf_render import PdfRenderError, render_page_with_bbox
 logger = logging.getLogger(__name__)
 
 
+def _patch_gradio_client_bool_schema() -> None:
+    """Work around a gradio_client 4.x bug: ``_json_schema_to_python_type``
+    assumes every schema is a dict, but a JSON schema can legally be a bool
+    (e.g. ``additionalProperties: true``). When one reaches ``get_type`` it
+    does ``if "const" in schema`` on a bool → ``TypeError``, which crashes
+    ``get_api_info()`` at launch and stops the server from binding. Short-
+    circuit bool schemas the way upstream later did. Idempotent + defensive.
+    """
+    try:
+        import gradio_client.utils as gcu
+    except Exception:  # noqa: BLE001
+        return
+
+    orig = gcu._json_schema_to_python_type
+
+    def safe(schema, defs=None):
+        if isinstance(schema, bool):
+            return "Any"
+        return orig(schema, defs)
+
+    gcu._json_schema_to_python_type = safe
+
+
+_patch_gradio_client_bool_schema()
+
+
 # ─── handlers ────────────────────────────────────────────────────────────────
 
 def _lang_param(choice: str) -> str | None:
