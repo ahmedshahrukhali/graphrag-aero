@@ -17,12 +17,16 @@ RUN apt-get update \
       libgomp1 ca-certificates \
  && rm -rf /var/lib/apt/lists/*
 
-COPY backend/requirements.txt /tmp/requirements.txt
-COPY retrieve/requirements.txt /tmp/retrieve-requirements.txt
-COPY embed/requirements.txt /tmp/embed-requirements.txt
-COPY graph/requirements.txt /tmp/graph-requirements.txt
-COPY agent/requirements.txt /tmp/agent-requirements.txt
-RUN pip install --no-cache-dir -r /tmp/requirements.txt
+# backend/requirements.txt does `-r ../agent/requirements.txt`, which in turn
+# does `-r ../retrieve/requirements.txt` and `-r ../graph/requirements.txt`.
+# pip resolves these relative to the requirements file, so we have to lay the
+# files out in the same directory structure as the repo (not flatten into /tmp).
+COPY backend/requirements.txt  /tmp/build/backend/requirements.txt
+COPY agent/requirements.txt    /tmp/build/agent/requirements.txt
+COPY retrieve/requirements.txt /tmp/build/retrieve/requirements.txt
+COPY graph/requirements.txt    /tmp/build/graph/requirements.txt
+COPY embed/requirements.txt    /tmp/build/embed/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/build/backend/requirements.txt
 
 # Pre-cache BGE-M3 + reranker so cold-start doesn't hit HuggingFace.
 RUN python -c "from FlagEmbedding import BGEM3FlagModel; BGEM3FlagModel('BAAI/bge-m3', use_fp16=True)" \
