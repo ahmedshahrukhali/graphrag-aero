@@ -147,27 +147,47 @@ MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, o
 
 ---
 
-## Smoke-pass progress (opus-4.7 May 25, haiku-4.5 May 26)
+## Smoke-pass progress (opus-4.7 May 25–26, haiku-4.5 May 26)
 
 ### Completed ✓
-- **Block 1 (Corpus acquisition):** 2,528 PDFs acquired (vs. 1,261 baseline — 100% TSB, TC hit network timeout)
-  - EN TSB: ~900 files | FR TSB: ~1100 files | EN TC: 93 files | FR TC: 48 files (~435 expected, timeout after ~140)
-  - Idempotent; resume with `python -m ingestion.acquisition.run --source tsb` (continues from where it stopped)
-- **Block 1 (Ingestion processing):** 2,143 chunks generated from 2,528 PDFs (data/chunks/ + 398 JSONL files)
-  - Metadata: doc_id, section_title, page, bbox, lang, chunk_hash; median 512 BGE-M3 tokens
-- **Block 4 (Graph):** Neo4j schema initialized; 1,032 Occurrence nodes upserted from chunks
-- **Infrastructure:** Docker running (Qdrant, Neo4j, Postgres, Ollama, OTel); gemma2:9b model pulled (5.5GB)
-- **Test suite:** 221 tests pass (Python + TypeScript); all phases verified offline ✓
-  - No code changes; stack operational.
-- **Docker images:** embed (built), frontend (built, 18 tests pass); backend pending retry
-- **Dependencies:** transformers 4.57.6 + torch 2.12.0 pinned in requirements (fixed NameError: name 'nn' is not defined)
+- **Block 1 (Acquisition):** 2,528 PDFs on disk (vs. 1,261 baseline). TSB 100%; TC partial — `tc.canada.ca` timed out after ~140 of 243 ACs. Idempotent; re-run `ingestion.acquisition.run --source tc` later to finish.
+- **Block 1 (Processing):** **36,240 chunks across 1,860 doc files** (well above the queue's ~25k target). Stopped at ~74% of PDFs — the last ~670 are image-heavy ones that trigger PaddleOCR and were running at ~1 file / 2 min, dominating CPU. Idempotent — re-run later to finish.
+- **Block 4 (Graph):** Neo4j schema applied (7 statements). **1,032 Occurrence nodes upserted** from chunks.
+- **Infrastructure:** Docker running on WSL2. `qdrant`, `neo4j`, `postgres`, `ollama`, `otel-collector` all up. `gemma2:9b` (Q4_K_M, 5.5 GB) pulled into Ollama.
+- **Block 2 (Embed):** Real BGE-M3 embeddings in Qdrant. **256 points, dim 1024, Cosine** in `aerospace_dense`. Stopped on purpose at 256 because CPU-only embed was running at ~13 pts/min — full 36k would have been hours. GPU enablement queued (see below).
+- **Test suite:** still 221 passed (all mocked tests).
+- **Docker images built:** `frontend` ✓ (18 Vitest tests pass), `embed` ✓.
 
-### Blocked ⚠️
-- **Block 2 (Embed):** Docker container ran but Qdrant shows 0 points (container may have failed silently; network/auth/error diagnosis needed)
-- **Block 6 (Backend):** Docker build failed on first attempt (pip install); pending --no-cache rebuild
-- **Block 3–5, 7–9:** Queued; depend on embed completion
+### Bugs fixed this session (real code, not just config)
+- **`fix(qdrant): remove broken healthcheck`** (commit `3c69b21`) — `qdrant/qdrant` image is debian-slim without curl/wget/nc/bash, so `["CMD", "curl", "-f", ...]` returned `exec: curl: executable file not found` forever. Dependents waiting on `service_healthy` would never start, and `embed` was silently failing with "dependency failed to start: container ... is unhealthy" while the host saw an exit-0 task. Fix: drop the healthcheck, downgrade dependents (`embed`, `retrieve`, `backend`) to `service_started`.
+- **`fix(backend): preserve requirements directory layout`** (commit `cc950a3`) — `backend/requirements.txt` does `-r ../agent/requirements.txt`, which does `-r ../retrieve/requirements.txt` + `-r ../graph/requirements.txt`. The Dockerfile flattened every requirements file into `/tmp/`, so the first relative reference pointed at `/agent/requirements.txt` (doesn't exist in image) and pip died with `No such file or directory: '/tmp/../agent/requirements.txt'`. **Backend has never built successfully** — this bug shipped with the original P6 commit (`200c3a2`) and went unnoticed because nobody had built the image end-to-end on this machine until now. Fix: copy each requirements file into `/tmp/build/<module>/requirements.txt` so relative paths resolve.
 
-### Queued for Sonnet 4.6+
-- Diagnose why embed Docker container didn't populate Qdrant despite task completion (network access, auth, container logs)
-- Retry backend Docker build with --no-cache (should resolve now that pinned deps in requirements.txt are locked)
-- Resume Blocks 3–9 (retrieve, graph queries, eval, backend, frontend, HF Space, final cross-cuts)
+### Open scope decisions (already made, not blockers)
+- **Chunking:** stopped at 36k chunks. Resume `python -m ingestion.processing.run` later if you want the last ~25% of PDFs.
+- **Embed scale:** stopped at 256 points to advance the smoke. Full-corpus embed re-runs after GPU enablement (idempotent — point ID = UUID from chunk_hash, re-running adds the missing 35,984 without duplicating).
+- **TC corpus:** the 100 ACs that timed out on `tc.canada.ca` can be picked up by re-running acquisition.
+
+### Next: GPU passthrough (plan approved, pending execution)
+GPU verified reachable from Docker: `docker run --rm --gpus all nvidia/cuda:12.4.0-base-ubuntu22.04 nvidia-smi` shows 3060Ti, 6.5 GB free, driver 596.49 (CUDA driver API 13.2). Plan:
+
+1. In **`embed/Dockerfile`**, **`retrieve/Dockerfile`**, **`backend/Dockerfile`**, add one new RUN before the existing pip install:
+   ```
+   RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cu124 "torch>=2.2,<3"
+   ```
+   Modern torch wheels bundle their own CUDA runtime libs — no need to switch off `python:3.11-slim`. Subsequent pip installs see torch already present and skip it.
+2. In **`docker-compose.yml`**, add `deploy.resources.reservations.devices` for `embed`, `retrieve`, `backend` services. Uncomment the same stanza already drafted on `ollama`. Block:
+   ```yaml
+   deploy:
+     resources:
+       reservations:
+         devices:
+           - driver: nvidia
+             count: all
+             capabilities: [gpu]
+   ```
+3. Rebuild three images — `--no-cache` on `embed` (CPU torch is cached), the rest will pick up fresh.
+4. Re-run `embed`. Expect 36k chunks in ~10–15 min (BGE-M3 forward pass goes from ~5s/batch on CPU to ~0.1s/batch on the 3060Ti).
+5. Sequential VRAM budget still holds: BGE-M3 (~0.5 GB) + reranker-v2-m3 (~0.5 GB) + gemma2:9b Q4_K_M (~5.5 GB) ≈ 6.5 GB, fits in 8 GB. `ModelSession` + `synthesize_node.unload()` already enforce sequential loading.
+
+### After GPU passthrough lands
+Resume the queue from Block 2 onward (since embed will re-run and finish properly): full embed → Block 3 (retrieve smoke + cross-lingual query) → Block 5 (eval — flag if recall@5 = 0, the 4 hand-picked TSB doc_ids may not be in the corpus we have) → Block 6 (backend up + curl /healthz, /retrieve, /query, /resume) → Block 7 (frontend manual test) → Block 8 (HF Space) → Block 9 (full pytest + vitest + docs walkthrough).
