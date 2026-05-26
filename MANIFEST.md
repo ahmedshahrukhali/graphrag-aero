@@ -167,7 +167,13 @@ MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, o
 - **Embed scale:** stopped at 256 points to advance the smoke. Full-corpus embed re-runs after GPU enablement (idempotent — point ID = UUID from chunk_hash, re-running adds the missing 35,984 without duplicating).
 - **TC corpus:** the 100 ACs that timed out on `tc.canada.ca` can be picked up by re-running acquisition.
 
-### Next: GPU passthrough (plan approved, pending execution)
+### GPU passthrough — ☑ LANDED (opus-4.7, 2026-05-26)
+All five plan steps executed. `torch 2.6.0+cu124` in all three images; `torch.cuda.is_available()` True, sees RTX 3060 Ti. GPU device reservations live on `ollama`, `embed`, `retrieve`, `backend`. Commit `9a216c5`.
+- **Full embed on GPU:** `aerospace_dense` now holds **54,280 points** (was 256), dim 1024, Cosine, status green. 1,697 batches in ~26 min.
+- **Block 3 retrieve smoke — ☑ both pass.** EN `"fuel exhaustion forced landing"` top-5 are all on-topic TSB occurrences (A13Q0098 "Forced Landing Following Fuel Exhaustion", A08C0124 / A03A0013 "Fuel Starvation / Forced Landing") — no boilerplate. FR cross-lingual `"alimentation en carburant" --lang fr` returns French fuel-system passages, lang filter correct. Sequential VRAM (load bge-m3 → load reranker → unload both) observed in logs.
+- **Gotcha found & worked around:** the Bash tool (Git Bash/MSYS) rewrites leading-slash CLI args like `--in /app/data/chunks` into `C:/Program Files/Git/app/data/chunks`, causing a silent "0 upserted" (no error). Code was never at fault. Use the **PowerShell tool** for docker runs that pass container-absolute paths.
+
+### Original plan (kept for reference)
 GPU verified reachable from Docker: `docker run --rm --gpus all nvidia/cuda:12.4.0-base-ubuntu22.04 nvidia-smi` shows 3060Ti, 6.5 GB free, driver 596.49 (CUDA driver API 13.2). Plan:
 
 1. In **`embed/Dockerfile`**, **`retrieve/Dockerfile`**, **`backend/Dockerfile`**, add one new RUN before the existing pip install:
