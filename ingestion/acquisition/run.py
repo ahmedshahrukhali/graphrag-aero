@@ -37,7 +37,7 @@ def run_tsb(
             dest = out_root / lang / "tsb" / f"{rid.lower()}.pdf"
             try:
                 results.append(download(session, url, dest))
-            except requests.HTTPError as e:
+            except requests.RequestException as e:
                 logger.warning("TSB %s/%s: %s", rid, lang, e)
     return results
 
@@ -59,7 +59,7 @@ def _run_tc_lang(
     for detail_url in detail_urls:
         try:
             detail_html = fetch_text(session, detail_url)
-        except requests.HTTPError as e:
+        except requests.RequestException as e:
             logger.warning("TC %s detail %s: %s", lang, detail_url, e)
             continue
         pdf_urls = tc.extract_pdf_urls(detail_html, detail_url)
@@ -70,7 +70,7 @@ def _run_tc_lang(
             dest = out_root / lang / "tc" / tc.filename_for(pdf_url)
             try:
                 results.append(download(session, pdf_url, dest))
-            except requests.HTTPError as e:
+            except requests.RequestException as e:
                 logger.warning("TC %s %s: %s", lang, pdf_url, e)
     return results
 
