@@ -409,47 +409,35 @@ extent when area < `MIN_USABLE_BBOX_AREA` (5000 pt²). 1 new test (9 total in te
 All code is committed and tested offline (307 pytest passed). These are the remaining
 integration steps that require the running stack.
 
-**Status as of 2026-05-27 session:**
+**Status as of 2026-05-27 session (updated):**
 - Steps 1–5 ✅ completed (see "Live smoke-pass" section above).
-- LLM extraction (`--extract`) 🔄 running in background.
-- Steps 6–8 still pending.
+- Step 6 ✅ HF Space redeployed (sonnet-4.6, 2026-05-27) — see below.
+- Step 7 ✅ Baseline bbox eval run — 20% hit rate (expected, pre-fix chunks) — see below.
+- Steps 7b + 8: `--force` reprocess 🔄 running in background (~44 min, logs/processing_force.log).
+  After it finishes: run embed, then re-run bbox eval to confirm improvement.
 
-### Step 6 — Redeploy HF Space Tier-2 UI
+### Step 6 — Redeploy HF Space Tier-2 UI ☑ (sonnet-4.6, 2026-05-27)
+- Tunnel: `https://transaction-mystery-hold-reform.trycloudflare.com` (ephemeral — rotate on restart)
+- `BACKEND_URL` secret updated on `ahmedsali/graphaero-rag` Space.
+- `hf_space/` uploaded via `HfApi.upload_folder`.
+- Verified: `GET /run/on_healthz → ✅ backend: qdrant=True · neo4j=True · ollama=True`
+
+### Step 7 — Verify bbox accuracy ☑ baseline (sonnet-4.6, 2026-05-27)
+**Baseline (pre-fix chunks):** 50 TSB chunks, 0 errors, mean_sim=0.205, **hit_rate=20%**.
+Worst cases: `"- 3 -"`, `"- 4 -"` (page numbers) — confirms cross-page tiny-bbox diagnosis.
+Re-run after `--force` reprocess + embed to verify improvement to >70%.
+
+### Step 7b + 8 — Reprocess all chunks + re-embed (running)
 ```powershell
-# Rebuild backend first (includes thread-safety fix + graph fixes)
-docker compose build backend
-docker compose up -d backend
-# Restart cloudflared tunnel, copy new URL:
-cloudflared tunnel --url http://localhost:8080
-# Set BACKEND_URL secret on HF Space to new tunnel URL, then:
-huggingface-cli upload ahmedsali/graphaero-rag hf_space/ . --repo-type=space
+# Running in background: logs/processing_force.log
+docker compose --profile ingest run --rm ingestion --in /app/data/corpus --out /app/data/chunks --force
+# After it finishes (~50 min total), re-embed:
+docker compose --profile embed run --rm embed
+# Then re-run bbox eval to verify hit rate > 70%:
+python -m eval.bbox_eval --n 50 --save-crops crops/post_fix --source tsb
 ```
 
-### Step 7 — Verify bbox accuracy (no model needed — pdfplumber crop)
-```powershell
-# Primary check uses pdfplumber crop+extract_text (same coords as chunker, no OCR model).
-# --save-crops renders annotated page PNGs for visual inspection.
-python -m eval.bbox_eval --n 50 --save-crops crops/ --source tsb
-# Inspect crops/ — the amber rectangle should land on the cited text.
-# Expect after chunk.py fallback fix: mean_similarity > 0.5, hit_rate > 70%
-# (old eval before fix: ~20% hit rate due to cross-page tiny bboxes)
-# Re-run after --force reprocess to confirm improvement.
-```
-
-### Step 7b — Reprocess OCR-page chunks with the coordinate fix
-The `ocr.py` bbox coordinate bug was present when the 36k chunks were written.
-Text-PDF chunks are unaffected. OCR-page chunks (image-heavy PDFs) have wrong bboxes.
-To fix those chunks:
-```powershell
-# Find image-heavy docs (the ones that went through PaddleOCR during processing):
-# These are typically short PDFs or scanned pages that triggered the fallback.
-# Reprocess with --force to regenerate bboxes in correct PDF point space:
-python -m ingestion.processing.run --force   # regenerates all chunks (slow)
-# Or target just image-heavy dirs if you can identify them.
-python -m embed.run                          # re-embed updated chunks (idempotent)
-```
-
-### Step 8 — Optional: resume PaddleOCR processing for remaining ~25% of corpus
+### Step 9 — Optional: additional corpus coverage
 ```powershell
 python -m ingestion.processing.run     # idempotent; picks up remaining image-heavy PDFs
 python -m embed.run                    # embed new chunks
