@@ -120,3 +120,38 @@ A phase is handed back when: tests pass, the dir README is updated, MANIFEST.md 
 the resume pointer is moved to the next phase, and the run is verified on the sample corpus.
 That MANIFEST diff + `git diff` is everything the next model (or a fresh session) needs.
 **If a phase was worked but MANIFEST wasn't updated, that's a bug — flag it before continuing.**
+
+---
+
+## Session discipline
+
+### Start of every session
+1. Read the last 3 entries in `SESSIONS.md`.
+2. Read the resume pointer in `MANIFEST.md`. Start there — not from scratch, not from memory.
+
+### End of every session
+Append one entry to `SESSIONS.md` (most recent at top). Then update the resume pointer in `MANIFEST.md`. Both must happen before the session ends — uncommitted state and stale pointers are bugs.
+
+Entry format (keep under 10 lines):
+```
+## Session N — YYYY-MM-DD — model-tag
+**Commits:** hash list
+**Achieved:** bullets
+**Left:** bullets (these become the new resume pointer)
+```
+
+### Session budgeting
+- **Sonnet 4.6 / Opus:** ~25–40 min of real inference work. Plan tasks so you can commit + update pointers before running out. Don't start a feature you can't finish this session.
+- **Haiku 4.5:** long mechanical runs — embed, ingest, test suites, manifest fills. Assign multi-hour tasks. Never authors logic.
+- Split work at **commit boundaries.** Anything uncommitted when the session ends loses its context trail.
+- If a task will clearly overflow one session, break it into a sub-task that delivers a commit, and leave the rest in "Left."
+
+### Resume pointer rules
+- The resume pointer in `MANIFEST.md` is the single source of truth for "where are we."
+- It must be specific: name the exact command or file to touch next, not a vague phase label.
+- After completing any step, immediately move the pointer to the next step — don't wait until session end.
+- Label ongoing work consistently. Use the scheme already in the file (`P#` for original phases, `S#` for post-ship sessions/sprints).
+
+### Retroactive logging (for old sessions without SESSIONS.md entries)
+Paste this into any old chat that hasn't logged yet:
+> "Scan the git commits from this conversation (`git log --oneline`). Add a SESSIONS.md entry (most recent at top) with: date, model, 3–5 bullet achievements, and what was left incomplete. Keep it under 10 lines."

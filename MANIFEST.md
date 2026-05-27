@@ -77,7 +77,25 @@ None. All resolved.
 MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, otel/otel-collector-config.yaml, per-dir README placeholders
 
 ## Resume pointer
-**NEXT: (none — project shipped).** All nine phases complete. The resume pointer has been retired.
+**NEXT: S3-Eval** — post-fix bbox eval (embed re-run in progress or just finished).
+
+```powershell
+# 1. Confirm embed finished (should show exit 0 or collection count near 54k+):
+docker logs $(docker ps -lq --filter name=embed) --tail 5
+
+# 2. Run post-fix eval (50 TSB chunks, save crop PNGs for inspection):
+python -m eval.bbox_eval --n 50 --save-crops crops/post_fix --source tsb > logs/bbox_eval_postfix.log 2>&1
+cat logs/bbox_eval_postfix.log | Select-String "hit_rate|mean_sim|evaluated"
+
+# 3. Log results to SESSIONS.md, update this pointer to S4 or Done.
+```
+
+**Baseline to beat:** hit_rate=20%, mean_sim=0.205 (pre-fix, 50 TSB chunks, 2026-05-27)
+**Target:** hit_rate >70%
+
+**S1 = Smoke pass** ☑ (sessions 3–4, opus-4.7 + sonnet-4.6, 2026-05-26)
+**S2 = Fix pass** ☑ (session 5–6, sonnet-4.6, 2026-05-27) — bbox fallback, CORS, eval pdfplumber refactor, force-reprocess 2878 chunks
+**S3 = Embed + Eval** 🔄 embed running → eval pending
 
 **Done so far:**
 - P0 ☑ scaffold
