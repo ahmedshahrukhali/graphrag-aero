@@ -40,6 +40,10 @@ def _get_ocr() -> Any:
     return _ocr_singleton
 
 
+OCR_RESOLUTION = 200  # DPI used when rendering pages for PaddleOCR
+_PTS_PER_PIXEL = 72.0 / OCR_RESOLUTION  # pixels → PDF points (top-left origin)
+
+
 def ocr_page(page: Any, page_no: int) -> PageExtract:
     """OCR a pdfplumber page (assumed image-only) and return a :class:`PageExtract`.
 
@@ -48,11 +52,15 @@ def ocr_page(page: Any, page_no: int) -> PageExtract:
     We collapse the polygon to a rectangular bbox and synthesize one Char per
     *line* (not per glyph) — the downstream chunker only uses chars for bbox
     aggregation, so per-line is plenty.
+
+    Bbox coordinates are stored in **PDF point space** (top-left origin, 72 pts/inch)
+    so they are consistent with pdfplumber's text-extraction coordinates and can be
+    passed directly to ``hf_space.pdf_render.bbox_to_pixels``.
     """
     ocr = _get_ocr()
     # Render the page to an image (pdfplumber API). Resolution=200 balances
     # OCR accuracy with memory; tune later if needed.
-    img = page.to_image(resolution=200)
+    img = page.to_image(resolution=OCR_RESOLUTION)
     pil = img.original  # PIL.Image
     result = ocr.ocr(pil, cls=False)
     # PaddleOCR 2.x returns a list of pages; we passed one page so result[0].
@@ -63,9 +71,13 @@ def ocr_page(page: Any, page_no: int) -> PageExtract:
         polygon, (text, _conf) = entry
         xs = [p[0] for p in polygon]
         ys = [p[1] for p in polygon]
-        x0, x1 = min(xs), max(xs)
-        top, bottom = min(ys), max(ys)
-        # One Char per line; .text holds the whole line so chunker can locate it.
+        # PaddleOCR coords are pixels in the rendered image. Convert to PDF
+        # point space so all bboxes across text and OCR pages share a coordinate
+        # system that pdf_render.bbox_to_pixels understands.
+        x0  = min(xs) * _PTS_PER_PIXEL
+        x1  = max(xs) * _PTS_PER_PIXEL
+        top = min(ys) * _PTS_PER_PIXEL
+        bottom = max(ys) * _PTS_PER_PIXEL
         chars.append(Char(
             text=text,
             x0=float(x0), x1=float(x1),
