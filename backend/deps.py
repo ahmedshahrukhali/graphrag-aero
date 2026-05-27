@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import logging
 import os
+import threading
 from dataclasses import dataclass
 from typing import Any, Callable, Protocol
 
@@ -35,19 +36,22 @@ class _LazySession:
         self._name = name
         self._session = None
         self._instance = None
+        self._lock = threading.Lock()
 
     def ensure_loaded(self):
-        if self._session is None:
-            from retrieve.vram import ModelSession
-            self._session = ModelSession(self._factory, name=self._name)
-            self._instance = self._session.__enter__()
-        return self._instance
+        with self._lock:
+            if self._session is None:
+                from retrieve.vram import ModelSession
+                self._session = ModelSession(self._factory, name=self._name)
+                self._instance = self._session.__enter__()
+            return self._instance
 
     def unload(self) -> None:
-        if self._session is not None:
-            self._session.__exit__(None, None, None)
-            self._session = None
-            self._instance = None
+        with self._lock:
+            if self._session is not None:
+                self._session.__exit__(None, None, None)
+                self._session = None
+                self._instance = None
 
 
 class LazyEmbedder:
