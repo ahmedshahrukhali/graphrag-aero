@@ -4,6 +4,17 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 
 ---
 
+## Session 10 — 2026-05-27 — haiku-4-5-20251001
+**Commits:** (none yet)
+**Achieved:**
+- Pre-flight verification: Docker daemon running, all services healthy (qdrant, postgres, neo4j, ollama, otel-collector, backend, frontend)
+- Verified Qdrant `aerospace_dense` collection: 63,946 points (beyond expected ~5626), vectors dim 1024, Cosine distance
+- Found 7,302 chunks across 2,878 JSONL files in data/chunks/ (more than prior summary indicated)
+- Identified accelerate/peft dependency conflict in FlagEmbedding import chain (import error)
+**Left:** Fix accelerate dependency; resume Block 2 (embed.run --limit 50, full embed, idempotency check); proceed with Blocks 3–9
+
+---
+
 ## Session 9 — 2026-05-27 — sonnet-4.6
 **Commits:** (none committed — .gitignore edit staged)
 **Achieved:**
