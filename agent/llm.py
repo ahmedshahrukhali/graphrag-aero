@@ -16,6 +16,16 @@ from typing import Protocol
 logger = logging.getLogger(__name__)
 
 
+# Ollama's default num_ctx (4096 for gemma2) silently truncates the citation
+# block — the synthesize prompt runs ~4.7k tokens, so the model never sees the
+# last citations and can't synthesize. 8192 fits the whole prompt.
+def _default_options() -> dict:
+    return {
+        "num_ctx": int(os.environ.get("OLLAMA_NUM_CTX", "8192")),
+        "temperature": float(os.environ.get("OLLAMA_TEMPERATURE", "0.2")),
+    }
+
+
 class LLM(Protocol):
     def chat(self, system: str, user: str) -> str: ...
 
@@ -37,7 +47,7 @@ class OllamaLLM:
         # the ``ollama`` module before any real network call.
         self._host = host or os.environ.get("OLLAMA_HOST", "http://localhost:11434")
         self._model = model or os.environ.get("OLLAMA_MODEL", "gemma2:9b")
-        self._options = options or {}
+        self._options = options if options is not None else _default_options()
         self._client = None
 
     def _ensure_client(self):

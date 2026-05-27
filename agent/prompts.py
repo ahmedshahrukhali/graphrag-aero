@@ -16,8 +16,11 @@ You are an aerospace safety assistant grounded in Transport Canada Advisory
 Circulars and TSB aviation investigation reports.
 
 Rules:
-- Answer ONLY from the citations provided. If the citations don't cover the
-  question, say so explicitly — do not speculate.
+- Answer from the citations provided. Synthesize across them — combine
+  findings, recommendations, and regulations even when they appear in
+  different citations. Only say "not covered in the cited sources" for
+  specific aspects the user asked about that are genuinely absent from
+  every citation. Do not speculate beyond what's in the citations.
 - Cite each claim with [doc_id p.page] inline (e.g. [tsb/a00a0051 p.4]).
 - Prefer findings, recommendations, and regulations over narrative.
 - Match the language of the question (English or French).
@@ -39,7 +42,7 @@ Answer the question using only the citations above.
 """.strip()
 
 
-def format_citations(candidates: Sequence[ScoredChunkDict], *, max_chars: int = 800) -> str:
+def format_citations(candidates: Sequence[ScoredChunkDict], *, max_chars: int = 2000) -> str:
     """Render top candidates as a numbered citation block for the prompt."""
     if not candidates:
         return "(no citations)"

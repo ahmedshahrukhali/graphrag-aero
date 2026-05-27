@@ -80,7 +80,8 @@ class FakeGraphDriver:
 
 # ─── helpers ─────────────────────────────────────────────────────────────────
 
-def _make_deps(qclient, llm=None, graph=None, reranker=None, embedder=None):
+def _make_deps(qclient, llm=None, graph=None, reranker=None, embedder=None,
+               *, anchored=False, top_n_docs=3, char_budget=24_000):
     return AgentDeps(
         embedder=embedder or StubEmbedder(0),
         reranker=reranker or StubReranker({}),
@@ -89,6 +90,7 @@ def _make_deps(qclient, llm=None, graph=None, reranker=None, embedder=None):
         llm=llm or StubLLM(),
         collection=COLL,
         ann_k=10, top_k=5,
+        anchored=anchored, top_n_docs=top_n_docs, char_budget=char_budget,
     )
 
 
@@ -170,6 +172,91 @@ def test_retrieve_node_merges_across_hops(qclient):
     # No dupes despite two retrievals.
     hashes = [c["chunk_hash"] for c in state["candidates"]]
     assert len(hashes) == len(set(hashes))
+
+
+# ─── retrieve_node (anchored) ─────────────────────────────────────────────────
+
+def test_agentdeps_anchored_default_on(monkeypatch):
+    monkeypatch.delenv("RETRIEVE_ANCHORED", raising=False)
+    deps = AgentDeps(
+        embedder=StubEmbedder(0), reranker=StubReranker({}),
+        qdrant=QdrantClient(":memory:"), neo4j=FakeGraphDriver({}),
+        llm=StubLLM(), collection=COLL,
+    )
+    assert deps.anchored is True
+
+
+def test_agentdeps_anchored_env_optout(monkeypatch):
+    monkeypatch.setenv("RETRIEVE_ANCHORED", "0")
+    deps = AgentDeps(
+        embedder=StubEmbedder(0), reranker=StubReranker({}),
+        qdrant=QdrantClient(":memory:"), neo4j=FakeGraphDriver({}),
+        llm=StubLLM(), collection=COLL,
+    )
+    assert deps.anchored is False
+
+
+def test_anchored_pulls_full_doc_not_just_title_page(qclient):
+    # doc000 has a keyword-rich "title" chunk (high ANN+rerank) plus content
+    # chunks the title-only search would never surface. Anchored mode must
+    # return the content chunks too.
+    title = _rec("fuel exhaustion forced landing report", idx=0)
+    body1 = _rec("the engine quit because the tanks ran dry", idx=0)
+    body2 = _rec("recommendation check fuel gauges before flight", idx=0)
+    # same doc (idx=0 → tsb/doc000) but distinct chunk hashes via text
+    for r in (title, body1, body2):
+        upsert_batch(qclient, COLL, [r], [_unit_vec(0)])
+    deps = _make_deps(
+        qclient, anchored=True,
+        reranker=StubReranker({
+            title.text: 0.99, body1.text: 0.80, body2.text: 0.85,
+        }),
+    )
+    node = make_retrieve_node(deps)
+    update = node(initial_state("fuel exhaustion"))
+    texts = {c["text"] for c in update["candidates"]}
+    assert title.text in texts and body1.text in texts and body2.text in texts
+    assert update["trace"][-1]["anchored"] is True
+
+
+def test_anchored_respects_char_budget(qclient):
+    big = "x" * 5000
+    r1 = _rec(big + "1", idx=0)
+    r2 = _rec(big + "2", idx=0)
+    r3 = _rec(big + "3", idx=0)
+    for r in (r1, r2, r3):
+        upsert_batch(qclient, COLL, [r], [_unit_vec(0)])
+    deps = _make_deps(
+        qclient, anchored=True, char_budget=6000,
+        reranker=StubReranker({r1.text: 0.9, r2.text: 0.8, r3.text: 0.7}),
+    )
+    node = make_retrieve_node(deps)
+    update = node(initial_state("q"))
+    # budget 6000, each chunk ~5001 chars → only the top-ranked one fits
+    assert len(update["candidates"]) == 1
+    assert update["candidates"][0]["text"] == r1.text
+
+
+def _rec_at(doc: str, page: int, text: str) -> ChunkRecord:
+    h = hashlib.sha256(f"{doc}:{page}:{text}".encode()).hexdigest()
+    return ChunkRecord(doc_id=doc, source_url=None, section_title="",
+                       page=page, bbox=[0, 0, 0, 0], chunk_hash=h, lang="en", text=text)
+
+
+def test_anchored_returns_reading_order(qclient):
+    # two docs; pages out of rerank order — result must sort by (doc_id, page)
+    a_p3 = _rec_at("tsb/doc000", 3, "a3")
+    a_p1 = _rec_at("tsb/doc000", 1, "a1")
+    b_p2 = _rec_at("tsb/doc001", 2, "b2")
+    for r in (a_p3, a_p1, b_p2):
+        upsert_batch(qclient, COLL, [r], [_unit_vec(0)])
+    deps = _make_deps(
+        qclient, anchored=True,
+        reranker=StubReranker({"a3": 0.9, "a1": 0.5, "b2": 0.7}),
+    )
+    node = make_retrieve_node(deps)
+    update = node(initial_state("q"))
+    assert [c["text"] for c in update["candidates"]] == ["a1", "a3", "b2"]
 
 
 # ─── graph_expand_node ───────────────────────────────────────────────────────

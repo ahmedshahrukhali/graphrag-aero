@@ -9,7 +9,7 @@ from qdrant_client import QdrantClient
 
 from embed.jsonl import ChunkRecord
 from embed.qdrant import DENSE_DIM, ensure_collection, upsert_batch
-from retrieve.search import _build_filter, dense_search
+from retrieve.search import _build_filter, dense_search, scroll_doc_chunks
 
 
 COLL = "test_search"
@@ -132,3 +132,46 @@ def test_search_returns_hydrated_record(client: QdrantClient):
     assert isinstance(hits[0].record, ChunkRecord)
     assert hits[0].record.text == "hello"
     assert hits[0].record.chunk_hash == rec.chunk_hash
+
+
+# ─── scroll_doc_chunks ───────────────────────────────────────────────────────
+
+def _doc_rec(doc: str, page: int, text: str) -> ChunkRecord:
+    h = hashlib.sha256(f"{doc}:{page}:{text}".encode()).hexdigest()
+    return ChunkRecord(
+        doc_id=doc, source_url=None, section_title="", page=page,
+        bbox=[0.0, 0.0, 0.0, 0.0], chunk_hash=h, lang="en", text=text,
+    )
+
+
+def test_scroll_doc_chunks_returns_all_chunks_for_doc(client: QdrantClient):
+    recs = [_doc_rec("tsb/doc000", p, f"chunk{p}") for p in range(1, 4)]
+    recs.append(_doc_rec("tsb/doc999", 1, "other"))
+    upsert_batch(client, COLL, recs, [_unit_vec(i) for i in range(len(recs))])
+    out = scroll_doc_chunks(client, COLL, ["tsb/doc000"])
+    assert len(out) == 3
+    assert {c.record.text for c in out} == {"chunk1", "chunk2", "chunk3"}
+    assert all(c.ann_score == 1.0 for c in out)
+
+
+def test_scroll_doc_chunks_multiple_docs(client: QdrantClient):
+    recs = [
+        _doc_rec("tsb/doc000", 1, "a"),
+        _doc_rec("tsb/doc001", 1, "b"),
+        _doc_rec("tsb/doc002", 1, "c"),
+    ]
+    upsert_batch(client, COLL, recs, [_unit_vec(i) for i in range(3)])
+    out = scroll_doc_chunks(client, COLL, ["tsb/doc000", "tsb/doc002"])
+    assert {c.record.doc_id for c in out} == {"tsb/doc000", "tsb/doc002"}
+
+
+def test_scroll_doc_chunks_empty_ids(client: QdrantClient):
+    assert scroll_doc_chunks(client, COLL, []) == []
+
+
+def test_scroll_doc_chunks_paginates(client: QdrantClient):
+    # more chunks than page_size — exercise the scroll loop
+    recs = [_doc_rec("tsb/doc000", p, f"c{p}") for p in range(1, 11)]
+    upsert_batch(client, COLL, recs, [_unit_vec(i % DENSE_DIM) for i in range(10)])
+    out = scroll_doc_chunks(client, COLL, ["tsb/doc000"], page_size=3)
+    assert len(out) == 10

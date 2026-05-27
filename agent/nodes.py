@@ -8,8 +8,9 @@ the same node functions are used in production and in tests with stubs.
 from __future__ import annotations
 
 import logging
+import os
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Callable
 
 from qdrant_client import QdrantClient
@@ -18,7 +19,12 @@ from embed.bge_m3 import DenseEmbedder
 
 from graph.client import DriverLike
 from graph.query import graph_context_for_occurrences
-from retrieve.pipeline import retrieve_and_rerank
+from retrieve.pipeline import (
+    DEFAULT_CHAR_BUDGET,
+    DEFAULT_TOP_N_DOCS,
+    anchored_retrieve,
+    retrieve_and_rerank,
+)
 from retrieve.reranker import CrossEncoderReranker
 
 from .llm import LLM
@@ -31,6 +37,10 @@ logger = logging.getLogger(__name__)
 
 # Threshold below which we trigger another retrieval hop. Tunable.
 CONFIDENCE_THRESHOLD = 0.5
+
+
+def _anchored_default() -> bool:
+    return os.environ.get("RETRIEVE_ANCHORED", "1").lower() not in ("0", "false", "no")
 
 
 @dataclass(frozen=True)
@@ -46,6 +56,9 @@ class AgentDeps:
     ann_k: int = 50
     top_k: int = 10
     confidence_threshold: float = CONFIDENCE_THRESHOLD
+    anchored: bool = field(default_factory=_anchored_default)
+    top_n_docs: int = DEFAULT_TOP_N_DOCS
+    char_budget: int = DEFAULT_CHAR_BUDGET
 
 
 # ─── helpers ─────────────────────────────────────────────────────────────────
@@ -92,21 +105,42 @@ def make_retrieve_node(deps: AgentDeps) -> Callable[[AgentState], dict]:
     def retrieve_node(state: AgentState) -> dict:
         started = time.time()
         query = state["query"]
-        results = retrieve_and_rerank(
-            query,
-            embedder=deps.embedder,
-            reranker=deps.reranker,
-            client=deps.qdrant,
-            collection=deps.collection,
-            ann_k=deps.ann_k,
-            top_k=deps.top_k,
-        )
-        new = [scored_chunk_to_dict(r) for r in results]
-        merged = _merge_candidates(state.get("candidates", []), new, top_k=deps.top_k)
+        if deps.anchored:
+            # Anchored mode pools whole documents and lets the char budget +
+            # reading-order sort govern, so we replace candidates wholesale
+            # rather than merge/truncate to top_k (which would drop content
+            # pages and scramble reading order).
+            results = anchored_retrieve(
+                query,
+                embedder=deps.embedder,
+                reranker=deps.reranker,
+                client=deps.qdrant,
+                collection=deps.collection,
+                ann_k=deps.ann_k,
+                top_k=deps.top_k,
+                top_n_docs=deps.top_n_docs,
+                char_budget=deps.char_budget,
+            )
+            merged = [scored_chunk_to_dict(r) for r in results]
+            n_new = len(merged)
+        else:
+            results = retrieve_and_rerank(
+                query,
+                embedder=deps.embedder,
+                reranker=deps.reranker,
+                client=deps.qdrant,
+                collection=deps.collection,
+                ann_k=deps.ann_k,
+                top_k=deps.top_k,
+            )
+            new = [scored_chunk_to_dict(r) for r in results]
+            merged = _merge_candidates(state.get("candidates", []), new, top_k=deps.top_k)
+            n_new = len(new)
         trace = list(state.get("trace", []))
         trace.append(_trace_entry(
             "retrieve", started,
-            n_new=len(new), n_merged=len(merged),
+            anchored=deps.anchored,
+            n_new=n_new, n_merged=len(merged),
             best_rerank=max((c["rerank_score"] or 0.0) for c in merged) if merged else None,
         ))
         return {

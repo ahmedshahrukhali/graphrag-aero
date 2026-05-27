@@ -147,6 +147,62 @@ MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, o
 
 ---
 
+## Generation-quality fix: doc-anchored retrieval + num_ctx (opus-4.7, 2026-05-27)
+
+**Symptom:** gemma2:9b drafts refused to synthesize — they answered "not covered
+in the cited sources" or dumped bare `[1][2]...` citation markers instead of prose.
+
+**Two root causes, both confirmed live against the running stack (Qdrant 54,280 pts):**
+
+1. **Silent context truncation.** Production instantiated `OllamaLLM()` with no
+   options, so Ollama used its default `num_ctx` (4096 for gemma2). The synthesize
+   prompt runs ~4.7k tokens, so the tail of the citation block was dropped before
+   the model ever saw it. Probe: identical prompt at default ctx → `prompt_eval=4096`
+   (capped) vs `num_ctx=8192` → `prompt_eval=4680` (full prompt fits).
+2. **Title-page retrieval.** Chunk-level ANN+rerank correctly identifies the right
+   *documents* — but the chunks it returns are the keyword-rich **cover/title pages
+   and running-header dates** (`§AVIATION INVESTIGATION REPORT`, `§26 JULY 2003`),
+   which carry zero findings/analysis text. The LLM had nothing to synthesize.
+
+**Fix (Part A — retrieval, no graph changes):**
+- `agent/llm.py`: `OllamaLLM` now defaults options to `num_ctx` (env `OLLAMA_NUM_CTX`,
+  default 8192) + `temperature` (env `OLLAMA_TEMPERATURE`, default 0.2). Centralized so
+  both call sites (`agent/run.py`, `backend/deps.py`) get it.
+- `retrieve/search.py`: `scroll_doc_chunks(client, collection, doc_ids)` — fetch every
+  chunk of a document (no ANN).
+- `retrieve/pipeline.py`: `anchored_retrieve(...)` — seed via `retrieve_and_rerank` →
+  take top-N unique docs → scroll their full chunk sets → rerank the pool → greedy-fill
+  a char budget (default 24k) → re-sort `(doc_id, page)` for reading order. Defaults
+  `top_n_docs=3`, `char_budget=24000`.
+- `agent/nodes.py`: `AgentDeps.anchored` (default **on**; opt-out via env
+  `RETRIEVE_ANCHORED=0`) + `top_n_docs`/`char_budget`. Anchored `retrieve_node`
+  replaces candidates wholesale (bypasses `_merge_candidates` top_k truncation so the
+  char budget + reading order govern).
+- `agent/prompts.py`: system prompt now instructs synthesis across citations (was
+  "answer ONLY … do not speculate"); `format_citations` max_chars 800 → 2000 (pairs
+  with the num_ctx headroom).
+
+**Live validation (diagnostic probes, since productionized):** anchored retrieval on
+"fuel exhaustion forced landing" pooled 248 chunks across the top-3 docs, selected 11
+content pages (p.25/55/62/68/84 — real Findings), and gemma produced a cited synthesis
+(`eval=240`, inline `[tsb/a13q0098 p.62]`/`[p.84]`) vs the bare-marker dump before.
+
+**Tests:** full suite **237 passed** (was 222; +15 — `scroll_doc_chunks`,
+`anchored_retrieve` char-budget/lang/reading-order, anchored `retrieve_node`, num_ctx
+defaults). All offline/mocked.
+
+**Not yet done (integration):** the backend image still has the pre-fix code baked — a
+rebuild + live `/query` is pending (held because the running backend is exposed to the
+published HF Space via cloudflared tunnel; restart drops demo sessions).
+
+**Part B (next, gated on review):** populate the knowledge graph — hybrid regex/section +
+gemma `LLMExtractor`, TSB + TC AC nodes, shared Regulation/AC layer with provenance,
+multi-hop eval, demo query. Neo4j today holds only 1,032 isolated `Occurrence` nodes
+(0 relationships, 0 other labels), so the "multi-hop graph RAG" headline is currently
+hollow — every good answer comes from vector retrieval alone.
+
+---
+
 ## Smoke-pass progress (opus-4.7 May 25–26, haiku-4.5 May 26)
 
 ### Completed ✓

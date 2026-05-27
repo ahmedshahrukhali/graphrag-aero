@@ -14,7 +14,7 @@ from qdrant_client import QdrantClient
 from embed.bge_m3 import DenseEmbedder
 
 from .reranker import CrossEncoderReranker, ScoredChunk, rerank
-from .search import dense_search
+from .search import dense_search, scroll_doc_chunks
 
 
 logger = logging.getLogger(__name__)
@@ -22,6 +22,8 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_ANN_K = 50
 DEFAULT_TOP_K = 10
+DEFAULT_TOP_N_DOCS = 3
+DEFAULT_CHAR_BUDGET = 24_000
 
 
 def retrieve_and_rerank(
@@ -55,3 +57,68 @@ def retrieve_and_rerank(
     if not candidates:
         return []
     return rerank(query, candidates, reranker, top_k=top_k)
+
+
+def _top_unique_docs(chunks: list[ScoredChunk], n: int) -> list[str]:
+    docs: list[str] = []
+    for c in chunks:
+        d = c.record.doc_id
+        if d not in docs:
+            docs.append(d)
+        if len(docs) >= n:
+            break
+    return docs
+
+
+def anchored_retrieve(
+    query: str,
+    *,
+    embedder: DenseEmbedder,
+    reranker: CrossEncoderReranker,
+    client: QdrantClient,
+    collection: str,
+    ann_k: int = DEFAULT_ANN_K,
+    top_k: int = DEFAULT_TOP_K,
+    top_n_docs: int = DEFAULT_TOP_N_DOCS,
+    char_budget: int = DEFAULT_CHAR_BUDGET,
+    lang: str | None = None,
+    source: str | None = None,
+) -> list[ScoredChunk]:
+    """Document-anchored retrieval.
+
+    Chunk-level ANN+rerank reliably identifies the *right documents* (their
+    keyword-rich title pages float to the top) but returns those title pages,
+    which carry no findings/analysis text — so the LLM has nothing to
+    synthesize. Instead we use that signal only to pick the top documents,
+    then pull every chunk from those docs, rerank the pool, greedily fill a
+    character budget by relevance, and return the selection in reading order
+    (doc_id, page) so the LLM sees coherent passages.
+    """
+    seed = retrieve_and_rerank(
+        query, embedder=embedder, reranker=reranker, client=client,
+        collection=collection, ann_k=ann_k, top_k=top_k, lang=lang, source=source,
+    )
+    if not seed:
+        return []
+    anchor_docs = _top_unique_docs(seed, top_n_docs)
+    logger.debug("anchored to %d docs: %s", len(anchor_docs), anchor_docs)
+
+    pool = scroll_doc_chunks(client, collection, anchor_docs)
+    if lang is not None:
+        pool = [c for c in pool if c.record.lang == lang]
+    if not pool:
+        return seed
+    ranked = rerank(query, pool, reranker)  # full pool, no top_k cap
+
+    selected: list[ScoredChunk] = []
+    used = 0
+    for c in ranked:
+        length = len(c.record.text)
+        if selected and used + length > char_budget:
+            break
+        selected.append(c)
+        used += length
+    logger.debug("anchored selected %d chunks (~%d chars)", len(selected), used)
+
+    selected.sort(key=lambda c: (c.record.doc_id, c.record.page or 0))
+    return selected

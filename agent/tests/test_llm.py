@@ -65,7 +65,27 @@ def test_options_passed_through(monkeypatch: pytest.MonkeyPatch):
     holder = _install_fake_ollama(monkeypatch)
     llm = OllamaLLM(options={"temperature": 0.1})
     llm.chat("s", "u")
+    # Caller-supplied options are used verbatim (no defaults merged in).
     assert holder["client"].calls[0]["options"] == {"temperature": 0.1}
+
+
+def test_default_options_set_num_ctx(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv("OLLAMA_NUM_CTX", raising=False)
+    monkeypatch.delenv("OLLAMA_TEMPERATURE", raising=False)
+    holder = _install_fake_ollama(monkeypatch)
+    llm = OllamaLLM()  # no options → defaults apply
+    llm.chat("s", "u")
+    opts = holder["client"].calls[0]["options"]
+    assert opts["num_ctx"] == 8192
+    assert opts["temperature"] == 0.2
+
+
+def test_num_ctx_env_override(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("OLLAMA_NUM_CTX", "16384")
+    holder = _install_fake_ollama(monkeypatch)
+    llm = OllamaLLM()
+    llm.chat("s", "u")
+    assert holder["client"].calls[0]["options"]["num_ctx"] == 16384
 
 
 def test_client_lazy_imported(monkeypatch: pytest.MonkeyPatch):

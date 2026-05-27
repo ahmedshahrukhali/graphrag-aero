@@ -13,7 +13,7 @@ from qdrant_client import QdrantClient
 
 from embed.jsonl import ChunkRecord
 from embed.qdrant import DENSE_DIM, ensure_collection, upsert_batch
-from retrieve.pipeline import retrieve_and_rerank
+from retrieve.pipeline import anchored_retrieve, retrieve_and_rerank
 
 
 COLL = "test_pipeline"
@@ -154,5 +154,82 @@ def test_no_candidates_returns_empty(client: QdrantClient):
         embedder=StubEmbedder(0),
         reranker=StubReranker({}),
         client=client, collection=COLL, ann_k=10, top_k=10,
+    )
+    assert out == []
+
+
+# ─── anchored_retrieve ───────────────────────────────────────────────────────
+
+def _doc_rec(doc: str, page: int, text: str, *, lang: str = "en") -> ChunkRecord:
+    h = hashlib.sha256(f"{doc}:{page}:{text}".encode()).hexdigest()
+    return ChunkRecord(
+        doc_id=doc, source_url=None, section_title="", page=page,
+        bbox=[0.0, 0.0, 0.0, 0.0], chunk_hash=h, lang=lang, text=text,
+    )
+
+
+def test_anchored_surfaces_body_pages_not_just_seed(client: QdrantClient):
+    # doc000 wins the seed via its keyword title page, but its body pages —
+    # which chunk-level top_k=1 would never return — must appear in the output.
+    title = _doc_rec("tsb/doc000", 1, "fuel exhaustion title")
+    body_a = _doc_rec("tsb/doc000", 2, "tanks ran dry on approach")
+    body_b = _doc_rec("tsb/doc000", 3, "recommend pre-flight fuel check")
+    other = _doc_rec("tsb/doc999", 1, "unrelated weather report")
+    recs = [title, body_a, body_b, other]
+    # title + bodies on axis 0 (seed picks doc000); other on axis 1.
+    vecs = [_unit_vec(0), _unit_vec(0), _unit_vec(0), _unit_vec(1)]
+    upsert_batch(client, COLL, recs, vecs)
+    out = anchored_retrieve(
+        "fuel exhaustion",
+        embedder=StubEmbedder(0),
+        reranker=StubReranker({
+            title.text: 0.99, body_a.text: 0.7, body_b.text: 0.8,
+            other.text: 0.1,
+        }),
+        client=client, collection=COLL,
+        ann_k=10, top_k=1, top_n_docs=1,
+    )
+    texts = [c.record.text for c in out]
+    assert texts == [title.text, body_a.text, body_b.text]  # reading order
+    assert other.text not in texts  # not an anchor doc
+
+
+def test_anchored_char_budget_caps_selection(client: QdrantClient):
+    big = "z" * 4000
+    r1 = _doc_rec("tsb/doc000", 1, big + "1")
+    r2 = _doc_rec("tsb/doc000", 2, big + "2")
+    r3 = _doc_rec("tsb/doc000", 3, big + "3")
+    upsert_batch(client, COLL, [r1, r2, r3], [_unit_vec(0)] * 3)
+    out = anchored_retrieve(
+        "q",
+        embedder=StubEmbedder(0),
+        reranker=StubReranker({r1.text: 0.5, r2.text: 0.9, r3.text: 0.7}),
+        client=client, collection=COLL,
+        ann_k=10, top_k=3, top_n_docs=1, char_budget=5000,
+    )
+    # budget 5000, each ~4001 chars → only the top-reranked (r2) fits
+    assert [c.record.text for c in out] == [r2.text]
+
+
+def test_anchored_lang_filter_excludes_other_language(client: QdrantClient):
+    en = _doc_rec("tsb/doc000", 1, "english body", lang="en")
+    fr = _doc_rec("tsb/doc000", 2, "corps francais", lang="fr")
+    upsert_batch(client, COLL, [en, fr], [_unit_vec(0), _unit_vec(0)])
+    out = anchored_retrieve(
+        "q",
+        embedder=StubEmbedder(0),
+        reranker=StubReranker({en.text: 0.9, fr.text: 0.8}),
+        client=client, collection=COLL,
+        ann_k=10, top_k=2, top_n_docs=1, lang="en",
+    )
+    assert [c.record.lang for c in out] == ["en"]
+
+
+def test_anchored_empty_seed_returns_empty(client: QdrantClient):
+    out = anchored_retrieve(
+        "q",
+        embedder=StubEmbedder(0),
+        reranker=StubReranker({}),
+        client=client, collection=COLL, ann_k=10, top_k=5,
     )
     assert out == []
