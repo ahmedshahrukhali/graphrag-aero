@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GraphRAG Aero — Mockup B (Perplexity-style)</title>
+<style>
+  :root {
+    --bg: #fafafa;
+    --panel: #ffffff;
+    --border: #e5e7eb;
+    --ink: #111827;
+    --muted: #6b7280;
+    --soft: #f3f4f6;
+    --accent: #0ea5e9;
+    --accent-ink: #075985;
+    --accent-soft: #e0f2fe;
+    --ok: #10b981;
+    --warn: #f59e0b;
+    --highlight: rgba(245, 158, 11, .22);
+    --shadow: 0 1px 2px rgba(17,24,39,.04), 0 4px 16px rgba(17,24,39,.06);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--ink); font: 15px/1.6 -apple-system, "Segoe UI", system-ui, sans-serif;
+    min-height: 100vh;
+  }
+  /* top bar */
+  header {
+    position: sticky; top: 0; z-index: 5; background: rgba(255,255,255,.92); backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 36px; display: flex; align-items: center; gap: 14px;
+  }
+  header .brand { display:flex; align-items:center; gap:8px; font-weight: 600; font-size: 16px; letter-spacing: -.01em; }
+  header .brand .logo { font-size: 22px; }
+  header .pills { display: flex; gap: 6px; margin-left: 8px; }
+  header .pill { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-ink); }
+  header .spacer { flex: 1; }
+  header .health {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 4px 10px;
+    background: #ecfdf5; color: #047857; border-radius: 999px;
+  }
+  header .health .dot { width: 7px; height: 7px; background: var(--ok); border-radius: 999px; }
+
+  /* main column */
+  main { max-width: 920px; margin: 0 auto; padding: 28px 28px 160px; }
+  .question {
+    font-size: 28px; font-weight: 600; letter-spacing: -.015em; line-height: 1.25; margin: 8px 0 18px;
+  }
+  .meta-row { display: flex; gap: 14px; align-items: center; color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+  .meta-row .lang-pill { background: var(--soft); padding: 2px 8px; border-radius: 999px; }
+
+  /* source strip */
+  .sources-label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 10px; }
+  .sources { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 28px; }
+  .source-card {
+    border: 1px solid var(--border); border-radius: 10px; background: white; padding: 10px 12px;
+    transition: all .15s; cursor: pointer; box-shadow: var(--shadow);
+  }
+  .source-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .source-card .num { font-size: 11px; color: var(--accent-ink); background: var(--accent-soft); padding: 1px 6px; border-radius: 999px; font-weight: 600; display: inline-block; }
+  .source-card .doc { font-family: ui-monospace, SF Mono, Menlo, monospace; font-size: 11.5px; color: var(--ink); margin-top: 6px; }
+  .source-card .blurb { font-size: 11.5px; color: var(--muted); margin-top: 6px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .source-card .page { font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+  /* answer */
+  .answer-head { display: flex; align-items: center; gap: 8px; margin: 8px 0 12px; }
+  .answer-head h2 { margin: 0; font-size: 16px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  .answer-head .tag { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: #fef3c7; color: #92400e; font-weight: 600; }
+
+  .answer {
+    background: white; border: 1px solid var(--border); border-radius: 14px; padding: 24px 28px; box-shadow: var(--shadow);
+    font-size: 15.5px; line-height: 1.75;
+  }
+  .answer p { margin: 0 0 12px; }
+  .answer p:last-child { margin-bottom: 0; }
+  .cite-num {
+    display: inline-block; min-width: 18px; height: 18px; text-align: center; font-size: 11px; font-weight: 600;
+    background: var(--accent-soft); color: var(--accent-ink); border-radius: 4px; vertical-align: super; padding: 0 4px;
+    margin-left: 2px; cursor: pointer;
+  }
+  .cite-num:hover { background: var(--accent); color: white; }
+  .answer.draft { background: #fffbeb; border-color: #fde68a; }
+  .answer.final { background: #f0fdf4; border-color: #bbf7d0; }
+
+  .answer-actions { display: flex; gap: 8px; margin-top: 16px; }
+  button {
+    border: 0; padding: 9px 16px; border-radius: 8px; font: inherit; font-weight: 600; font-size: 13.5px; cursor: pointer;
+  }
+  button.primary { background: var(--accent); color: white; }
+  button.primary:hover { background: #0284c7; }
+  button.ok { background: var(--ok); color: white; }
+  button.ghost { background: white; border: 1px solid var(--border); color: var(--ink); font-weight: 500; }
+
+  /* gallery (expandable detail) */
+  details.section { margin-top: 24px; border-top: 1px solid var(--border); padding-top: 18px; }
+  details.section > summary { font-size: 14px; font-weight: 600; color: var(--muted); cursor: pointer; text-transform: uppercase; letter-spacing: .04em; }
+  details.section[open] > summary { color: var(--ink); }
+  .gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 14px; }
+  .pdf-thumb {
+    aspect-ratio: 3/4; background: white; border: 1px solid var(--border); border-radius: 8px; position: relative; box-shadow: var(--shadow); overflow: hidden;
+  }
+  .pdf-thumb .page-bg {
+    position: absolute; inset: 0; background: repeating-linear-gradient(transparent 0 18px, #f1f5f9 18px 19px);
+  }
+  .pdf-thumb .bbox { position: absolute; left: 14%; top: 32%; width: 64%; height: 9%; border: 2px solid var(--warn); background: var(--highlight); }
+  .pdf-thumb .label { position: absolute; bottom: 6px; left: 8px; right: 8px; font-size: 10.5px; font-family: ui-monospace, SF Mono, Menlo, monospace; color: var(--ink); background: rgba(255,255,255,.95); padding: 3px 6px; border-radius: 4px; }
+
+  /* trace timeline */
+  .trace { display: flex; gap: 0; margin-top: 14px; overflow-x: auto; padding: 6px 0 10px; }
+  .node-step {
+    flex: 0 0 auto; min-width: 130px; padding: 12px 14px; background: white; border: 1px solid var(--border); border-radius: 10px;
+    margin-right: 8px; position: relative; box-shadow: var(--shadow);
+  }
+  .node-step::after {
+    content: "›"; position: absolute; right: -16px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 22px; line-height: 0;
+  }
+  .node-step:last-child::after { display: none; }
+  .node-step .nname { font-weight: 600; font-size: 12.5px; }
+  .node-step .ntime { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 11.5px; margin-top: 4px; }
+  .node-step .nextra { font-family: ui-monospace, SF Mono, Menlo, monospace; font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  /* sticky composer */
+  .composer {
+    position: fixed; bottom: 0; left: 0; right: 0; background: linear-gradient(180deg, rgba(250,250,250,0) 0, var(--bg) 30%, var(--bg) 100%);
+    padding: 28px 28px 22px; z-index: 4;
+  }
+  .composer-inner {
+    max-width: 920px; margin: 0 auto; background: white; border: 1px solid var(--border); border-radius: 14px;
+    padding: 8px 8px 8px 18px; display: flex; gap: 8px; align-items: center; box-shadow: var(--shadow);
+  }
+  .composer input[type=text] {
+    flex: 1; border: 0; outline: none; font: inherit; font-size: 15px; background: transparent;
+  }
+  .composer .filter { font-size: 12px; color: var(--muted); padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px; }
+  .composer .filter.active { background: var(--accent-soft); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+
+  .example-chips { max-width: 920px; margin: 0 auto 8px; display: flex; gap: 8px; flex-wrap: wrap; padding: 0 28px; }
+  .example-chips .chip { background: white; border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; font-size: 12.5px; cursor: pointer; color: var(--muted); }
+  .example-chips .chip:hover { color: var(--ink); border-color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand"><span class="logo">🛩️</span>GraphRAG Aero</div>
+  <div class="pills">
+    <span class="pill">BGE-M3</span><span class="pill">Qdrant 64k</span><span class="pill">gemma2:9b</span><span class="pill">EN+FR</span>
+  </div>
+  <div class="spacer"></div>
+  <span class="health"><span class="dot"></span>healthy</span>
+</header>
+
+<main>
+  <div class="question">Fuel exhaustion forced landing</div>
+  <div class="meta-row">
+    <span class="lang-pill">EN</span><span class="lang-pill">TSB</span>
+    <span>· 8 chunks retrieved · 2-hop · 2.1s</span>
+  </div>
+
+  <div class="sources-label">Sources</div>
+  <div class="sources">
+    <div class="source-card">
+      <span class="num">1</span>
+      <div class="doc">tsb/a13q0098</div>
+      <div class="blurb">Forced landing following fuel exhaustion — pilot departed without verifying fuel quantity, relied on time estimates…</div>
+      <div class="page">p. 4 · rerank 0.892</div>
+    </div>
+    <div class="source-card">
+      <span class="num">2</span>
+      <div class="doc">tsb/a08c0124</div>
+      <div class="blurb">Fuel starvation; failure to switch tanks at appropriate intervals during cross-country flight.</div>
+      <div class="page">p. 7 · rerank 0.847</div>
+    </div>
+    <div class="source-card">
+      <span class="num">3</span>
+      <div class="doc">tsb/a03a0013</div>
+      <div class="blurb">Forced landing on highway after engine stoppage; right tank empty, left tank not selected in time.</div>
+      <div class="page">p. 3 · rerank 0.811</div>
+    </div>
+    <div class="source-card">
+      <span class="num">4</span>
+      <div class="doc">tc/ac_605_002</div>
+      <div class="blurb">Pre-flight planning advisory: dipstick verification of usable fuel before departure recommended.</div>
+      <div class="page">p. 12 · rerank 0.764</div>
+    </div>
+  </div>
+
+  <div class="answer-head"><h2>Draft answer</h2><span class="tag">⚠ HITL — edit before finalize</span></div>
+  <div class="answer draft" contenteditable="true">
+    <p>Fuel exhaustion-related forced landings in Canadian aviation typically result from inadequate pre-flight planning, misjudgment of fuel reserves, or unrecognized fuel-flow issues<span class="cite-num">1</span><span class="cite-num">2</span>.</p>
+    <p>TSB investigation A13Q0098 found that the pilot departed without verifying actual fuel quantity and relied on time-based estimates<span class="cite-num">1</span>. Similar findings appear in A08C0124 and A03A0013, where pilots did not switch tanks at appropriate intervals<span class="cite-num">2</span><span class="cite-num">3</span>.</p>
+    <p><b>Recommendation:</b> brief pilots on the difference between fuel exhaustion and fuel starvation, and reinforce pre-flight dipstick verification per AC 605-002<span class="cite-num">4</span>.</p>
+  </div>
+  <div class="answer-actions">
+    <button class="ok">✅ Finalize</button>
+    <button class="ghost">Reset to original draft</button>
+  </div>
+
+  <details class="section" open>
+    <summary>Cited PDF snippets</summary>
+    <div class="gallery">
+      <div class="pdf-thumb">
+        <div class="page-bg"></div><div class="bbox"></div>
+        <div class="label">#1 · tsb/a13q0098 · p.4</div>
+      </div>
+      <div class="pdf-thumb">
+        <div class="page-bg"></div><div class="bbox" style="top:42%;width:72%"></div>
+        <div class="label">#2 · tsb/a08c0124 · p.7</div>
+      </div>
+      <div class="pdf-thumb">
+        <div class="page-bg"></div><div class="bbox" style="top:24%;width:56%"></div>
+        <div class="label">#3 · tsb/a03a0013 · p.3</div>
+      </div>
+    </div>
+  </details>
+
+  <details class="section">
+    <summary>Agent trace · 6 steps</summary>
+    <div class="trace">
+      <div class="node-step"><div class="nname">retrieve</div><div class="ntime">412 ms</div><div class="nextra">k=10</div></div>
+      <div class="node-step"><div class="nname">rerank</div><div class="ntime">298 ms</div><div class="nextra">cross-encoder</div></div>
+      <div class="node-step"><div class="nname">plan</div><div class="ntime">220 ms</div><div class="nextra">hop=1</div></div>
+      <div class="node-step"><div class="nname">expand</div><div class="ntime">488 ms</div><div class="nextra">graph: +3</div></div>
+      <div class="node-step"><div class="nname">draft</div><div class="ntime">643 ms</div><div class="nextra">gemma2:9b</div></div>
+      <div class="node-step"><div class="nname">finalize ⏸</div><div class="ntime">— HITL</div><div class="nextra">paused</div></div>
+    </div>
+  </details>
+</main>
+
+<div class="example-chips">
+  <span class="chip">fuel exhaustion forced landing</span>
+  <span class="chip">engine failure after takeoff</span>
+  <span class="chip">carburetor icing</span>
+  <span class="chip">VFR flight into IMC</span>
+  <span class="chip">alimentation en carburant (FR)</span>
+  <span class="chip">approach procedures helicopter (TC AC)</span>
+</div>
+
+<div class="composer">
+  <div class="composer-inner">
+    <input type="text" placeholder="Ask a question in English or French…" value="">
+    <span class="filter">EN</span><span class="filter active">All sources</span><span class="filter">2 hops</span>
+    <button class="primary">Ask →</button>
+  </div>
+</div>
+
+</body>
+</html>

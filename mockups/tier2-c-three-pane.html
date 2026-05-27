@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GraphRAG Aero — Mockup C (Three-Pane AI App)</title>
+<style>
+  :root {
+    --bg: #0b1020;
+    --panel: #ffffff;
+    --rail-bg: #0f172a;
+    --rail-ink: #e2e8f0;
+    --rail-muted: #94a3b8;
+    --rail-border: #1e293b;
+    --rail-hover: #1e293b;
+    --border: #e5e7eb;
+    --ink: #0f172a;
+    --muted: #64748b;
+    --soft: #f8fafc;
+    --accent: #2563eb;
+    --accent-soft: #dbeafe;
+    --accent-ink: #1e40af;
+    --ok: #16a34a;
+    --warn: #d97706;
+    --highlight: rgba(245,158,11,.22);
+    --shadow: 0 1px 2px rgba(15,23,42,.04), 0 4px 16px rgba(15,23,42,.06);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    background: #f8fafc; color: var(--ink);
+    font: 14px/1.55 -apple-system, "Segoe UI", system-ui, sans-serif;
+    display: grid; grid-template-columns: 260px 1fr 360px; height: 100vh; overflow: hidden;
+  }
+
+  /* ─── LEFT RAIL ─────────────────────────────────────────── */
+  .left {
+    background: var(--rail-bg); color: var(--rail-ink);
+    border-right: 1px solid var(--rail-border);
+    display: flex; flex-direction: column;
+    padding: 14px 12px;
+  }
+  .left .brand { display: flex; align-items: center; gap: 8px; padding: 4px 8px 14px; }
+  .left .brand .logo { font-size: 22px; }
+  .left .brand h1 { margin: 0; font-size: 15.5px; font-weight: 600; letter-spacing: -.01em; }
+
+  .left button.newq {
+    display: flex; align-items: center; gap: 8px;
+    width: 100%; padding: 10px 12px; background: var(--accent); color: white; border: 0; border-radius: 9px;
+    font: inherit; font-weight: 600; font-size: 13.5px; cursor: pointer; margin-bottom: 14px;
+  }
+  .left button.newq:hover { background: #1d4ed8; }
+  .left button.newq .plus { font-size: 16px; line-height: 0; }
+
+  .left .section-title {
+    font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--rail-muted);
+    padding: 12px 10px 4px; font-weight: 600;
+  }
+
+  .left .item {
+    display: block; padding: 7px 10px; border-radius: 7px; color: var(--rail-ink);
+    font-size: 13px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .left .item:hover { background: var(--rail-hover); }
+  .left .item.active { background: #1e3a8a; color: #dbeafe; }
+  .left .item .tag { float: right; font-size: 10px; color: var(--rail-muted); margin-top: 1px; }
+
+  .left .features { margin-top: 12px; }
+  .left .features .item { display: flex; align-items: center; gap: 9px; color: var(--rail-muted); }
+  .left .features .item:hover { color: var(--rail-ink); }
+  .left .features .icon { font-size: 14px; width: 18px; text-align: center; }
+
+  .left .spacer { flex: 1; }
+
+  .left .footer { border-top: 1px solid var(--rail-border); padding: 10px 4px; }
+  .left .health {
+    display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 7px; font-size: 12px;
+    color: #86efac;
+  }
+  .left .health .dot { width: 7px; height: 7px; background: var(--ok); border-radius: 999px; box-shadow: 0 0 0 3px rgba(22,163,74,.18); }
+
+  /* ─── CENTER (chat) ─────────────────────────────────────── */
+  .center {
+    background: white; border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; min-width: 0;
+  }
+  .center > .topbar {
+    border-bottom: 1px solid var(--border); padding: 12px 22px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .center > .topbar .title { font-weight: 600; font-size: 14.5px; }
+  .center > .topbar .pill { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-ink); }
+  .center > .topbar .spacer { flex: 1; }
+  .center > .topbar .iconbtn { padding: 4px 8px; border-radius: 6px; cursor: pointer; color: var(--muted); }
+  .center > .topbar .iconbtn:hover { background: var(--soft); color: var(--ink); }
+
+  .messages { flex: 1; overflow-y: auto; padding: 22px 28px; display: flex; flex-direction: column; gap: 16px; }
+
+  .msg-user, .msg-agent { max-width: 720px; }
+  .msg-user {
+    align-self: flex-end; background: var(--accent); color: white;
+    padding: 11px 16px; border-radius: 14px 14px 4px 14px; font-size: 14.5px; line-height: 1.5;
+  }
+
+  .msg-agent {
+    background: var(--soft); border: 1px solid var(--border); border-radius: 14px; padding: 16px 20px; align-self: flex-start;
+  }
+  .msg-agent.draft { background: #fffbeb; border-color: #fde68a; }
+  .msg-agent.final { background: #f0fdf4; border-color: #bbf7d0; }
+
+  .agent-tag { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
+  .agent-tag.draft { color: #92400e; }
+  .agent-tag.final { color: #166534; }
+  .agent-tag .dot { width: 7px; height: 7px; border-radius: 999px; background: var(--warn); }
+  .agent-tag.final .dot { background: var(--ok); }
+
+  .msg-agent p { margin: 6px 0; line-height: 1.65; }
+  .msg-agent .cite-num {
+    display: inline-block; min-width: 16px; height: 16px; text-align: center; font-size: 10.5px; font-weight: 600;
+    background: var(--accent-soft); color: var(--accent-ink); border-radius: 4px; vertical-align: super; padding: 0 4px;
+    margin-left: 1px; cursor: pointer;
+  }
+  .msg-agent .cite-num:hover { background: var(--accent); color: white; }
+
+  .actions { display: flex; gap: 6px; margin-top: 12px; }
+  .actions .btn {
+    padding: 7px 12px; border-radius: 8px; border: 1px solid var(--border); background: white; cursor: pointer;
+    font: inherit; font-size: 12.5px; font-weight: 500; color: var(--ink);
+  }
+  .actions .btn.primary { background: var(--ok); color: white; border-color: var(--ok); font-weight: 600; }
+  .actions .btn.primary:hover { background: #15803d; }
+
+  /* composer */
+  .composer { border-top: 1px solid var(--border); padding: 14px 22px 18px; background: white; }
+  .composer-row {
+    display: flex; align-items: end; gap: 8px; background: var(--soft); border: 1px solid var(--border);
+    border-radius: 14px; padding: 8px 8px 8px 14px;
+  }
+  .composer textarea {
+    flex: 1; resize: none; border: 0; outline: none; background: transparent; font: inherit; font-size: 14px; max-height: 200px; min-height: 22px; padding: 6px 0;
+  }
+  .composer .send {
+    width: 32px; height: 32px; border-radius: 8px; background: var(--accent); color: white; border: 0; cursor: pointer; font-size: 16px; flex: 0 0 32px;
+  }
+  .composer .send[disabled] { background: var(--border); cursor: not-allowed; color: var(--muted); }
+  .composer .meta { display: flex; gap: 6px; margin-top: 8px; font-size: 11.5px; color: var(--muted); align-items: center; }
+  .composer .filter { background: white; border: 1px solid var(--border); border-radius: 999px; padding: 2px 9px; cursor: pointer; }
+  .composer .filter.active { background: var(--accent-soft); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+
+  /* ─── RIGHT RAIL (inspector) ────────────────────────────── */
+  .right { background: white; display: flex; flex-direction: column; min-width: 0; }
+  .right .tabs {
+    display: flex; border-bottom: 1px solid var(--border); padding: 0 4px;
+  }
+  .right .tabs .tab {
+    padding: 12px 14px; font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer;
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+  }
+  .right .tabs .tab.active { color: var(--ink); border-bottom-color: var(--accent); font-weight: 600; }
+  .right .tabs .tab .count { background: var(--soft); padding: 1px 6px; border-radius: 999px; font-size: 11px; margin-left: 4px; font-weight: 500; color: var(--ink); }
+  .right .panel { flex: 1; overflow-y: auto; padding: 16px; }
+
+  /* Sources panel */
+  .src-card {
+    border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 10px; background: white; cursor: pointer;
+    transition: all .15s;
+  }
+  .src-card:hover { border-color: var(--accent); transform: translateX(-2px); }
+  .src-card .head { display: flex; align-items: center; gap: 8px; }
+  .src-card .num { font-size: 10.5px; color: var(--accent-ink); background: var(--accent-soft); padding: 1px 6px; border-radius: 999px; font-weight: 700; }
+  .src-card .doc { font-family: ui-monospace, SF Mono, Menlo, monospace; font-size: 11.5px; color: var(--ink); }
+  .src-card .score { margin-left: auto; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .src-card .thumb-row { display: grid; grid-template-columns: 56px 1fr; gap: 10px; margin-top: 10px; }
+  .src-card .mini-thumb { aspect-ratio: 3/4; background: var(--soft) repeating-linear-gradient(transparent 0 8px, #e2e8f0 8px 9px); border-radius: 4px; position: relative; }
+  .src-card .mini-thumb .bbox { position: absolute; left: 14%; top: 28%; width: 60%; height: 9%; border: 1.5px solid var(--warn); background: var(--highlight); }
+  .src-card .snippet { font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .src-card .page { font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+  /* Trace panel (hidden by default) */
+  .trace-list { display: none; }
+  .trace-list.active { display: block; }
+  .step {
+    display: grid; grid-template-columns: 22px 1fr 70px; gap: 10px; padding: 10px 0;
+    border-bottom: 1px dashed var(--border);
+  }
+  .step:last-child { border-bottom: 0; }
+  .step .pip { width: 10px; height: 10px; border-radius: 999px; background: var(--accent); margin: 5px 0 0 6px; }
+  .step.pending .pip { background: var(--warn); animation: pulse 1.4s infinite; }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(217,119,6,.4); } 50% { box-shadow: 0 0 0 6px rgba(217,119,6,0); } }
+  .step .name { font-weight: 600; font-size: 12.5px; }
+  .step .extra { font-family: ui-monospace, SF Mono, Menlo, monospace; font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .step .time { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); font-size: 12px; }
+
+  /* Logs panel */
+  .logs { display: none; font-family: ui-monospace, SF Mono, Menlo, monospace; font-size: 11.5px; color: #334155; line-height: 1.7; white-space: pre-wrap; padding: 4px 6px; }
+  .logs.active { display: block; }
+  .logs .ts { color: var(--muted); }
+  .logs .lvl-info { color: #1e40af; }
+  .logs .lvl-warn { color: var(--warn); }
+</style>
+</head>
+<body>
+
+<!-- ─── LEFT RAIL ─── -->
+<aside class="left">
+  <div class="brand"><span class="logo">🛩️</span><h1>GraphRAG Aero</h1></div>
+  <button class="newq"><span class="plus">＋</span> New question</button>
+
+  <div class="section-title">Recent</div>
+  <div class="item active">Fuel exhaustion forced landing <span class="tag">now</span></div>
+  <div class="item">Carburetor icing in cruise <span class="tag">5m</span></div>
+  <div class="item">Atterrissage forcé moteur <span class="tag">12m</span></div>
+  <div class="item">VFR flight into IMC <span class="tag">1h</span></div>
+  <div class="item">Helicopter approach procedures <span class="tag">3h</span></div>
+
+  <div class="features">
+    <div class="section-title">Features</div>
+    <div class="item"><span class="icon">⚙️</span> Filters (EN · All · 2-hops)</div>
+    <div class="item"><span class="icon">📚</span> Browse corpus</div>
+    <div class="item"><span class="icon">🕸️</span> Graph explorer</div>
+    <div class="item"><span class="icon">📊</span> Eval dashboard</div>
+    <div class="item"><span class="icon">🔗</span> Share thread</div>
+  </div>
+
+  <div class="spacer"></div>
+
+  <div class="footer">
+    <div class="health"><span class="dot"></span> Backend healthy</div>
+    <div class="item" style="font-size:11.5px;color:var(--rail-muted);margin-top:4px">
+      qdrant 64k · neo4j · gemma2:9b
+    </div>
+  </div>
+</aside>
+
+<!-- ─── CENTER (chat) ─── -->
+<section class="center">
+  <div class="topbar">
+    <span class="title">Fuel exhaustion forced landing</span>
+    <span class="pill">EN</span><span class="pill">TSB</span><span class="pill">2 hops</span>
+    <span class="spacer"></span>
+    <span class="iconbtn">↗ Share</span>
+    <span class="iconbtn">⋯</span>
+  </div>
+
+  <div class="messages">
+    <div class="msg-user">Fuel exhaustion forced landing</div>
+
+    <div class="msg-agent draft">
+      <div class="agent-tag draft"><span class="dot"></span> Draft · HITL gate — edit before finalizing</div>
+      <p contenteditable="true">Fuel exhaustion-related forced landings in Canadian aviation typically result from inadequate pre-flight planning, misjudgment of fuel reserves, or unrecognized fuel-flow issues<span class="cite-num">1</span><span class="cite-num">2</span>.</p>
+      <p contenteditable="true">TSB investigation A13Q0098 found that the pilot departed without verifying actual fuel quantity and relied on time-based estimates<span class="cite-num">1</span>. Similar findings appear in A08C0124 and A03A0013, where pilots did not switch tanks at appropriate intervals<span class="cite-num">2</span><span class="cite-num">3</span>.</p>
+      <p contenteditable="true"><b>Recommendation:</b> brief pilots on the difference between fuel exhaustion and fuel starvation, and reinforce pre-flight dipstick verification per AC 605-002<span class="cite-num">4</span>.</p>
+      <div class="actions">
+        <button class="btn primary">✅ Finalize</button>
+        <button class="btn">Regenerate</button>
+        <button class="btn">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="composer">
+    <div class="composer-row">
+      <textarea rows="1" placeholder="Ask in English or French…"></textarea>
+      <button class="send" disabled>↑</button>
+    </div>
+    <div class="meta">
+      <span class="filter active">All sources</span>
+      <span class="filter">EN</span>
+      <span class="filter">FR</span>
+      <span class="filter">TSB</span>
+      <span class="filter">TC</span>
+      <span class="filter">2 hops</span>
+      <span style="margin-left:auto">⌘↵ to send</span>
+    </div>
+  </div>
+</section>
+
+<!-- ─── RIGHT RAIL ─── -->
+<aside class="right">
+  <div class="tabs">
+    <div class="tab active">Sources <span class="count">8</span></div>
+    <div class="tab">Trace <span class="count">6</span></div>
+    <div class="tab">Logs</div>
+  </div>
+
+  <div class="panel">
+    <!-- Sources -->
+    <div class="src-card">
+      <div class="head"><span class="num">1</span><span class="doc">tsb/a13q0098</span><span class="score">0.892</span></div>
+      <div class="thumb-row">
+        <div class="mini-thumb"><div class="bbox"></div></div>
+        <div>
+          <div class="snippet">Forced landing following fuel exhaustion. Pilot departed without verifying actual fuel quantity and relied on time-based estimates…</div>
+          <div class="page">p. 4 · § Findings as to causes</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="src-card">
+      <div class="head"><span class="num">2</span><span class="doc">tsb/a08c0124</span><span class="score">0.847</span></div>
+      <div class="thumb-row">
+        <div class="mini-thumb"><div class="bbox" style="top:38%;width:68%"></div></div>
+        <div>
+          <div class="snippet">Fuel starvation event during cross-country flight; failure to switch tanks at appropriate intervals despite asymmetric fuel readings…</div>
+          <div class="page">p. 7 · § Sequence of events</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="src-card">
+      <div class="head"><span class="num">3</span><span class="doc">tsb/a03a0013</span><span class="score">0.811</span></div>
+      <div class="thumb-row">
+        <div class="mini-thumb"><div class="bbox" style="top:18%;width:56%"></div></div>
+        <div>
+          <div class="snippet">Forced landing on highway after engine stoppage. Right tank empty at top of descent; left tank not selected in time to restart…</div>
+          <div class="page">p. 3 · § Factual information</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="src-card">
+      <div class="head"><span class="num">4</span><span class="doc">tc/ac_605_002</span><span class="score">0.764</span></div>
+      <div class="thumb-row">
+        <div class="mini-thumb"><div class="bbox" style="top:46%;width:74%"></div></div>
+        <div>
+          <div class="snippet">Pre-flight planning advisory: dipstick verification of usable fuel before departure recommended; calibrated dipstick procedures…</div>
+          <div class="page">p. 12 · § Recommended practices</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trace (hidden in mockup; shown when tab clicked) -->
+    <div class="trace-list">
+      <div class="step"><span class="pip"></span><div><div class="name">retrieve</div><div class="extra">k=10 · cos sim</div></div><span class="time">412 ms</span></div>
+      <div class="step"><span class="pip"></span><div><div class="name">rerank</div><div class="extra">cross-encoder · bge-v2-m3</div></div><span class="time">298 ms</span></div>
+      <div class="step"><span class="pip"></span><div><div class="name">plan</div><div class="extra">hop=1</div></div><span class="time">220 ms</span></div>
+      <div class="step"><span class="pip"></span><div><div class="name">expand</div><div class="extra">graph: +3 nodes</div></div><span class="time">488 ms</span></div>
+      <div class="step"><span class="pip"></span><div><div class="name">draft</div><div class="extra">gemma2:9b</div></div><span class="time">643 ms</span></div>
+      <div class="step pending"><span class="pip"></span><div><div class="name">finalize</div><div class="extra">HITL — waiting on user</div></div><span class="time">—</span></div>
+    </div>
+
+    <!-- Logs (hidden in mockup) -->
+    <div class="logs">
+<span class="ts">19:23:54</span> <span class="lvl-info">INFO</span> agent.run started thread=6eb8f0df
+<span class="ts">19:23:54</span> <span class="lvl-info">INFO</span> retrieve k=10 lang=en source=tsb
+<span class="ts">19:23:55</span> <span class="lvl-info">INFO</span> rerank cross-encoder top=8
+<span class="ts">19:23:55</span> <span class="lvl-info">INFO</span> expand graph hops=2 +3 chunks
+<span class="ts">19:23:56</span> <span class="lvl-info">INFO</span> synthesize gemma2:9b prompt_tokens=2118
+<span class="ts">19:23:57</span> <span class="lvl-warn">WARN</span> interrupt before finalize — HITL gate
+<span class="ts">19:23:57</span> <span class="lvl-info">INFO</span> draft returned to client
+      </div>
+  </div>
+</aside>
+
+</body>
+</html>

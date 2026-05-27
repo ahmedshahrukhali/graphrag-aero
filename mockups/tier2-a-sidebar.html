@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GraphRAG Aero — Mockup A (Sidebar + Tabs)</title>
+<style>
+  :root {
+    --bg: #f8fafc;
+    --panel: #ffffff;
+    --border: #e2e8f0;
+    --ink: #0f172a;
+    --muted: #64748b;
+    --accent: #2563eb;
+    --accent-soft: #dbeafe;
+    --accent-ink: #1e40af;
+    --ok: #16a34a;
+    --warn: #d97706;
+    --tab-active-bg: #eff6ff;
+    --code: #f1f5f9;
+    --shadow: 0 1px 3px rgba(15,23,42,.06), 0 4px 12px rgba(15,23,42,.04);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--ink); font: 14px/1.5 -apple-system, "Segoe UI", system-ui, sans-serif;
+    min-height: 100vh; display: grid; grid-template-columns: 320px 1fr; gap: 0;
+  }
+  /* sidebar */
+  aside {
+    background: var(--panel); border-right: 1px solid var(--border); padding: 20px;
+    position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  }
+  .brand { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .brand .logo { font-size: 28px; }
+  .brand h1 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -.01em; }
+  .tagline { color: var(--muted); font-size: 12.5px; margin: 0 0 18px; }
+  .health { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px;
+    background: #ecfdf5; color: #047857; font-size: 12px; margin-bottom: 18px; }
+  .health .dot { width: 8px; height: 8px; background: var(--ok); border-radius: 999px; }
+  label { font-size: 11.5px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; display: block; margin: 14px 0 6px; }
+  textarea, select, input[type=text] {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font: inherit; color: var(--ink);
+    background: #fff; resize: vertical;
+  }
+  textarea { min-height: 76px; }
+  textarea:focus, select:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .chip { padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px; font-size: 12px; cursor: pointer; background: #fff; }
+  .chip.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  .row { display: flex; gap: 8px; }
+  .row > * { flex: 1; }
+  button.primary {
+    width: 100%; padding: 11px 14px; background: var(--accent); color: white; border: 0; border-radius: 8px;
+    font-weight: 600; font-size: 14px; margin-top: 14px; cursor: pointer; box-shadow: var(--shadow);
+  }
+  button.primary:hover { background: #1d4ed8; }
+  .examples { margin-top: 22px; }
+  .examples h4 { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin: 0 0 8px; }
+  .ex { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 12.5px; cursor: pointer; margin-bottom: 6px; color: var(--ink); }
+  .ex:hover { border-color: var(--accent); background: var(--accent-soft); }
+  .ex .lang { float: right; font-size: 10.5px; color: var(--muted); padding: 1px 6px; border-radius: 999px; background: #f1f5f9; }
+
+  /* main */
+  main { padding: 28px 36px 60px; max-width: 980px; }
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+  .tab { padding: 10px 16px; border-bottom: 2px solid transparent; cursor: pointer; font-weight: 500; color: var(--muted); }
+  .tab.active { color: var(--accent-ink); border-bottom-color: var(--accent); background: var(--tab-active-bg); border-radius: 6px 6px 0 0; }
+  .tab .count { background: #f1f5f9; color: var(--ink); padding: 1px 6px; border-radius: 999px; font-size: 11px; margin-left: 4px; }
+
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 20px; box-shadow: var(--shadow); margin-bottom: 16px; }
+  .card h3 { margin: 0 0 10px; font-size: 14.5px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .draft { padding: 14px; border: 1px solid #fef3c7; background: #fffbeb; border-radius: 8px; font-size: 14px; color: #422006; }
+  .draft-label { font-size: 11.5px; font-weight: 600; color: #b45309; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px; }
+  .actions { display: flex; gap: 8px; margin-top: 12px; }
+  button.secondary { padding: 9px 14px; background: white; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-weight: 500; }
+  button.ok { padding: 9px 14px; background: var(--ok); color: white; border: 0; border-radius: 8px; cursor: pointer; font-weight: 600; }
+
+  /* citations grid */
+  .cite-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .cite {
+    border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: white; box-shadow: var(--shadow);
+    display: flex; flex-direction: column;
+  }
+  .cite .thumb { aspect-ratio: 4/5; background: #f1f5f9 repeating-linear-gradient(transparent 0 22px, #e2e8f0 22px 23px); position: relative; }
+  .cite .thumb .bbox { position: absolute; left: 12%; top: 28%; width: 60%; height: 10%; border: 2px solid #f59e0b; background: rgba(245,158,11,.18); }
+  .cite .meta { padding: 10px 12px; }
+  .cite .rank { font-size: 11px; color: var(--accent-ink); background: var(--accent-soft); padding: 2px 6px; border-radius: 999px; font-weight: 600; }
+  .cite .doc { font-family: ui-monospace, SF Mono, Menlo, monospace; font-size: 12px; color: var(--ink); margin-top: 6px; }
+  .cite .snippet { font-size: 12.5px; color: var(--muted); margin-top: 6px; line-height: 1.45; }
+  .cite .score { font-size: 11.5px; color: var(--muted); margin-top: 8px; }
+  .cite .score b { color: var(--ink); }
+
+  /* trace */
+  .trace { padding: 0; }
+  .step { display: grid; grid-template-columns: 28px 1fr 80px; gap: 12px; align-items: start; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .step:last-child { border-bottom: 0; }
+  .step .dot { width: 10px; height: 10px; background: var(--accent); border-radius: 999px; margin-top: 6px; margin-left: 9px; }
+  .step .body .name { font-weight: 600; font-size: 13px; }
+  .step .body .extras { font-family: ui-monospace, SF Mono, Menlo, monospace; font-size: 11.5px; color: var(--muted); margin-top: 3px; }
+  .step .time { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); font-size: 12.5px; }
+
+  /* state header */
+  .state-bar { display: flex; gap: 8px; align-items: center; background: #fff7ed; border: 1px solid #fed7aa; padding: 8px 14px; border-radius: 8px; margin-bottom: 16px; color: #9a3412; font-size: 13px; }
+  .state-bar .badge { background: var(--warn); color: white; font-size: 11px; padding: 2px 8px; border-radius: 999px; font-weight: 600; }
+  .pipeline-pills { margin-top: 10px; }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-ink); font-size: 11px; margin-right: 5px; }
+</style>
+</head>
+<body>
+
+<aside>
+  <div class="brand"><span class="logo">🛩️</span><h1>GraphRAG Aero</h1></div>
+  <p class="tagline">Multilingual Graph RAG over Transport Canada ACs + TSB aviation investigation reports.</p>
+
+  <span class="health"><span class="dot"></span> backend healthy · qdrant · neo4j · ollama</span>
+
+  <label>Your question</label>
+  <textarea>fuel exhaustion forced landing</textarea>
+
+  <label>Language</label>
+  <div class="chips">
+    <span class="chip active">All</span><span class="chip">EN</span><span class="chip">FR</span>
+  </div>
+
+  <label>Source</label>
+  <div class="chips">
+    <span class="chip active">All</span><span class="chip">TSB</span><span class="chip">TC</span>
+  </div>
+
+  <label>Max hops · <b style="color:var(--ink)">2</b></label>
+  <input type="range" min="1" max="5" value="2" style="width:100%">
+
+  <button class="primary">🔍 Ask agent</button>
+
+  <div class="examples">
+    <h4>Try a sample query</h4>
+    <div class="ex">fuel exhaustion forced landing <span class="lang">EN · TSB</span></div>
+    <div class="ex">engine failure after takeoff <span class="lang">EN · TSB</span></div>
+    <div class="ex">carburetor icing <span class="lang">EN</span></div>
+    <div class="ex">VFR flight into IMC <span class="lang">EN · TSB</span></div>
+    <div class="ex">alimentation en carburant <span class="lang">FR · TSB</span></div>
+    <div class="ex">approach procedures helicopter <span class="lang">EN · TC</span></div>
+  </div>
+</aside>
+
+<main>
+  <div class="state-bar">
+    <span class="badge">HITL</span>
+    Paused at the human-in-the-loop gate — review or edit the draft, then finalize.
+    <span style="margin-left:auto; font-family:ui-monospace,SF Mono,Menlo,monospace; font-size:12px; color:var(--muted)">thread_id 6eb8f0df…</span>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active">Answer</div>
+    <div class="tab">Citations <span class="count">8</span></div>
+    <div class="tab">Trace <span class="count">6 steps</span></div>
+  </div>
+
+  <!-- Answer tab content -->
+  <div class="card">
+    <h3>Draft (editable before finalize)</h3>
+    <div class="draft-label">⚠️ Human-in-the-Loop gate</div>
+    <div class="draft" contenteditable="true">
+      Fuel exhaustion-related forced landings in Canadian aviation typically result from inadequate pre-flight planning,
+      misjudgment of fuel reserves, or unrecognized fuel-flow issues. TSB investigation A13Q0098 ("Forced landing
+      following fuel exhaustion") found that the pilot departed without verifying actual fuel quantity and relied on
+      time-based estimates. Similar findings appear in A08C0124 and A03A0013 (fuel starvation / forced landing),
+      where pilots did not switch tanks at appropriate intervals. Recommendation: brief pilots on the difference
+      between fuel exhaustion and fuel starvation, and reinforce pre-flight dipstick verification per AC 605-002.
+    </div>
+    <div class="actions">
+      <button class="ok">✅ Finalize answer</button>
+      <button class="secondary">Discard edit & use original</button>
+    </div>
+  </div>
+
+  <div class="card" style="background:#f0fdf4;border-color:#bbf7d0">
+    <h3 style="color:#166534">Final answer · cited</h3>
+    <div style="color:#14532d;font-size:14.5px;line-height:1.65">
+      <p style="margin-top:0">Fuel exhaustion-related forced landings in Canadian aviation typically result from inadequate pre-flight planning, misjudgment of fuel reserves, or unrecognized fuel-flow issues…</p>
+      <p style="margin-bottom:0">— grounded in <code>tsb/a13q0098</code>, <code>tsb/a08c0124</code>, <code>tsb/a03a0013</code> + 5 more.</p>
+    </div>
+  </div>
+</main>
+
+</body>
+</html>
