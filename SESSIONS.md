@@ -4,6 +4,29 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 
 ---
 
+## Session 9 — 2026-05-27 — sonnet-4.6
+**Commits:** (none committed — .gitignore edit staged)
+**Achieved:**
+- Triage: "10k lines uncommitted" was untracked scratch dirs (logs/, crops/, scripts/) — actual diff only 182 lines across 2 eval files
+- Confirmed ingestion container still alive (not cancelled — just detached when CLI closed); stack fully healthy
+- Added .gitignore entries for logs/, crops/, scripts/, smoke_query.py to prevent binary/log bloat
+- Moved session surface from VS Code CLI to desktop app to avoid Windows terminal issues
+**Left:** commit .gitignore + eval files; wait for ingestion to finish; re-embed; post-fix bbox eval (target hit_rate >70%)
+
+---
+
+## Session 8 — 2026-05-27 — opus-4.7
+**Commits:** (none — diagnostic/audit only)
+**Achieved:**
+- Diagnosed synthesis bug root causes: num_ctx unset (silent truncation), temperature unset (0.8 too loose), title-bait chunking, section_title garbage (55% running headers), doc_id EN+FR collision (70% docs)
+- Test 1: num_ctx alone insufficient (hedge persists at both default & 8192). Test 2: document-anchored retrieval (full doc chunks + rerank + budget) produces real grounded multi-doc answer.
+- Qdrant audit (63,896 points): confirmed 1,172/1,680 doc_ids carry both langs, section_title mostly dates/boilerplate, but highlights work via source_url (not broken as initially claimed)
+- Key insight: re-ingest cheap (payload-only, no GPU) since text/vectors unchanged. Revised plan: query-time fixes (num_ctx, anchor node, tight bbox) + cheap section_title rebuild
+- Created session handoff prompt for next session; one open decision (doc_id+lang cosmetic vs defer)
+**Left:** Haiku to author code (num_ctx, expand node, section_title, bbox, tests); decide doc_id fork; execute re-process + payload-update
+
+---
+
 ## Session 7 — 2026-05-27 — opus-4.7
 **Commits:** `65fb7e5` (Baseline: P1b acquisition + P1 ingestion)
 **Achieved:**
@@ -40,8 +63,19 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 
 ---
 
-## Session 4 — 2026-05-26/27 — opus-4.7 + sonnet-4.6
-**Commits:** `e8767c7` (graph hybrid extractor), `900e637` (thread-safe lazy loader), `f632f91` (bbox eval + OCR fix), `9a216c5` (GPU passthrough), and others
+## Session 4a — 2026-05-26 — sonnet-4.6
+**Commits:** `3927684` (GPU passthrough docs), `98cba99` (nDCG dedup), `1dedddc` (PostgresSaver CM), `49e4928` (HF Space: hub<1.0 + bool-schema), `216099a` (HF Space: starlette<1.0)
+**Achieved:**
+- Smoke-pass blocks 2–8 driven end-to-end: full embed (54,280 pts, dim 1024 Cosine on 3060Ti), EN+FR retrieve smoke, eval Recall@5=MRR=nDCG@5=1.0 on all 4 queries, `/healthz`+`/retrieve`+`/query`+`/resume` verified with OTel spans, frontend `:3000` 200, HF Space `:7860` 200
+- Fixed 5 real bugs found by running it: nDCG>1.0 (doc_id dedup), backend `/query` AttributeError (PostgresSaver CM lifecycle), HF Space 3 startup crashes (huggingface_hub 1.0 `HfFolder` import, gradio_client bool-schema `TypeError`, starlette 1.x `TemplateResponse` API break)
+- Documented MSYS path-mangling gotcha (Bash tool rewrites `/app/...` → Windows path; use PowerShell for container-absolute paths) in `memory/`
+- 222 pytest + 18 Vitest pass (was 221; +1 nDCG dedup regression test)
+**Left:** visual gallery/PDF-bbox test (no browser MCP this session)
+
+---
+
+## Session 4 — 2026-05-26/27 — opus-4.7 + sonnet-4.6 + haiku-4.5
+**Commits:** `e4c3c89` (haiku smoke-pass status), `3c69b21` (qdrant healthcheck fix), `cc950a3` (backend Dockerfile -r layout fix), `d882e1e` (manifest handoff snapshot), `e8767c7` (graph hybrid extractor), `900e637` (thread-safe lazy loader), `f632f91` (bbox eval + OCR fix), `9a216c5` (GPU passthrough), and others
 **Achieved:**
 - Full smoke-pass: all 9 live blocks (corpus, embed, retrieve, graph, eval, backend, frontend, HF Space, tests)
 - Graph populated: 1,199 Occurrences + 13,124 Findings + 2,136 Recommendations via regex+LLM extractor
