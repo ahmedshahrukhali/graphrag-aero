@@ -4,6 +4,17 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 
 ---
 
+## Session 7 — 2026-05-27 — opus-4.7
+**Commits:** `65fb7e5` (Baseline: P1b acquisition + P1 ingestion)
+**Achieved:**
+- P1b: TC two-step crawl (index→detail→PDF) + TSB scraper; 35/35 tests pass offline
+- P1: pdfplumber text+tables+bbox; PaddleOCR fallback; 512-token chunking with 64 overlap; 33/33 tests
+- End-to-end verified: 2,183 chunks across 114 PDFs; cross-doc dedup, section-title, bbox aggregation
+- Chunk schema locked: {doc_id, source_url, section_title, page, bbox, chunk_hash, lang, text}
+**Left:** P2 plan drafted; Chat-Opus to author embed module (backend/embed/, Qdrant, BGE-M3)
+
+---
+
 ## Session 6 — 2026-05-27 — sonnet-4-6
 **Commits:** `63df76e` (eval pdfplumber refactor + .gitignore), `b4095e7` (CORS fix)
 **Achieved:**
