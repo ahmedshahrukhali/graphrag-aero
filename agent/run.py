@@ -103,12 +103,33 @@ def cmd_init_schema(_args) -> int:
 
 def cmd_upsert_graph(args) -> int:
     from graph.client import make_driver
-    from graph.upsert import upsert_occurrences_from_chunks
+    from graph.upsert import (
+        upsert_acs_from_chunks,
+        upsert_entities_from_chunks,
+        upsert_occurrences_from_chunks,
+    )
 
+    chunks_root = Path(args.in_root)
     d = make_driver()
     try:
-        n = upsert_occurrences_from_chunks(d, Path(args.in_root))
-        print(f"upserted {n} Occurrence nodes")
+        n_occ = upsert_occurrences_from_chunks(d, chunks_root)
+        print(f"upserted {n_occ} Occurrence nodes")
+
+        n_ac = upsert_acs_from_chunks(d, chunks_root)
+        print(f"upserted {n_ac} AC nodes from TC corpus")
+
+        if args.extract:
+            from .llm import OllamaLLM
+            from graph.extract import HybridExtractor
+            extractor = HybridExtractor(OllamaLLM())
+            print("running HybridExtractor (regex + LLM) over chunks…")
+        else:
+            from graph.extract import RegexExtractor
+            extractor = RegexExtractor()
+            print("running RegexExtractor (citations only, no LLM) over chunks…")
+
+        counts = upsert_entities_from_chunks(d, chunks_root, extractor)
+        print(f"entity extraction: {counts}")
     finally:
         d.close()
     return 0
@@ -165,6 +186,9 @@ def main(argv: list[str] | None = None) -> int:
 
     up = sub.add_parser("upsert-graph")
     up.add_argument("--in", dest="in_root", default="data/chunks")
+    up.add_argument("--extract", action="store_true",
+                    help="Use HybridExtractor (regex + gemma2:9b LLM). "
+                         "Omit to use RegexExtractor only (faster, no Ollama needed).")
 
     q = sub.add_parser("query")
     q.add_argument("query", help="Natural-language question.")

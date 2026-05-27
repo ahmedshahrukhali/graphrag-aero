@@ -83,7 +83,10 @@ def _make_deps(qclient, *, llm=None, reranker_scores=None):
         embedder=StubEmbedder(),
         reranker=StubReranker(reranker_scores or {"alpha": 0.95, "beta": 0.6}),
         qdrant=qclient,
-        neo4j=FakeGraphDriver({"doc000": {"id": "doc000", "source_url": "u-0", "lang": "en"}}),
+        neo4j=FakeGraphDriver({"doc000": {
+            "occ_id": "doc000", "occ_url": "u-0",
+            "findings": [], "recommendations": [], "direct_regs": [], "acs": [],
+        }}),
         llm=llm or StubLLM("DRAFT ANSWER"),
         collection=COLL,
         ann_k=10, top_k=5,

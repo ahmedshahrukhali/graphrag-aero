@@ -262,7 +262,13 @@ def test_anchored_returns_reading_order(qclient):
 # ─── graph_expand_node ───────────────────────────────────────────────────────
 
 def test_graph_expand_pulls_occurrences():
-    table = {"doc000": {"id": "doc000", "source_url": "u-0", "lang": "en"}}
+    rich_row = {
+        "occ_id": "doc000", "occ_url": "u-0",
+        "findings": [{"text": "Fuel tanks empty.", "category": "cause", "lang": "en",
+                      "source_doc_id": "tsb/doc000", "page": 5, "cites_reg": None}],
+        "recommendations": [], "direct_regs": [], "acs": [],
+    }
+    table = {"doc000": rich_row}
     deps = _make_deps(QdrantClient(":memory:"), graph=FakeGraphDriver(table))
     node = make_graph_expand_node(deps)
     state = initial_state("q")
@@ -270,7 +276,9 @@ def test_graph_expand_pulls_occurrences():
         scored_chunk_to_dict(ScoredChunk(_rec("a", idx=0, source="tsb"), 0.5, 0.5)),
     ]
     update = node(state)
-    assert update["graph_context"] == [{"id": "doc000", "source_url": "u-0", "lang": "en"}]
+    assert len(update["graph_context"]) == 1
+    assert update["graph_context"][0]["occ_id"] == "doc000"
+    assert update["graph_context"][0]["findings"][0]["text"] == "Fuel tanks empty."
     assert update["trace"][-1]["node"] == "graph_expand"
 
 

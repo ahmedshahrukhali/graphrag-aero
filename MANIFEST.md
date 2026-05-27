@@ -195,11 +195,74 @@ defaults). All offline/mocked.
 rebuild + live `/query` is pending (held because the running backend is exposed to the
 published HF Space via cloudflared tunnel; restart drops demo sessions).
 
-**Part B (next, gated on review):** populate the knowledge graph — hybrid regex/section +
-gemma `LLMExtractor`, TSB + TC AC nodes, shared Regulation/AC layer with provenance,
-multi-hop eval, demo query. Neo4j today holds only 1,032 isolated `Occurrence` nodes
-(0 relationships, 0 other labels), so the "multi-hop graph RAG" headline is currently
-hollow — every good answer comes from vector retrieval alone.
+**Part B (next — pending live upsert-graph run):** code landed, tested offline (see below).
+Live `upsert-graph` run is the Haiku/manual step to populate Neo4j from the 63,896-point
+corpus. After that: re-run `eval/graph_eval.py` to verify TraversalHit > 0, rebuild the
+backend image, and verify end-to-end `/query` includes graph facts.
+
+---
+
+## Knowledge-graph population: Part B (opus-4.7, 2026-05-27)
+
+**Problem:** Neo4j held 1,032 isolated `Occurrence` nodes, 0 relationships, 0 other labels.
+The graph_expand node in the agent returned bare `{id, source_url, lang}` rows with no
+findings/regs — not citeable, zero contribution to synthesis. The "multi-hop graph RAG"
+headline was hollow; every good answer came from vector retrieval alone.
+
+**Corpus grounding** (`_diag_sections.py` probe before coding):
+- section_title metadata is garbage (17,679 empty, 34,831 date-like headers) — detection
+  must be content-based.
+- Section header patterns confirmed in corpus (EN + FR):
+  - `Findings as to Causes…` 1103 chunks, `Findings as to Risk` 862, `Safety Action` 1517
+  - FR equivalents: 1093 / 838 / 1654
+- `CAR \d{3}(\.\d+)+` 1024 hits; `AC \d{3}-\d{3}` 3887 hits; `A\d{2}-\d{2}` rec IDs 1495
+- 1,172 / 1,680 doc_ids carry both EN+FR chunks → Occurrence nodes must be lang-agnostic.
+
+**Changes:**
+
+`graph/extract.py` — full rewrite. `RegexExtractor`: CAR/AC/TSB-rec citations from all
+chunks; content-based EN+FR section header detection → numbered list item extraction.
+`LLMExtractor`: only runs on section-bearing chunks, prompts gemma to return structured
+JSON `{findings, recommendations}`, parses/validates response (markdown fences, malformed
+JSON handled gracefully). `HybridExtractor`: regex on all chunks + LLM on section chunks,
+merges with LLM findings/recs taking precedence over regex list items (richer text).
+
+`graph/upsert.py` — extended. `upsert_acs_from_chunks`: mints `AC` nodes from TC corpus
+(AC number extracted from doc_id). `upsert_entities_from_chunks`: runs extractor over all
+chunks, MERGEs Finding/Recommendation/Regulation/AC nodes + `HAS_FINDING` / `HAS_RECOMMENDATION`
+/ `CITES` / `REFERENCES_AC` / `GUIDED_BY` edges. Every Finding/Recommendation carries
+`source_doc_id + page` — provenance is baked in.
+
+`graph/query.py` — new traversal query. Follows `HAS_FINDING → CITES` and
+`HAS_RECOMMENDATION` in one round-trip; returns `{findings, recommendations, direct_regs,
+acs}` per occurrence with full provenance. `_clean_collect` strips Neo4j OPTIONAL MATCH
+null-collection rows.
+
+`agent/prompts.py` — `format_graph_context` rewritten. Rich traversal rows rendered as
+inline-cited lines (`[tsb/a01 p.5] cause: Fuel tanks empty [cites CAR 602.115]`). Legacy
+`{occ_id, occ_url}` rows with no findings fall back to minimal one-liner. System prompt
+updated to mention graph context citations. User template labels updated.
+
+`agent/run.py` — `upsert-graph` now calls `upsert_occurrences_from_chunks` +
+`upsert_acs_from_chunks` + `upsert_entities_from_chunks`. `--extract` flag enables
+`HybridExtractor` (regex + gemma); omitting uses `RegexExtractor` only (faster, no Ollama).
+
+`eval/graph_eval.py` + `eval/graph_dataset.jsonl` — new multi-hop eval. `TraversalHit@occ`
+metric: for each known occurrence, does the traversal return findings with expected keywords?
+4 query/occurrence pairs covering fuel exhaustion, CVR findings-as-to-risk, VFR night
+disorientation (FR), cable hazard. Proves graph adds value rather than asserts it.
+
+**Tests:** **288 passed** (was 237; +51 new offline tests). Covers: all 6 EN+FR section
+patterns, regex CAR/AC/TSB-rec extraction, LLM JSON parsing (incl. markdown fences + bad
+JSON fallback + LLM exception handling), HybridExtractor merge logic, upsert batching +
+entity graph writes + CITES links, traversal query shape, graph_eval metric.
+
+**Pending (live steps — Haiku/manual):**
+1. `python -m agent.run upsert-graph --in data/chunks` — regex-only pass (fast, no Ollama)
+2. `python -m agent.run upsert-graph --in data/chunks --extract` — full hybrid (LLM) pass
+3. `python -m eval.graph_eval` — verify TraversalHit > 0 on the 4 eval occurrences
+4. Neo4j browser: `MATCH (n) RETURN labels(n), count(n)` — confirm all 6 labels populated
+5. Rebuild backend image; live `/query` to confirm graph facts appear in synthesis
 
 ---
 

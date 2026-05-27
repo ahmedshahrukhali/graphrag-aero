@@ -44,21 +44,53 @@ def test_format_graph_context_none():
     assert format_graph_context([]) == "(none)"
 
 
-def test_format_graph_context_lists_ids():
-    rows = [
-        {"id": "a01", "lang": "en", "source_url": "u-a"},
-        {"id": "b02", "lang": "fr", "source_url": None},
-    ]
+def test_format_graph_context_minimal_fallback():
+    # Pre-extraction fallback: {occ_id, occ_url} with no findings
+    rows = [{"occ_id": "a01", "occ_url": "u-a", "findings": [], "recommendations": [],
+             "direct_regs": [], "acs": []}]
     out = format_graph_context(rows)
-    assert "a01" in out and "b02" in out
-    assert "en" in out and "fr" in out
+    assert "a01" in out
+
+
+def test_format_graph_context_rich_findings():
+    rows = [{
+        "occ_id": "a01",
+        "occ_url": "u-a",
+        "findings": [{"text": "Fuel tanks empty.", "category": "cause", "lang": "en",
+                      "source_doc_id": "tsb/a01", "page": 5, "cites_reg": "602.115"}],
+        "recommendations": [],
+        "direct_regs": ["602.88"],
+        "acs": ["700-027"],
+    }]
+    out = format_graph_context(rows)
+    assert "a01" in out
+    assert "Fuel tanks empty" in out
+    assert "[tsb/a01 p.5]" in out
+    assert "CAR 602.115" in out
+    assert "602.88" in out
+    assert "700-027" in out
+
+
+def test_format_graph_context_recommendation_with_id():
+    rows = [{
+        "occ_id": "a01", "occ_url": "u",
+        "findings": [],
+        "recommendations": [{"id": "A19-01", "text": "Install TAWS.",
+                              "lang": "en", "source_doc_id": "tsb/a01", "page": 30}],
+        "direct_regs": [], "acs": [],
+    }]
+    out = format_graph_context(rows)
+    assert "A19-01" in out
+    assert "Install TAWS" in out
+    assert "[tsb/a01 p.30]" in out
 
 
 def test_build_user_prompt_includes_everything():
     out = build_user_prompt(
         "what is X?",
         [_cand("tsb/a01", 4, "alpha")],
-        [{"id": "a01", "lang": "en", "source_url": "u"}],
+        [{"occ_id": "a01", "occ_url": "u", "findings": [], "recommendations": [],
+          "direct_regs": [], "acs": []}],
     )
     assert "what is X?" in out
     assert "tsb/a01 p.4" in out
