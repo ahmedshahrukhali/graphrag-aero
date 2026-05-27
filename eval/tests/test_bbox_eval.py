@@ -12,6 +12,7 @@ from eval.bbox_eval import (
     _bbox_area,
     _bbox_to_pixels,
     _text_similarity,
+    _crop_text,
     eval_chunk,
     load_sample_chunks,
     run_eval,
@@ -86,74 +87,54 @@ def test_eval_chunk_pdf_not_found(tmp_path):
     assert result.similarity == 0.0
 
 
-def test_eval_chunk_render_error(tmp_path):
-    """eval_chunk captures render_crop exceptions gracefully."""
-    # Create a dummy PDF directory so _pdf_path finds something.
+def test_eval_chunk_crop_text_error(tmp_path):
+    """eval_chunk captures _crop_text exceptions gracefully."""
     pdf_dir = tmp_path / "en" / "tsb"
     pdf_dir.mkdir(parents=True)
     (pdf_dir / "a13q0098.pdf").write_bytes(b"%PDF-1.4 dummy")
 
-    with patch("eval.bbox_eval.render_crop", side_effect=ValueError("bad bbox")):
+    with patch("eval.bbox_eval._crop_text", side_effect=ValueError("bad page")):
         result = eval_chunk(SAMPLE_CHUNK, corpus_root=tmp_path)
     assert result.error is not None
-    assert "render_crop failed" in result.error
-
-
-def test_eval_chunk_ocr_error(tmp_path):
-    """eval_chunk captures OCR exceptions gracefully."""
-    pdf_dir = tmp_path / "en" / "tsb"
-    pdf_dir.mkdir(parents=True)
-    (pdf_dir / "a13q0098.pdf").write_bytes(b"%PDF-1.4 dummy")
-
-    fake_crop = _make_fake_pil()
-    with patch("eval.bbox_eval.render_crop", return_value=fake_crop):
-        with patch("eval.bbox_eval._ocr_image", side_effect=RuntimeError("paddleocr missing")):
-            result = eval_chunk(SAMPLE_CHUNK, corpus_root=tmp_path)
-    assert result.error is not None
-    assert "OCR failed" in result.error
+    assert "crop_text failed" in result.error
 
 
 def test_eval_chunk_hit(tmp_path):
-    """eval_chunk records a hit when OCR closely matches stored text."""
+    """eval_chunk records a hit when crop text closely matches stored text."""
     pdf_dir = tmp_path / "en" / "tsb"
     pdf_dir.mkdir(parents=True)
     (pdf_dir / "a13q0098.pdf").write_bytes(b"%PDF-1.4 dummy")
 
-    fake_crop = _make_fake_pil()
-    # OCR returns something close to the chunk text → similarity above threshold.
-    fake_ocr = "Forced landing following fuel exhaustion"
-    with patch("eval.bbox_eval.render_crop", return_value=fake_crop):
-        with patch("eval.bbox_eval._ocr_image", return_value=fake_ocr):
-            result = eval_chunk(SAMPLE_CHUNK, corpus_root=tmp_path)
+    fake_crop_text = "Forced landing following fuel exhaustion"
+    with patch("eval.bbox_eval._crop_text", return_value=fake_crop_text):
+        result = eval_chunk(SAMPLE_CHUNK, corpus_root=tmp_path)
     assert result.error is None
     assert result.hit is True
     assert result.similarity >= 0.40
 
 
 def test_eval_chunk_miss(tmp_path):
-    """eval_chunk records a miss when OCR returns garbage."""
+    """eval_chunk records a miss when crop text is empty (image-only page)."""
     pdf_dir = tmp_path / "en" / "tsb"
     pdf_dir.mkdir(parents=True)
     (pdf_dir / "a13q0098.pdf").write_bytes(b"%PDF-1.4 dummy")
 
-    fake_crop = _make_fake_pil()
-    with patch("eval.bbox_eval.render_crop", return_value=fake_crop):
-        with patch("eval.bbox_eval._ocr_image", return_value="xxxxxxxxxxx"):
-            result = eval_chunk(SAMPLE_CHUNK, corpus_root=tmp_path)
+    with patch("eval.bbox_eval._crop_text", return_value=""):
+        result = eval_chunk(SAMPLE_CHUNK, corpus_root=tmp_path)
     assert result.error is None
     assert result.hit is False
 
 
-def test_eval_chunk_saves_crop(tmp_path):
-    """eval_chunk saves crop PNG when save_crops is given."""
+def test_eval_chunk_saves_annotated_page(tmp_path):
+    """eval_chunk saves annotated page PNG when save_crops is given."""
     pdf_dir = tmp_path / "en" / "tsb"
     pdf_dir.mkdir(parents=True)
     (pdf_dir / "a13q0098.pdf").write_bytes(b"%PDF-1.4 dummy")
 
     crops_dir = tmp_path / "crops"
-    fake_crop = _make_fake_pil()
-    with patch("eval.bbox_eval.render_crop", return_value=fake_crop):
-        with patch("eval.bbox_eval._ocr_image", return_value="fuel"):
+    fake_page = _make_fake_pil()
+    with patch("eval.bbox_eval._crop_text", return_value="fuel exhaustion"):
+        with patch("eval.bbox_eval.render_annotated_page", return_value=fake_page):
             eval_chunk(SAMPLE_CHUNK, corpus_root=tmp_path, save_crops=crops_dir)
 
     saved = list(crops_dir.glob("*.png"))

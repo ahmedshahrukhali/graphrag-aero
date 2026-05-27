@@ -1,12 +1,16 @@
-"""Verify stored chunk bboxes by rasterising the source PDF page, cropping the
-bbox region, and running OCR on the crop.  Reports character-level similarity
-between the OCR result and the stored chunk text.
+"""Verify stored chunk bboxes against the source PDFs.
 
-The test proves two things:
-  1. The stored bbox actually overlaps the chunk's text on the page
-     (the pdfplumber char-alignment in chunk.py is correct).
-  2. After the ocr.py coordinate-system fix, OCR-derived bboxes are in
-     PDF point space and survive bbox_to_pixels without drift.
+Two verification strategies, both run per chunk:
+
+1. **pdfplumber crop text** (primary, always runs): crop the stored bbox on the
+   PDF page using the same pdfplumber coordinate system the chunker used, extract
+   text, compute character-level similarity vs the stored chunk text.  This is the
+   ground-truth check — if the bbox is correct the cropped region should reproduce
+   most of the chunk text.
+
+2. **Image crop** (optional, ``--save-crops``): rasterise the page, draw a
+   highlighted rectangle over the bbox, save a PNG.  Use for manual visual
+   inspection — the rectangle should land on the chunk text.
 
 Usage
 -----
@@ -35,10 +39,10 @@ logger = logging.getLogger(__name__)
 
 # ─── constants ────────────────────────────────────────────────────────────────
 
-EVAL_DPI = 150                 # render resolution — lower than OCR DPI; enough for crops
+EVAL_DPI = 150                 # render resolution for saved crop PNGs
 MIN_BBOX_AREA_PTS = 100.0      # skip bboxes smaller than ~10×10 pt (degenerate)
 MIN_CHUNK_TEXT_LEN = 30        # skip very short chunks (page separators / headers)
-SIMILARITY_THRESHOLD = 0.40    # treat crop OCR ≥ this as a "hit"
+SIMILARITY_THRESHOLD = 0.40    # treat pdfplumber crop similarity ≥ this as a "hit"
 
 # ─── data shapes ─────────────────────────────────────────────────────────────
 
@@ -100,24 +104,6 @@ def _bbox_to_pixels(bbox: list[float], dpi: int) -> tuple[int, int, int, int]:
     )
 
 
-def _load_ocr():
-    """Lazy singleton: PaddleOCR (multilingual, no angle classifier)."""
-    try:
-        from paddleocr import PaddleOCR  # type: ignore
-    except ImportError as exc:
-        raise RuntimeError(
-            "paddleocr is required for bbox eval. "
-            "Install it: pip install paddleocr paddlepaddle"
-        ) from exc
-    # Reuse the ingestion singleton if it exists.
-    import ingestion.processing.ocr as _ocr_mod
-    if _ocr_mod._ocr_singleton is not None:
-        return _ocr_mod._ocr_singleton
-    ocr = PaddleOCR(use_angle_cls=False, lang="latin", show_log=False)
-    _ocr_mod._ocr_singleton = ocr
-    return ocr
-
-
 def _text_similarity(a: str, b: str) -> float:
     """Character-level SequenceMatcher ratio normalised to [0, 1]."""
     a = a.strip().lower()
@@ -129,25 +115,34 @@ def _text_similarity(a: str, b: str) -> float:
     return difflib.SequenceMatcher(None, a, b).ratio()
 
 
-def _ocr_image(pil_image: Any) -> str:
-    """Run PaddleOCR on a PIL Image, return joined text."""
-    ocr = _load_ocr()
-    result = ocr.ocr(pil_image, cls=False)
-    lines = result[0] if result else []
-    texts = []
-    for entry in (lines or []):
-        _, (text, _conf) = entry
-        texts.append(text)
-    return " ".join(texts)
+def _crop_text(pdf_path: Path, page: int, bbox: list[float]) -> str:
+    """Use pdfplumber to crop bbox on *page* and extract text.
+
+    This is the ground-truth check: same coordinate system and extraction
+    method as the chunker, so a correct bbox will reproduce most of the
+    chunk text.  Returns empty string for image-only pages (no selectable
+    text in the cropped region).
+    """
+    import pdfplumber  # type: ignore
+
+    x0, top, x1, bottom = bbox
+    with pdfplumber.open(str(pdf_path)) as pdf:
+        if page < 1 or page > len(pdf.pages):
+            raise ValueError(f"page {page} out of range (1..{len(pdf.pages)})")
+        p = pdf.pages[page - 1]
+        cropped = p.crop((x0, top, x1, bottom))
+        return cropped.extract_text() or ""
 
 # ─── core eval ───────────────────────────────────────────────────────────────
 
-def render_crop(pdf_path: Path, page: int, bbox: list[float], dpi: int) -> Any:
-    """Render *page* of *pdf_path* as a PIL image and crop to *bbox*.
+def render_annotated_page(pdf_path: Path, page: int, bbox: list[float], dpi: int) -> Any:
+    """Render *page* as a PIL image with the bbox highlighted.
 
-    *page* is 1-indexed. *bbox* is [x0, top, x1, bottom] in PDF point space.
-    Returns a PIL.Image.Image of the cropped region.
+    Returns the full page image with an amber rectangle drawn over the bbox
+    region — useful for visual inspection via ``--save-crops``.
+    *page* is 1-indexed; *bbox* is [x0, top, x1, bottom] in PDF point space.
     """
+    from PIL import Image, ImageDraw  # type: ignore
     import pdfplumber  # type: ignore
 
     with pdfplumber.open(str(pdf_path)) as pdf:
@@ -155,16 +150,21 @@ def render_crop(pdf_path: Path, page: int, bbox: list[float], dpi: int) -> Any:
             raise ValueError(f"page {page} out of range (1..{len(pdf.pages)})")
         p = pdf.pages[page - 1]
         page_img = p.to_image(resolution=dpi)
-        pil = page_img.original
+        pil = page_img.original.copy()
 
     left, top_px, right, bot_px = _bbox_to_pixels(bbox, dpi)
-    # Clamp to image dimensions.
     w, h = pil.size
-    left, right = max(0, left), min(w, right)
-    top_px, bot_px = max(0, top_px), min(h, bot_px)
-    if right <= left or bot_px <= top_px:
-        raise ValueError(f"bbox crops to empty region: pixel box {(left, top_px, right, bot_px)}")
-    return pil.crop((left, top_px, right, bot_px))
+    left  = max(0, min(left, w))
+    right = max(0, min(right, w))
+    top_px  = max(0, min(top_px, h))
+    bot_px  = max(0, min(bot_px, h))
+
+    out = pil.convert("RGBA")
+    overlay = Image.new("RGBA", out.size, (0, 0, 0, 0))
+    drw = ImageDraw.Draw(overlay)
+    drw.rectangle((left, top_px, right, bot_px),
+                  fill=(245, 158, 11, 64), outline=(245, 158, 11, 255), width=3)
+    return Image.alpha_composite(out, overlay).convert("RGB")
 
 
 def eval_chunk(
@@ -197,27 +197,28 @@ def eval_chunk(
         base.error = f"PDF not found for doc_id={doc_id} lang={lang}"
         return base
 
+    # Primary check: pdfplumber crop text vs stored chunk text.
     try:
-        crop = render_crop(pdf_path, page, bbox, dpi)
+        crop_text = _crop_text(pdf_path, page, bbox)
     except Exception as e:
-        base.error = f"render_crop failed: {e}"
+        base.error = f"crop_text failed: {e}"
         return base
 
-    if save_crops is not None:
-        save_crops.mkdir(parents=True, exist_ok=True)
-        safe = doc_id.replace("/", "_")
-        crop.save(save_crops / f"{safe}_p{page}.png")
-
-    try:
-        ocr_text = _ocr_image(crop)
-    except Exception as e:
-        base.error = f"OCR failed: {e}"
-        return base
-
-    sim = _text_similarity(text, ocr_text)
-    base.ocr_text_preview = ocr_text[:80]
+    sim = _text_similarity(text, crop_text)
+    base.ocr_text_preview = crop_text[:80]
     base.similarity = round(sim, 4)
     base.hit = sim >= SIMILARITY_THRESHOLD
+
+    # Optional: save annotated page image for visual inspection.
+    if save_crops is not None:
+        try:
+            annotated = render_annotated_page(pdf_path, page, bbox, dpi)
+            save_crops.mkdir(parents=True, exist_ok=True)
+            safe = doc_id.replace("/", "_")
+            annotated.save(save_crops / f"{safe}_p{page}.png")
+        except Exception as e:
+            logger.warning("save_crops failed for %s p%d: %s", doc_id, page, e)
+
     return base
 
 

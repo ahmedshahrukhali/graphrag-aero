@@ -10,3 +10,7 @@ data/chunks/
 data/recon/
 data/*.log
 .claude/
+logs/
+crops/
+scripts/
+smoke_query.py
