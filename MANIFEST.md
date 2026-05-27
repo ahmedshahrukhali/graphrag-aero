@@ -147,6 +147,32 @@ MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, o
 
 ---
 
+## HF Space Tier-2 UI redesign (sonnet-4.6, 2026-05-27)
+
+**Commit:** `d99e357` `ui(hf-space): tier-2 three-pane redesign + UI mockups`
+
+Three-pane Gradio layout replaces the single-column Tier-1 shell:
+- **LEFT rail** — dark sidebar: brand, "+ New question" button, BrowserState-backed
+  recent-query list (persists across page reloads in Gradio), canned sample queries
+  (clicking populates the composer without auto-submitting), lang/source filter radio
+  pills, feature shortcuts, health badge.
+- **CENTER pane** — chat-style HITL flow: user bubble (right-aligned), HITL explainer
+  card, draft card (amber) with editable textarea + Finalize / Discard buttons, final
+  card (green) with rendered markdown. Sticky composer at bottom with multi-line
+  textbox, Send ↑ button, ghost Stop button (cancels in-flight requests via
+  `cancels=[event_a, event_b]`), and max-hops slider.
+- **RIGHT rail** — Sources / Trace / Logs tabs: Sources = PDF-page gallery + chunk
+  markdown; Trace = node/elapsed_ms/extras dataframe; Logs = pseudo-log derived from
+  agent trace (no real log stream from backend).
+
+`mockups/` committed alongside: three HTML design candidates used as reference.
+
+**Pending (needs Docker Desktop + running stack):**
+1. Redeploy HF Space: `huggingface-cli upload ahmedsali/graphaero-rag hf_space/ . --repo-type=space`
+   (or push via HF web UI) after restarting the cloudflared tunnel and re-setting `BACKEND_URL` secret.
+
+---
+
 ## Generation-quality fix: doc-anchored retrieval + num_ctx (opus-4.7, 2026-05-27)
 
 **Symptom:** gemma2:9b drafts refused to synthesize — they answered "not covered
@@ -328,3 +354,61 @@ GPU verified reachable from Docker: `docker run --rm --gpus all nvidia/cuda:12.4
 
 ### After GPU passthrough lands
 Resume the queue from Block 2 onward (since embed will re-run and finish properly): full embed → Block 3 (retrieve smoke + cross-lingual query) → Block 5 (eval — flag if recall@5 = 0, the 4 hand-picked TSB doc_ids may not be in the corpus we have) → Block 6 (backend up + curl /healthz, /retrieve, /query, /resume) → Block 7 (frontend manual test) → Block 8 (HF Space) → Block 9 (full pytest + vitest + docs walkthrough).
+
+---
+
+## Pending live steps — run in order once Docker Desktop is up (sonnet-4.6, 2026-05-27)
+
+All code is committed and tested offline (288 pytest passed). These are the remaining
+integration steps that require the running stack.
+
+### Step 1 — Fold new TC corpus into Qdrant (367 ACs pulled, not yet embedded)
+```powershell
+docker compose up -d qdrant
+# In WSL/backend container or directly:
+python -m ingestion.processing.run     # chunk the 367 new TC ACs → data/chunks/
+python -m embed.run                    # embed → Qdrant (idempotent; adds ~3k new points)
+```
+
+### Step 2 — Populate knowledge graph (regex-only pass, fast, no Ollama needed)
+```powershell
+docker compose up -d neo4j
+python -m agent.run upsert-graph --in data/chunks
+# Verify: Neo4j browser → MATCH (n) RETURN labels(n), count(n)
+# Expect: Occurrence, Finding, Recommendation, Regulation, AC, Aircraft all > 0
+```
+
+### Step 3 — Optional: hybrid LLM extraction pass (enriches findings prose)
+```powershell
+# Ollama must be up and gemma2:9b loaded
+docker compose up -d ollama
+python -m agent.run upsert-graph --in data/chunks --extract
+```
+
+### Step 4 — Verify graph eval
+```powershell
+docker compose up -d neo4j
+python -m eval.graph_eval
+# Expect: TraversalHit@occ > 0 for all 4 eval occurrences
+# (a13q0098, a05f0047, a21w0001, a09q0065)
+```
+
+### Step 5 — Rebuild + redeploy backend (bake in Part A + Part B fixes)
+```powershell
+docker compose build backend
+docker compose up -d backend
+curl http://localhost:8080/healthz
+# Then restart cloudflared tunnel and re-set HF Space BACKEND_URL secret
+```
+
+### Step 6 — Redeploy HF Space Tier-2 UI
+```powershell
+huggingface-cli upload ahmedsali/graphaero-rag hf_space/ . --repo-type=space
+# Or push the hf_space/ dir via HF web UI after updating BACKEND_URL secret
+```
+
+### Step 7 — Optional: resume PaddleOCR processing for remaining ~25% of corpus
+```powershell
+python -m ingestion.processing.run     # idempotent; picks up remaining image-heavy PDFs
+python -m embed.run                    # embed new chunks
+```
