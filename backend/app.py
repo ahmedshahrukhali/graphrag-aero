@@ -16,6 +16,7 @@ from contextlib import asynccontextmanager
 from typing import Any, Callable
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 
 from .deps import BackendDeps, build_default_deps
 from .schemas import (
@@ -71,6 +72,12 @@ def create_app(*, deps_builder: Callable[[], BackendDeps] | None = None,
     entirely.
     """
     app = FastAPI(title="GraphRAG Aero Backend", lifespan=lifespan)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
     if deps_builder is not None:
         app.state.deps_builder = deps_builder
 
