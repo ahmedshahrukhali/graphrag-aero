@@ -357,57 +357,94 @@ Resume the queue from Block 2 onward (since embed will re-run and finish properl
 
 ---
 
+## Live smoke-pass completed (sonnet-4.6, 2026-05-27)
+
+All pending live steps from the previous section executed and verified:
+- **Processing:** all 2,895 PDFs already chunked (0 new) — `embed.run` skipped (idempotent).
+- **Backend thread-safety fix** (`fix(backend): thread-safe lazy model loader`, commit `900e637`):
+  `_LazySession.ensure_loaded()` + `unload()` were not thread-safe; concurrent FastAPI
+  requests (sync endpoints run in thread pool) both tried to construct the PyO3 reranker
+  simultaneously → `RuntimeError: Already borrowed`. Added `threading.Lock` per instance.
+- **Graph populated:** `upsert-graph` regex pass: 1,199 Occurrence + 174 AC + 13,124 Finding +
+  2,136 Recommendation + 847 Regulation nodes. `eval.graph_eval` → TraversalHit = 1.0 (all 4
+  occurrences found with keyword hits).
+- **Backend smoke:** `/healthz` ok; `/retrieve` rerank ≥ 0.994; `/query` → paused draft (coherent
+  fuel-exhaustion synthesis, 11 anchored candidates, 351s gemma2:9b synthesis at 30k char context);
+  `/resume` → final answer + full 5-step trace + history. Thread 2 → full HITL flow ✓.
+- **LLM extraction (`--extract`):** relaunched in background (PID 27324) after installing
+  `ollama` Python package (was missing; first pass used regex-only). Runs in background,
+  will enrich Finding prose over several hours.
+- **pytest:** 288 → 307 passed after bbox eval + OCR fix.
+
+## bbox verification + OCR coordinate fix (sonnet-4.6, 2026-05-27)
+
+**Bug found:** `ingestion/processing/ocr.py` stored PaddleOCR results in **pixel** coords
+(200 DPI render), but `hf_space/pdf_render.py`'s `bbox_to_pixels` assumes **PDF point**
+coords (72 pts/inch, top-left origin). Every OCR-page chunk had a visually misaligned
+bbox highlight in the UI. Fix: divide pixel coords by `(200/72)` before storing.
+Commit: `f632f91`.
+
+**`eval/bbox_eval.py`** added: samples chunks from `data/chunks/`, renders source PDF pages
+as PIL images, crops bbox regions, runs PaddleOCR on crops, reports character-level
+similarity vs stored text. CLI:
+```powershell
+# Quick 20-chunk sample with crop images saved for inspection:
+python -m eval.bbox_eval --n 20 --save-crops crops/ --source tsb
+
+# Full JSON report:
+python -m eval.bbox_eval --n 200 --json > bbox_eval.json
+```
+PaddleOCR must be installed (`pip install paddleocr paddlepaddle`) — it's in the ingestion
+Docker image but not the host Python by default.
+
+**19 new tests** (307 total). All offline/mocked.
+
 ## Pending live steps — run in order once Docker Desktop is up (sonnet-4.6, 2026-05-27)
 
-All code is committed and tested offline (288 pytest passed). These are the remaining
+All code is committed and tested offline (307 pytest passed). These are the remaining
 integration steps that require the running stack.
 
-### Step 1 — Fold new TC corpus into Qdrant (367 ACs pulled, not yet embedded)
-```powershell
-docker compose up -d qdrant
-# In WSL/backend container or directly:
-python -m ingestion.processing.run     # chunk the 367 new TC ACs → data/chunks/
-python -m embed.run                    # embed → Qdrant (idempotent; adds ~3k new points)
-```
-
-### Step 2 — Populate knowledge graph (regex-only pass, fast, no Ollama needed)
-```powershell
-docker compose up -d neo4j
-python -m agent.run upsert-graph --in data/chunks
-# Verify: Neo4j browser → MATCH (n) RETURN labels(n), count(n)
-# Expect: Occurrence, Finding, Recommendation, Regulation, AC, Aircraft all > 0
-```
-
-### Step 3 — Optional: hybrid LLM extraction pass (enriches findings prose)
-```powershell
-# Ollama must be up and gemma2:9b loaded
-docker compose up -d ollama
-python -m agent.run upsert-graph --in data/chunks --extract
-```
-
-### Step 4 — Verify graph eval
-```powershell
-docker compose up -d neo4j
-python -m eval.graph_eval
-# Expect: TraversalHit@occ > 0 for all 4 eval occurrences
-# (a13q0098, a05f0047, a21w0001, a09q0065)
-```
-
-### Step 5 — Rebuild + redeploy backend (bake in Part A + Part B fixes)
-```powershell
-docker compose build backend
-docker compose up -d backend
-curl http://localhost:8080/healthz
-# Then restart cloudflared tunnel and re-set HF Space BACKEND_URL secret
-```
+**Status as of 2026-05-27 session:**
+- Steps 1–5 ✅ completed (see "Live smoke-pass" section above).
+- LLM extraction (`--extract`) 🔄 running in background.
+- Steps 6–8 still pending.
 
 ### Step 6 — Redeploy HF Space Tier-2 UI
 ```powershell
+# Rebuild backend first (includes thread-safety fix + graph fixes)
+docker compose build backend
+docker compose up -d backend
+# Restart cloudflared tunnel, copy new URL:
+cloudflared tunnel --url http://localhost:8080
+# Set BACKEND_URL secret on HF Space to new tunnel URL, then:
 huggingface-cli upload ahmedsali/graphaero-rag hf_space/ . --repo-type=space
-# Or push the hf_space/ dir via HF web UI after updating BACKEND_URL secret
 ```
 
-### Step 7 — Optional: resume PaddleOCR processing for remaining ~25% of corpus
+### Step 7 — Verify bbox accuracy (new — needs paddleocr on host)
+```powershell
+pip install paddleocr paddlepaddle   # one-time
+python -m eval.bbox_eval --n 50 --save-crops crops/ --source tsb
+# Inspect crops/ — each PNG should show the highlighted text region.
+# Expect: mean_similarity > 0.5, hit_rate > 70%
+# If OCR-page chunks score badly (sim < 0.3), re-run ingestion.processing.run
+# on the affected PDFs (the ocr.py coordinate fix is now in code but those
+# chunks were written before the fix — need --force to reprocess).
+```
+
+### Step 7b — Reprocess OCR-page chunks with the coordinate fix
+The `ocr.py` bbox coordinate bug was present when the 36k chunks were written.
+Text-PDF chunks are unaffected. OCR-page chunks (image-heavy PDFs) have wrong bboxes.
+To fix those chunks:
+```powershell
+# Find image-heavy docs (the ones that went through PaddleOCR during processing):
+# These are typically short PDFs or scanned pages that triggered the fallback.
+# Reprocess with --force to regenerate bboxes in correct PDF point space:
+python -m ingestion.processing.run --force   # regenerates all chunks (slow)
+# Or target just image-heavy dirs if you can identify them.
+python -m embed.run                          # re-embed updated chunks (idempotent)
+```
+
+### Step 8 — Optional: resume PaddleOCR processing for remaining ~25% of corpus
 ```powershell
 python -m ingestion.processing.run     # idempotent; picks up remaining image-heavy PDFs
 python -m embed.run                    # embed new chunks
