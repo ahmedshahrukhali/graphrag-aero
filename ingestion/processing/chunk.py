@@ -31,6 +31,11 @@ OVERLAP_TOKENS = 64
 HEADER_SIZE_RATIO = 1.2
 HEADER_MAX_CHARS = 120
 PAGE_SEP = "\n\n"   # inserted between pages in the joined stream
+# Minimum bbox area in PDF pt² before we fall back to the full page-text extent.
+# Cross-page chunks often land only a page-number line on the dominant page,
+# giving a bbox like [72, 41, 302, 54] (area ≈ 2.8k pt²) that is useless for
+# highlighting.  Below this threshold we widen to all chars on that page.
+MIN_USABLE_BBOX_AREA = 5000.0
 
 
 # ─── tokenizer protocol ──────────────────────────────────────────────────────
@@ -179,9 +184,29 @@ def _bbox_for_range(joined: _Joined, start: int, end: int) -> tuple[int, tuple[f
         if bb[1] < y0: y0 = bb[1]
         if bb[2] > x1: x1 = bb[2]
         if bb[3] > y1: y1 = bb[3]
-    if not have:
-        return dominant_page, (0.0, 0.0, 0.0, 0.0)
-    return dominant_page, (x0, y0, x1, y1)
+    if have:
+        area = (x1 - x0) * (y1 - y0)
+        if area >= MIN_USABLE_BBOX_AREA:
+            return dominant_page, (x0, y0, x1, y1)
+
+    # Degenerate bbox (no chars with positional data, or area too small — e.g.
+    # cross-page chunk where only a page-number line landed on the dominant page).
+    # Fall back to the extent of ALL chars on the dominant page.
+    fx0 = float("inf"); fy0 = float("inf")
+    fx1 = float("-inf"); fy1 = float("-inf")
+    for i in range(len(joined.char_pages)):
+        if joined.char_pages[i] != dominant_page:
+            continue
+        bb = joined.char_bbox[i]
+        if bb is None:
+            continue
+        if bb[0] < fx0: fx0 = bb[0]
+        if bb[1] < fy0: fy0 = bb[1]
+        if bb[2] > fx1: fx1 = bb[2]
+        if bb[3] > fy1: fy1 = bb[3]
+    if fx0 < float("inf"):
+        return dominant_page, (fx0, fy0, fx1, fy1)
+    return dominant_page, (x0, y0, x1, y1) if have else (0.0, 0.0, 0.0, 0.0)
 
 
 # ─── public API ──────────────────────────────────────────────────────────────

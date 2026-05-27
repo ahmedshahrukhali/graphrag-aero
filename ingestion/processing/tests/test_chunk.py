@@ -4,7 +4,7 @@ shape, so tests stay offline.
 """
 from dataclasses import dataclass
 
-from ingestion.processing.chunk import Chunk, chunk_pages
+from ingestion.processing.chunk import MIN_USABLE_BBOX_AREA, Chunk, chunk_pages
 from ingestion.processing.dedup import chunk_hash
 from ingestion.processing.pdf import Char, PageExtract
 
@@ -130,3 +130,29 @@ def test_last_chunk_smaller_than_window_still_emitted():
     chunks = chunk_pages([page], _WhitespaceTokenizer(), window=4, overlap=1)
     # Step = 3. Windows start at 0, 3 -> emit [a b c d], [d e]. Both are kept.
     assert [c.text for c in chunks] == ["a b c d", "d e"]
+
+
+def test_bbox_fallback_expands_tiny_chunk_bbox():
+    """Cross-page chunk: dominant page has only a few chars in the window (tiny bbox).
+    The fallback must expand to the full page extent so highlights aren't microscopic.
+    """
+    # Two words: "ab" at (0,0)..(10,10) and "cd" far away at (500,490)..(510,500).
+    # With window=1 each word is its own chunk — both have area=100 pt² < MIN_USABLE_BBOX_AREA.
+    # Fallback: use all chars on the page → extent = (0, 0, 510, 500).
+    chars = [
+        Char(text="a", x0=0, x1=5, top=0, bottom=10, size=12, page=1),
+        Char(text="b", x0=5, x1=10, top=0, bottom=10, size=12, page=1),
+        Char(text="c", x0=500, x1=505, top=490, bottom=500, size=12, page=1),
+        Char(text="d", x0=505, x1=510, top=490, bottom=500, size=12, page=1),
+    ]
+    page = PageExtract(page=1, text="ab cd", chars=chars)
+    chunks = chunk_pages([page], _WhitespaceTokenizer(), window=1, overlap=0)
+    assert len(chunks) == 2
+    for c in chunks:
+        area = (c.bbox[2] - c.bbox[0]) * (c.bbox[3] - c.bbox[1])
+        assert area >= MIN_USABLE_BBOX_AREA, (
+            f"Expected fallback to full page extent (area>={MIN_USABLE_BBOX_AREA}), got bbox={c.bbox}"
+        )
+        # Full page extent must cover both word positions.
+        assert c.bbox[0] <= 0.0 and c.bbox[2] >= 510.0
+        assert c.bbox[1] <= 0.0 and c.bbox[3] >= 500.0
