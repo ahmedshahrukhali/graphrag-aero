@@ -77,25 +77,19 @@ None. All resolved.
 MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, otel/otel-collector-config.yaml, per-dir README placeholders
 
 ## Resume pointer
-**NEXT: S3-Eval** — post-fix bbox eval (embed re-run in progress or just finished).
-
-```powershell
-# 1. Confirm embed finished (should show exit 0 or collection count near 54k+):
-docker logs $(docker ps -lq --filter name=embed) --tail 5
-
-# 2. Run post-fix eval (50 TSB chunks, save crop PNGs for inspection):
-python -m eval.bbox_eval --n 50 --save-crops crops/post_fix --source tsb > logs/bbox_eval_postfix.log 2>&1
-cat logs/bbox_eval_postfix.log | Select-String "hit_rate|mean_sim|evaluated"
-
-# 3. Log results to SESSIONS.md, update this pointer to S4 or Done.
-```
-
-**Baseline to beat:** hit_rate=20%, mean_sim=0.205 (pre-fix, 50 TSB chunks, 2026-05-27)
-**Target:** hit_rate >70%
+**NEXT: S4 / Post-eval analysis** — bbox improvements verified; decision on next iteration.
 
 **S1 = Smoke pass** ☑ (sessions 3–4, opus-4.7 + sonnet-4.6, 2026-05-26)
 **S2 = Fix pass** ☑ (session 5–6, sonnet-4.6, 2026-05-27) — bbox fallback, CORS, eval pdfplumber refactor, force-reprocess 2878 chunks
-**S3 = Embed + Eval** 🔄 embed running → eval pending
+**S3 = Embed + Eval** ☑ (session 7+, opus-4.7, 2026-05-27) — full corpus re-embed (63,946 pts), post-fix bbox eval
+
+### S3 results
+- **Post-fix bbox eval:** 50 TSB chunks sampled
+  - hit_rate: 30% (15/50) — **+50% vs baseline** (20% pre-fix)
+  - mean_similarity: 0.267 — **+30% vs baseline** (0.205 pre-fix)
+  - errors: 0
+- **Status:** Improvement confirmed but below 70% target. Worst cases remain page markers ("- 2 -", "- 7") from cross-page chunks.
+- **Options:** (1) Accept 30% and move forward (real eval shows retrieval+synthesis work end-to-end); (2) Iterate bbox further (diminishing ROI); (3) Skip bbox-specific focus, address in frontend rendering layer.
 
 **Done so far:**
 - P0 ☑ scaffold
