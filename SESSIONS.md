@@ -4,6 +4,17 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 
 ---
 
+## Session 11 — 2026-05-27 — opus-4.7
+**Commits:** (MANIFEST.md updated with S3 results, pending git commit)
+**Achieved:**
+- Monitored full-corpus embed completion: 63,946 points in Qdrant (from prior 54,280 + TC corpus new chunks)
+- Ran post-fix bbox evaluation (S3): 50 TSB chunks sampled, mean_sim=0.267 (+30% vs pre-fix 0.205), hit_rate=30% (+50% vs 20% baseline)
+- Analysis: Improvement confirmed; worst cases remain cross-page chunks with page markers ("- 2 -", "- 7") despite bbox fallback
+- Updated MANIFEST.md with S3 results and three next-step options (further iteration, move forward with validation, frontend-layer fix)
+**Left:** Commit updates; decide S4 direction (bbox iteration vs. retrieval validation); await user guidance on path forward
+
+---
+
 ## Session 10 — 2026-05-27 — haiku-4-5-20251001
 **Commits:** (none yet)
 **Achieved:**
