@@ -4,6 +4,17 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 
 ---
 
+## Session 12 — 2026-05-27 — opus-4.7 + haiku-4.5
+**Commits:** none (recon only; artifacts in data/recon/tc/, cleanup scripts in repo root)
+**Achieved:**
+- Diagnosed P1b TC corpus gap: `en/tc/` empty because index page has no direct PDF links
+- Haiku fetched EN+FR AC indexes + all 281 same-host links to `data/recon/tc/`
+- Identified two-pass structure: index → per-AC detail pages (`/advisory-circular-ac-no-*`) → PDFs
+- Confirmed `extract_pdf_urls` works correctly on detail pages (1 PDF found on sample AC page)
+**Left:** Opus to author `extract_subpage_urls` + two-pass `run_tc` fix + tests; Haiku to run sample scrape and mark P1b complete
+
+---
+
 ## Session 11 — 2026-05-27 — opus-4.7
 **Commits:** (MANIFEST.md updated with S3 results, pending git commit)
 **Achieved:**
@@ -61,7 +72,7 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 ---
 
 ## Session 6 — 2026-05-27 — sonnet-4-6
-**Commits:** `63df76e` (eval pdfplumber refactor + .gitignore), `b4095e7` (CORS fix)
+**Commits:** `b4095e7` (CORS fix), `63df76e` (eval pdfplumber refactor + .gitignore)
 **Achieved:**
 - Fixed CORS preflight (OPTIONS 405 → 200); frontend at localhost:3000 connects to backend
 - Confirmed full pipeline live: /healthz ✅ /retrieve ✅ agent (embed→rerank→gemma2 draft) ✅
@@ -74,7 +85,7 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 ---
 
 ## Session 5 — 2026-05-27 — sonnet-4-6
-**Commits:** `2e6a8e2` (chunk.py bbox fallback), `b4cebc5` `25fa56b` `d49feae` (manifest updates)
+**Commits:** `d49feae` (manifest: smoke-pass + bbox eval baseline), `2e6a8e2` (chunk.py bbox fallback), `25fa56b` `b4cebc5` (manifest updates)
 **Achieved:**
 - Root-caused cross-page bbox problem: tiny bbox area (<5000 pt²) from page-number-only chunks
 - Added `MIN_USABLE_BBOX_AREA` fallback in `_bbox_for_range()` + 1 new test (9 total in test_chunk.py)
@@ -97,7 +108,7 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 ---
 
 ## Session 4 — 2026-05-26/27 — opus-4.7 + sonnet-4.6 + haiku-4.5
-**Commits:** `e4c3c89` (haiku smoke-pass status), `3c69b21` (qdrant healthcheck fix), `cc950a3` (backend Dockerfile -r layout fix), `d882e1e` (manifest handoff snapshot), `e8767c7` (graph hybrid extractor), `900e637` (thread-safe lazy loader), `f632f91` (bbox eval + OCR fix), `9a216c5` (GPU passthrough), and others
+**Commits:** `e4c3c89` (haiku smoke-pass status), `3c69b21` (qdrant healthcheck fix), `cc950a3` (backend Dockerfile -r layout fix), `d882e1e` (manifest handoff snapshot), `9a216c5` (GPU passthrough), `e8767c7` (graph hybrid extractor), `900e637` (thread-safe lazy loader), `f632f91` (bbox eval + OCR fix), and others
 **Achieved:**
 - Full smoke-pass: all 9 live blocks (corpus, embed, retrieve, graph, eval, backend, frontend, HF Space, tests)
 - Graph populated: 1,199 Occurrences + 13,124 Findings + 2,136 Recommendations via regex+LLM extractor

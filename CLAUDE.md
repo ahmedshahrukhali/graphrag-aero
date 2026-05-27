@@ -86,9 +86,16 @@ In chat this pause is honored by convention, not enforced. Honor it anyway. This
 addition to the mandatory pause-for-review after every phase.
 
 ### Authorship / blame
-Every commit carries a trailer so `git blame` shows who wrote each line:
+Every commit carries trailers so `git blame` shows who wrote each line and from which conversation:
 ```
 Model: <model-name>
+Co-Authored-By: <model-name> <chat-session-uuid>
+```
+The `<chat-session-uuid>` is the basename of the most recently modified `.jsonl` in
+`%USERPROFILE%\.claude\projects\c--Users-cocko-workspace-graphrag-aero\` **at commit time**.
+Resolve it immediately before committing:
+```powershell
+(Get-ChildItem "$env:USERPROFILE\.claude\projects\c--Users-cocko-workspace-graphrag-aero\*.jsonl" | Sort-Object LastWriteTime -Descending | Select-Object -First 1).BaseName
 ```
 **Commit at every model handoff — one model per commit.** Opus commits its code
 (`Model: opus-4.x`) *before* handing to Haiku; Haiku commits its run/maintenance work
