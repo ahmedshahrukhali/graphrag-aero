@@ -399,6 +399,11 @@ Docker image but not the host Python by default.
 
 **19 new tests** (307 total). All offline/mocked.
 
+**`chunk.py` bbox fallback** (sonnet-4.6, 2026-05-27, commit `2e6a8e2`): Cross-page 512-token
+chunks land only a page-number line on the dominant page, producing bboxes with area ~100–2k pt²
+that are useless for highlighting. `_bbox_for_range` now falls back to the full dominant-page
+extent when area < `MIN_USABLE_BBOX_AREA` (5000 pt²). 1 new test (9 total in test_chunk.py).
+
 ## Pending live steps — run in order once Docker Desktop is up (sonnet-4.6, 2026-05-27)
 
 All code is committed and tested offline (307 pytest passed). These are the remaining
@@ -420,15 +425,15 @@ cloudflared tunnel --url http://localhost:8080
 huggingface-cli upload ahmedsali/graphaero-rag hf_space/ . --repo-type=space
 ```
 
-### Step 7 — Verify bbox accuracy (new — needs paddleocr on host)
+### Step 7 — Verify bbox accuracy (no model needed — pdfplumber crop)
 ```powershell
-pip install paddleocr paddlepaddle   # one-time
+# Primary check uses pdfplumber crop+extract_text (same coords as chunker, no OCR model).
+# --save-crops renders annotated page PNGs for visual inspection.
 python -m eval.bbox_eval --n 50 --save-crops crops/ --source tsb
-# Inspect crops/ — each PNG should show the highlighted text region.
-# Expect: mean_similarity > 0.5, hit_rate > 70%
-# If OCR-page chunks score badly (sim < 0.3), re-run ingestion.processing.run
-# on the affected PDFs (the ocr.py coordinate fix is now in code but those
-# chunks were written before the fix — need --force to reprocess).
+# Inspect crops/ — the amber rectangle should land on the cited text.
+# Expect after chunk.py fallback fix: mean_similarity > 0.5, hit_rate > 70%
+# (old eval before fix: ~20% hit rate due to cross-page tiny bboxes)
+# Re-run after --force reprocess to confirm improvement.
 ```
 
 ### Step 7b — Reprocess OCR-page chunks with the coordinate fix
