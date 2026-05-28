@@ -195,12 +195,18 @@ def _register_routes(app: FastAPI) -> None:
             history=trace_from_history(graph, config),
         )
 
-    @app.get("/graph/{doc_id}")
+    @app.get("/graph/{doc_id:path}")
     def graph_lookup(doc_id: str, request: Request) -> dict:
-        """Return the knowledge-graph context for a single occurrence / AC document."""
+        """Return the knowledge-graph context for a single occurrence / AC document.
+
+        Accepts both the full chunk doc_id (``tsb/a13q0098``) and the bare
+        Neo4j occurrence id (``a13q0098``). Strips the corpus prefix before
+        querying — Neo4j stores bare ids.
+        """
         from graph.query import graph_context_for_occurrences
         deps = _get_deps(request)
-        rows = graph_context_for_occurrences(deps.agent_deps.neo4j, [doc_id])
+        bare_id = doc_id.split("/", 1)[-1] if "/" in doc_id else doc_id
+        rows = graph_context_for_occurrences(deps.agent_deps.neo4j, [bare_id])
         if not rows:
             raise HTTPException(status_code=404, detail=f"No graph data for {doc_id!r}")
         return rows[0]
