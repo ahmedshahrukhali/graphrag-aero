@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Protocol
+from typing import Iterator, Protocol
 
 
 logger = logging.getLogger(__name__)
@@ -28,6 +28,8 @@ def _default_options() -> dict:
 
 class LLM(Protocol):
     def chat(self, system: str, user: str) -> str: ...
+
+    def chat_stream(self, system: str, user: str) -> Iterator[str]: ...
 
 
 class OllamaLLM:
@@ -70,3 +72,24 @@ class OllamaLLM:
         )
         # Ollama's response shape: {"message": {"role": "assistant", "content": ...}, ...}
         return resp["message"]["content"]
+
+    def chat_stream(self, system: str, user: str) -> Iterator[str]:
+        """Yield assistant content chunks as Ollama emits them.
+
+        Uses the same chat call with stream=True; each yielded item is a
+        partial content string suitable for piping into Streamlit's
+        ``st.write_stream`` or any incremental writer.
+        """
+        client = self._ensure_client()
+        for chunk in client.chat(
+            model=self._model,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            options=self._options,
+            stream=True,
+        ):
+            piece = (chunk.get("message") or {}).get("content") or ""
+            if piece:
+                yield piece

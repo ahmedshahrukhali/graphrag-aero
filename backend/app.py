@@ -15,8 +15,11 @@ import os
 from contextlib import asynccontextmanager
 from typing import Any, Callable
 
+import json
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 
 from .deps import BackendDeps, build_default_deps
 from .schemas import (
@@ -171,6 +174,68 @@ def _register_routes(app: FastAPI) -> None:
             n_candidates=len(candidates),
             sources=candidates,
         )
+
+    @app.post("/query/stream")
+    def query_stream(req: QueryRequest, request: Request) -> StreamingResponse:
+        """Server-Sent Events variant of /query. Streams retrieve/graph status
+        then token-level synthesize output. Skips the LangGraph HITL pause —
+        clients that need draft-edit should use /query + /resume instead."""
+        from agent.nodes import make_retrieve_node, make_graph_expand_node
+        from agent.prompts import SYSTEM_PROMPT, build_user_prompt
+        from agent.state import initial_state
+        deps = _get_deps(request)
+        ad = deps.agent_deps
+
+        def _sse(event: str, data: dict) -> str:
+            return f"event: {event}\ndata: {json.dumps(data)}\n\n"
+
+        def gen():
+            state = dict(initial_state(req.query, max_hops=req.max_hops))
+
+            yield _sse("status", {"node": "retrieve", "msg": "Retrieving relevant chunks…"})
+            state.update(make_retrieve_node(ad)(state))
+            cands = state.get("candidates", [])
+            best = max((c.get("rerank_score") or 0.0 for c in cands), default=0.0)
+            yield _sse("status", {
+                "node": "retrieve",
+                "msg": f"Retrieved {len(cands)} chunks · best score {best:.2f}",
+            })
+
+            yield _sse("status", {"node": "graph_expand", "msg": "Looking up graph context…"})
+            state.update(make_graph_expand_node(ad)(state))
+            yield _sse("status", {
+                "node": "graph_expand",
+                "msg": f"Graph context · {len(state.get('graph_context', []))} edges",
+            })
+
+            yield _sse("status", {"node": "synthesize", "msg": "Generating draft…"})
+            # VRAM discipline matches synthesize_node
+            if hasattr(ad.embedder, "unload"):
+                ad.embedder.unload()
+            if hasattr(ad.reranker, "unload"):
+                ad.reranker.unload()
+            prompt = build_user_prompt(
+                state["query"], state.get("candidates", []), state.get("graph_context", []),
+            )
+            pieces: list[str] = []
+            for chunk in ad.llm.chat_stream(SYSTEM_PROMPT, prompt):
+                pieces.append(chunk)
+                yield _sse("token", {"text": chunk})
+            draft = "".join(pieces)
+
+            trace = list(state.get("trace", []))
+            trace.append({
+                "node": "synthesize", "elapsed_ms": 0, "streamed": True,
+                "prompt_chars": len(prompt), "draft_chars": len(draft),
+            })
+            yield _sse("done", {
+                "thread_id": req.thread_id,
+                "draft": draft,
+                "sources": state.get("candidates", []),
+                "trace": trace,
+            })
+
+        return StreamingResponse(gen(), media_type="text/event-stream")
 
     @app.post("/resume/{thread_id}", response_model=ResumeResponse)
     def resume(thread_id: str, body: ResumeRequest, request: Request) -> ResumeResponse:

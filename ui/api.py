@@ -1,7 +1,10 @@
 """HTTP client for the GraphRAG Aero backend."""
 from __future__ import annotations
 
+import json
 import os
+from typing import Iterator
+
 import requests
 
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8080").rstrip("/")
@@ -39,6 +42,38 @@ def query(text: str, thread_id: str, *,
                       timeout=_TIMEOUT_QUERY)
     r.raise_for_status()
     return r.json()
+
+
+def query_stream(text: str, thread_id: str, *, max_hops: int = 2) -> Iterator[dict]:
+    """POST /query/stream — yields parsed SSE events as ``{event, data}``.
+
+    The first ``status`` events describe retrieve / graph_expand progress,
+    then a series of ``token`` events carry the synthesize chunks, then a
+    final ``done`` event delivers sources + trace.
+    """
+    payload = {"query": text, "thread_id": thread_id, "max_hops": max_hops}
+    with requests.post(
+        f"{BACKEND_URL}/query/stream",
+        json=payload, stream=True, timeout=_TIMEOUT_QUERY,
+    ) as r:
+        r.raise_for_status()
+        event: str | None = None
+        data_buf: list[str] = []
+        for raw in r.iter_lines(decode_unicode=True):
+            if raw is None:
+                continue
+            if raw == "":  # event terminator
+                if event and data_buf:
+                    try:
+                        yield {"event": event, "data": json.loads("\n".join(data_buf))}
+                    except json.JSONDecodeError:
+                        pass
+                event, data_buf = None, []
+                continue
+            if raw.startswith("event:"):
+                event = raw[len("event:"):].strip()
+            elif raw.startswith("data:"):
+                data_buf.append(raw[len("data:"):].lstrip())
 
 
 def graph_query(doc_id: str) -> dict:

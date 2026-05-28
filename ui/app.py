@@ -326,28 +326,33 @@ if prompt and not st.session_state.hitl:
         st.markdown(prompt)
 
     thread_id = _new_thread_id()
+    sources_box: list[dict] = []
+    trace_box: list[dict] = []
 
     with st.chat_message("assistant"):
-        with st.spinner("Retrieving and reasoning…"):
+        status_ph = st.empty()
+
+        def _token_stream():
             try:
-                result = backend.query(prompt, thread_id, max_hops=max_hops)
+                for ev in backend.query_stream(prompt, thread_id, max_hops=max_hops):
+                    et, data = ev.get("event"), ev.get("data") or {}
+                    if et == "status":
+                        status_ph.markdown(f"_{data.get('msg', '')}_")
+                    elif et == "token":
+                        yield data.get("text", "")
+                    elif et == "done":
+                        sources_box.extend(data.get("sources") or [])
+                        trace_box.extend(data.get("trace") or [])
             except Exception as exc:
-                st.error(f"Query failed: {exc}")
-                st.stop()
+                status_ph.error(f"Query failed: {exc}")
 
-    # Result is a paused QueryPausedResponse — sources are the actual chunks
-    # the synthesizer was given, no second /retrieve round-trip needed.
-    draft = result.get("draft") or ""
-    trace = result.get("trace") or []
-    n_cands = result.get("n_candidates", 0)
-    sources: list[dict] = result.get("sources") or []
+        full_text = st.write_stream(_token_stream()) or ""
+        status_ph.empty()
 
-    st.session_state.hitl = {
-        "thread_id": thread_id,
-        "query": prompt,
-        "draft": draft,
-        "trace": trace,
-        "sources": sources,
-        "n_candidates": n_cands,
-    }
+    st.session_state.messages.append({
+        "role": "assistant",
+        "content": full_text if isinstance(full_text, str) else "".join(full_text),
+        "sources": sources_box,
+        "trace": trace_box,
+    })
     st.rerun()
