@@ -132,6 +132,36 @@ def test_last_chunk_smaller_than_window_still_emitted():
     assert [c.text for c in chunks] == ["a b c d", "d e"]
 
 
+def test_tsb_section_title_detected_by_content_pattern():
+    """TSB heading recognised even when all chars share the same font size."""
+    text = "Findings as to Causes\nThe engine failed due to fuel exhaustion"
+    chars = _chars_for(text, page=1, size=12.0)  # uniform — font-size heuristic won't fire
+    page = PageExtract(page=1, text=text, chars=chars)
+    chunks = chunk_pages([page], _WhitespaceTokenizer(), window=20, overlap=0)
+    assert len(chunks) == 1
+    assert chunks[0].section_title == "Findings as to Causes"
+
+
+def test_french_tsb_section_title_detected():
+    """French TSB heading is detected by content pattern."""
+    text = "Faits établis quant aux causes\nLe moteur a subi une panne de carburant"
+    chars = _chars_for(text, page=1, size=12.0)
+    page = PageExtract(page=1, text=text, chars=chars)
+    chunks = chunk_pages([page], _WhitespaceTokenizer(), window=20, overlap=0)
+    assert len(chunks) == 1
+    assert "Faits" in chunks[0].section_title
+
+
+def test_numbered_ac_section_title_detected():
+    """Numbered TC AC section ('1.2 Applicability') detected by content pattern."""
+    text = "1.2 Applicability\nThis circular applies to all operators"
+    chars = _chars_for(text, page=1, size=12.0)
+    page = PageExtract(page=1, text=text, chars=chars)
+    chunks = chunk_pages([page], _WhitespaceTokenizer(), window=20, overlap=0)
+    assert len(chunks) == 1
+    assert "1.2 Applicability" in chunks[0].section_title
+
+
 def test_bbox_fallback_expands_tiny_chunk_bbox():
     """Cross-page chunk: dominant page has only a few chars in the window (tiny bbox).
     The fallback must expand to the full page extent so highlights aren't microscopic.
