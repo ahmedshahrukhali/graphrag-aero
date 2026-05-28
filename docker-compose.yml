@@ -150,29 +150,16 @@ services:
               count: all
               capabilities: [gpu]
 
-  frontend:
+  ui:
     build:
-      context: .
-      dockerfile: frontend/Dockerfile
-      args:
-        NEXT_PUBLIC_BACKEND_URL: "${NEXT_PUBLIC_BACKEND_URL:-http://localhost:8080}"
-    env_file: .env
-    depends_on:
-      - backend
-    ports:
-      - "3000:3000"
-
-  hf-space:
-    build:
-      context: .
-      dockerfile: hf_space/Dockerfile
-    profiles: ["hf-space"]
+      context: ui
+      dockerfile: Dockerfile
     environment:
       BACKEND_URL: "http://backend:8080"
     depends_on:
       - backend
     ports:
-      - "7860:7860"
+      - "8501:8501"
 
 volumes:
   qdrant_data:
