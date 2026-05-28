@@ -51,12 +51,15 @@ class QueryPausedResponse(BaseModel):
     """Returned after the agent runs up to the HITL gate.
 
     The caller inspects ``draft`` + ``trace``, optionally PUTs an edited draft
-    via ``/resume/{thread_id}``, and gets the final answer back.
+    via ``/resume/{thread_id}``, and gets the final answer back. ``sources``
+    is the set of chunks the synthesizer was given — surface these in the x-ray
+    so what the user sees matches what produced the draft.
     """
     thread_id: str
     draft: str | None
     trace: list[dict]
     n_candidates: int
+    sources: list[dict]
 
 
 class ResumeRequest(BaseModel):

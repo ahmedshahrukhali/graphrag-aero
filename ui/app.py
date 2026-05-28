@@ -36,10 +36,15 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-/* Hide default Streamlit footer / menu */
+/* Hide Streamlit's Deploy button + main menu, but KEEP the sidebar toggle
+   reachable. Previously `header {visibility: hidden}` wiped out the only
+   way to open the sidebar. */
 #MainMenu {visibility: hidden;}
+[data-testid="stToolbar"] {visibility: hidden;}
+[data-testid="stDecoration"] {display: none;}
 footer {visibility: hidden;}
-header {visibility: hidden;}
+header {background: transparent;}
+[data-testid="stSidebarCollapsedControl"] {visibility: visible !important;}
 
 /* Page background */
 .main .block-container { padding-top: 1.5rem; padding-bottom: 2rem; }
@@ -330,18 +335,12 @@ if prompt and not st.session_state.hitl:
                 st.error(f"Query failed: {exc}")
                 st.stop()
 
-    # Result is a paused QueryPausedResponse
+    # Result is a paused QueryPausedResponse — sources are the actual chunks
+    # the synthesizer was given, no second /retrieve round-trip needed.
     draft = result.get("draft") or ""
     trace = result.get("trace") or []
     n_cands = result.get("n_candidates", 0)
-
-    # Pull sources from a /retrieve call so we have scored chunks for x-ray
-    sources: list[dict] = []
-    try:
-        ret = backend.retrieve(prompt, lang=lang, source=source, top_k=10)
-        sources = ret.get("results") or []
-    except Exception:
-        pass
+    sources: list[dict] = result.get("sources") or []
 
     st.session_state.hitl = {
         "thread_id": thread_id,

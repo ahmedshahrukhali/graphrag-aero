@@ -163,11 +163,13 @@ def _register_routes(app: FastAPI) -> None:
             )
             span.set_attribute("draft.present", bool(paused.get("draft")))
 
+        candidates = paused.get("candidates", [])
         return QueryPausedResponse(
             thread_id=req.thread_id,
             draft=paused.get("draft"),
             trace=paused.get("trace", []),
-            n_candidates=len(paused.get("candidates", [])),
+            n_candidates=len(candidates),
+            sources=candidates,
         )
 
     @app.post("/resume/{thread_id}", response_model=ResumeResponse)
