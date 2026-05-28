@@ -104,8 +104,16 @@ def anchored_retrieve(
     logger.debug("anchored to %d docs: %s", len(anchor_docs), anchor_docs)
 
     pool = scroll_doc_chunks(client, collection, anchor_docs)
-    if lang is not None:
-        pool = [c for c in pool if c.record.lang == lang]
+    # doc_id is lang-agnostic by design, so the expansion pool contains
+    # EN+FR chunks for any TSB doc whose stem appears in both corpora.
+    # Without a lang filter, the synthesiser would receive a bilingual
+    # mash. Fall back to the dominant lang of the top seed chunks so
+    # "Any" means "stick with whichever language matched best", not "mix".
+    effective_lang = lang
+    if effective_lang is None:
+        effective_lang = seed[0].record.lang
+    if effective_lang is not None:
+        pool = [c for c in pool if c.record.lang == effective_lang]
     if not pool:
         return seed
     ranked = rerank(query, pool, reranker)  # full pool, no top_k cap

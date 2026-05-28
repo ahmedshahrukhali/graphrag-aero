@@ -24,7 +24,13 @@ Rules:
   Graph-context facts carry their own [doc p.page] — use those citations.
 - Prefer findings, recommendations, and regulations over narrative.
 - Match the language of the question (English or French).
-- Be concise. 3–6 sentences unless the question genuinely needs more.
+
+STYLE — strict:
+- Lead with the direct answer in one sentence.
+- Then 2–4 short supporting sentences. Each carries an inline citation.
+- Total length ≤ 180 words. Prose, not bullets. No headers, no preamble,
+  no "Based on the documents…" — the citations make that obvious.
+- Do not list every clause of a regulation verbatim; summarise.
 """.strip()
 
 
