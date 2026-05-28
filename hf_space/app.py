@@ -20,7 +20,7 @@ from typing import Any
 
 import gradio as gr
 
-from hf_space.api_client import ApiClient, ApiError, RetrieveResponse, make_client
+from hf_space.api_client import ApiClient, ApiError, RetrievedChunk, RetrieveResponse, make_client
 from hf_space.pdf_render import PdfRenderError, render_page_with_bbox
 
 
@@ -52,6 +52,29 @@ _patch_gradio_client_bool_schema()
 
 def _lang_param(choice: str) -> str | None:
     return None if choice == "all" else choice
+
+
+def _sources_to_retrieve(sources: list[dict], query: str) -> RetrieveResponse:
+    """Adapt the ``sources`` list from /query/stream's done event into the
+    same shape /retrieve returns, so the existing render helpers (gallery,
+    chunks_md, logs) work unchanged. Backend sources don't carry ``rank``;
+    we assign it by position."""
+    chunks: list[RetrievedChunk] = []
+    for i, s in enumerate(sources, start=1):
+        bbox = s.get("bbox") or [0.0, 0.0, 0.0, 0.0]
+        chunks.append(RetrievedChunk(
+            rank=i,
+            doc_id=s.get("doc_id", ""),
+            source_url=s.get("source_url"),
+            section_title=s.get("section_title", ""),
+            page=int(s.get("page", 0)),
+            bbox=tuple(bbox),  # type: ignore[arg-type]
+            lang=s.get("lang", ""),
+            text=s.get("text", ""),
+            ann_score=float(s.get("ann_score", 0.0)),
+            rerank_score=None if s.get("rerank_score") is None else float(s["rerank_score"]),
+        ))
+    return RetrieveResponse(query=query, results=chunks)
 
 
 def _gallery_items(retrieve: RetrieveResponse) -> list[tuple[Any, str]]:
@@ -251,7 +274,11 @@ body, .gradio-container { background: #f8fafc; }
   text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px;
 }
 .center-pane .draft-card .agent-tag .dot { width: 7px; height: 7px; border-radius: 999px; background: var(--warn); display: inline-block; }
-.center-pane .draft-card textarea { background: white !important; border-radius: 8px !important; border: 1px solid #fef3c7 !important; }
+.center-pane .draft-card textarea {
+  background: white !important; border-radius: 8px !important; border: 1px solid #fef3c7 !important;
+  color: #111827 !important; -webkit-text-fill-color: #111827 !important;
+  opacity: 1 !important; font-size: 14px !important; line-height: 1.55 !important;
+}
 
 .center-pane .final-card {
   background: #f0fdf4 !important; border: 1px solid #bbf7d0 !important; border-radius: 14px !important;
@@ -266,7 +293,10 @@ body, .gradio-container { background: #f8fafc; }
 
 .center-pane .composer { border-top: 1px solid var(--border); padding: 14px 22px 18px !important; background: white; }
 .center-pane .composer-row { background: #f8fafc; border: 1px solid var(--border); border-radius: 14px !important; padding: 6px 6px 6px 14px !important; gap: 6px !important; }
-.center-pane .composer-row textarea { background: transparent !important; border: 0 !important; box-shadow: none !important; }
+.center-pane .composer-row textarea {
+  background: transparent !important; border: 0 !important; box-shadow: none !important;
+  color: #111827 !important; -webkit-text-fill-color: #111827 !important; opacity: 1 !important;
+}
 .center-pane .composer-row button { border-radius: 10px !important; min-width: 60px !important; }
 
 /* ghost stop button — subdued, inline with Send */
@@ -311,86 +341,124 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
     client = api or make_client()
 
     def on_ask(query: str, lang: str, source: str, max_hops: int, history: list[dict] | None):
+        """Streaming chat handler. Yields partial UI updates as SSE events
+        arrive from /query/stream. The right-rail gallery + trace + sources
+        populate only at the end (from the ``done`` event), so we don't
+        block tokens on a separate /retrieve round-trip."""
         q = (query or "").strip()
+        N_OUTPUTS = 14
+        nop = (gr.update(),) * N_OUTPUTS
+
+        def _emit(**overrides):
+            """Build a 14-tuple with the named overrides; everything else nop."""
+            keys = [
+                "history", "recent", "topbar", "status", "user_msg",
+                "hitl_explainer", "draft_card", "draft", "final_card",
+                "gallery", "chunks_md", "trace", "logs", "sess",
+            ]
+            return tuple(overrides.get(k, gr.update()) for k in keys)
+
         if not q:
-            # 14 outputs — only flip status to a warning, leave the rest alone.
-            return (
-                history or [], gr.update(),
-                gr.update(), gr.update(value="⚠️ enter a query.", visible=True),
-                gr.update(), gr.update(), gr.update(), gr.update(), gr.update(),
-                gr.update(), gr.update(), gr.update(), gr.update(),
-                gr.update(),
-            )
+            yield _emit(status=gr.update(value="⚠️ enter a query.", visible=True))
+            return
 
         thread_id = str(uuid.uuid4())
-        try:
-            retrieve = client.retrieve(q, lang=_lang_param(lang), source=_lang_param(source), top_k=10)
-            paused = client.query(q, thread_id, max_hops=max_hops)
-        except ApiError as e:
-            return (
-                history or [], gr.update(),
-                gr.update(), gr.update(value=_fmt_error(e), visible=True),
-                gr.update(), gr.update(), gr.update(), gr.update(), gr.update(),
-                gr.update(), gr.update(), gr.update(), gr.update(),
-                gr.update(),
-            )
 
-        new_history = _push_history(history, q, paused.thread_id)
+        # Initial UI flip: show the user bubble, status line, and an empty
+        # draft card so tokens have a place to land.
+        yield _emit(
+            user_msg=gr.update(value=q, visible=True),
+            topbar=gr.update(value=_topbar(q, lang, source, max_hops, status="streaming…"), visible=True),
+            status=gr.update(value="_starting…_", visible=True),
+            draft_card=gr.update(visible=True),
+            draft=gr.update(value="", visible=True),
+            final_card=gr.update(visible=False),
+            hitl_explainer=gr.update(visible=False),
+        )
+
+        text_buf: list[str] = []
+        sources: list[dict] = []
+        trace_steps: list[dict] = []
+        final_thread_id = thread_id
+
+        try:
+            for ev in client.query_stream(q, thread_id, max_hops=max_hops):
+                et, data = ev.get("event"), ev.get("data") or {}
+                if et == "status":
+                    yield _emit(status=gr.update(value=f"_{data.get('msg','')}_", visible=True))
+                elif et == "token":
+                    text_buf.append(data.get("text", ""))
+                    yield _emit(draft=gr.update(value="".join(text_buf), visible=True))
+                elif et == "done":
+                    sources = list(data.get("sources") or [])
+                    trace_steps = list(data.get("trace") or [])
+                    final_thread_id = data.get("thread_id") or thread_id
+        except ApiError as e:
+            yield _emit(status=gr.update(value=_fmt_error(e), visible=True))
+            return
+        except Exception as e:  # noqa: BLE001
+            yield _emit(status=gr.update(value=f"❌ stream failed ({e})", visible=True))
+            return
+
+        # Stream finished — populate right-rail panels and reveal HITL gate.
+        retrieve = _sources_to_retrieve(sources, q)
+        new_history = _push_history(history, q, final_thread_id)
         n = len(retrieve.results)
-        return (
-            # state
-            new_history,
-            gr.update(samples=_recent_samples(new_history)),
-            # topbar + status — both visible now that we have content
-            gr.update(value=_topbar(q, lang, source, max_hops, n_chunks=n, status=f"paused at HITL · thread `{paused.thread_id[:8]}…`"), visible=True),
-            gr.update(value=f"_{n} candidates · awaiting your edit on the draft_", visible=True),
-            # user msg
-            gr.update(value=q, visible=True),
-            # HITL explainer — shown alongside the draft
-            gr.update(visible=True),
-            # draft card + draft textbox
-            gr.update(visible=True),
-            gr.update(value=paused.draft or "", visible=True),
-            # final card hidden
-            gr.update(visible=False),
-            # right rail: gallery, chunks, trace, logs
-            gr.update(value=_gallery_items(retrieve)),
-            gr.update(value=_chunks_md(retrieve)),
-            gr.update(value=_trace_rows(paused.trace)),
-            gr.update(value=_logs_text(q, retrieve, paused.trace, paused=True)),
-            # session blob
-            {"thread_id": paused.thread_id, "draft": paused.draft or "", "retrieve": retrieve, "query": q},
+        yield _emit(
+            history=new_history,
+            recent=gr.update(samples=_recent_samples(new_history)),
+            topbar=gr.update(value=_topbar(q, lang, source, max_hops, n_chunks=n, status=f"draft ready · thread `{final_thread_id[:8]}…`"), visible=True),
+            status=gr.update(value=f"_{n} sources · draft ready, edit and finalize_", visible=True),
+            hitl_explainer=gr.update(visible=True),
+            draft_card=gr.update(visible=True),
+            draft=gr.update(value="".join(text_buf), visible=True),
+            final_card=gr.update(visible=False),
+            gallery=gr.update(value=_gallery_items(retrieve)),
+            chunks_md=gr.update(value=_chunks_md(retrieve)),
+            trace=gr.update(value=_trace_rows(trace_steps)),
+            logs=gr.update(value=_logs_text(q, retrieve, trace_steps, paused=True)),
+            sess={
+                "thread_id": final_thread_id,
+                "draft": "".join(text_buf),
+                "retrieve": retrieve,
+                "query": q,
+                "trace": trace_steps,
+            },
         )
 
     def on_finalize(edited_draft: str, sess: dict):
+        """Commit the (possibly edited) draft as the final answer.
+
+        The streaming /query/stream path doesn't go through the LangGraph
+        HITL checkpoint, so there's no backend state to /resume — finalising
+        is a UI-only promotion of draft→final. The agent trace already in
+        the session is unchanged; we just append a finalize marker so the
+        right-rail trace makes sense."""
         if not sess or "thread_id" not in sess:
-            return gr.update(), gr.update(), gr.update(value="⚠️ no active session.")
+            return (
+                gr.update(), gr.update(), gr.update(),
+                gr.update(value="⚠️ no active session."),
+                gr.update(), gr.update(),
+            )
 
         original = sess.get("draft") or ""
-        body_draft = edited_draft if edited_draft != original else None
-        try:
-            done = client.resume(sess["thread_id"], draft=body_draft)
-        except ApiError as e:
-            return gr.update(), gr.update(), gr.update(value=_fmt_error(e))
+        body = edited_draft if isinstance(edited_draft, str) else ""
+        edited_note = " · draft was edited by user" if body != original else ""
 
-        retrieve = sess.get("retrieve")
-        logs = _logs_text(
-            sess.get("query", ""),
-            retrieve if retrieve else RetrieveResponse("", []),
-            done.trace,
-            paused=False,
-        )
-        edited_note = " · draft was edited by user" if body_draft is not None else ""
+        retrieve = sess.get("retrieve") or RetrieveResponse("", [])
+        # Synthesise a finalize trace step locally — backend already returned
+        # the trace through the stream's done event; we just close it out.
+        # Pull whatever trace was in the dataframe by re-deriving from sess.
+        trace_steps = list(sess.get("trace") or [])
+        trace_steps.append({"node": "finalize", "elapsed_ms": 0, "final_chars": len(body)})
+        logs = _logs_text(sess.get("query", ""), retrieve, trace_steps, paused=False)
+        thread = sess.get("thread_id", "?")[:8]
         return (
-            # final card + final markdown
             gr.update(visible=True),
-            gr.update(value=done.final or "_(no answer)_"),
-            # HITL explainer hidden once finalised
+            gr.update(value=body or "_(no answer)_"),
             gr.update(visible=False),
-            # status
-            gr.update(value=f"_finalised · thread `{done.thread_id[:8]}…`{edited_note}_"),
-            # right rail updates
-            gr.update(value=_trace_rows(done.trace)),
+            gr.update(value=f"_finalised · thread `{thread}…`{edited_note}_"),
+            gr.update(value=_trace_rows(trace_steps)),
             gr.update(value=logs),
         )
 
@@ -483,30 +551,6 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                         samples_per_page=10,
                     )
 
-                gr.Markdown('<div class="section-title">Filters</div>')
-                with gr.Row(elem_classes="filter-row"):
-                    gr.HTML('<span class="icon">🌐</span>')
-                    lang = gr.Radio(
-                        ["all", "en", "fr"], value="all", show_label=False,
-                        container=False, elem_classes="filter-pills",
-                    )
-                with gr.Row(elem_classes="filter-row"):
-                    gr.HTML('<span class="icon">📚</span>')
-                    source = gr.Radio(
-                        ["all", "tsb", "tc"], value="all", show_label=False,
-                        container=False, elem_classes="filter-pills",
-                    )
-
-                gr.Markdown('<div class="section-title">Features</div>')
-                gr.HTML(
-                    '<div class="features-block">'
-                    '<div class="feature">⚙️ Filters</div>'
-                    '<div class="feature">📚 Browse corpus</div>'
-                    '<div class="feature">🕸️ Graph explorer</div>'
-                    '<div class="feature">📊 Eval dashboard</div>'
-                    '</div>'
-                )
-
                 with gr.Column(elem_classes="footer-block"):
                     health_md = gr.Markdown("_checking backend…_")
 
@@ -546,6 +590,19 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                         final_md = gr.Markdown("")
 
                 with gr.Column(elem_classes="composer"):
+                    # Per-turn filters live with the input — they change what
+                    # this question searches, not a global app preference.
+                    with gr.Row(elem_classes="composer-meta"):
+                        lang = gr.Radio(
+                            ["all", "en", "fr"], value="all", label="Lang",
+                            container=False, scale=1, elem_classes="filter-pills",
+                        )
+                        source = gr.Radio(
+                            ["all", "tsb", "tc"], value="all", label="Corpus",
+                            container=False, scale=1, elem_classes="filter-pills",
+                        )
+                        with gr.Accordion("Advanced", open=False):
+                            max_hops = gr.Slider(1, 5, value=2, step=1, label="Max hops")
                     with gr.Row(elem_classes="composer-row"):
                         query = gr.Textbox(
                             placeholder="Ask in English or French…  (Enter to send)",
@@ -558,8 +615,6 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                         )
                         ask_btn = gr.Button("Send ↑", variant="primary", scale=0)
                         stop_btn = gr.Button("⏹ Stop", variant="secondary", scale=0, elem_classes="ghost-btn")
-                    with gr.Row(elem_classes="composer-meta"):
-                        max_hops = gr.Slider(1, 5, value=2, step=1, label="Max hops", scale=1)
 
             # ─── RIGHT RAIL ─────────────────────────────────────────────
             with gr.Column(scale=0, min_width=340, elem_classes="right-rail"):

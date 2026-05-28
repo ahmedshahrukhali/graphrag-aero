@@ -6,9 +6,10 @@ dominated by the backend, not by Python threading.
 """
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Iterator
 from urllib.parse import quote
 
 import httpx
@@ -167,6 +168,45 @@ class ApiClient:
     def query(self, query: str, thread_id: str, *, max_hops: int = 2) -> QueryPausedResponse:
         body = {"query": query, "thread_id": thread_id, "max_hops": max_hops}
         return QueryPausedResponse.from_dict(self._request("POST", "/query", json=body))
+
+    def query_stream(
+        self, query: str, thread_id: str, *, max_hops: int = 2,
+    ) -> Iterator[dict]:
+        """POST /query/stream. Yields parsed SSE events as ``{event, data}``.
+
+        Streams status events for retrieve/graph_expand, then token events
+        carrying synthesize chunks, then a final ``done`` event with sources
+        and trace. Caller drives partial UI updates from each yield.
+        """
+        body = {"query": query, "thread_id": thread_id, "max_hops": max_hops}
+        # Use a fresh stream-aware client; the default client may have a
+        # short timeout that doesn't suit long generations.
+        timeout = httpx.Timeout(self.timeout, read=None)
+        with httpx.Client(base_url=self.base_url, timeout=timeout) as c:
+            with c.stream("POST", "/query/stream", json=body) as r:
+                if r.status_code // 100 != 2:
+                    try:
+                        detail = r.read().decode("utf-8", errors="replace")
+                    except Exception:  # noqa: BLE001
+                        detail = None
+                    raise ApiError(r.status_code, f"POST /query/stream → {r.status_code}", detail)
+                event: str | None = None
+                data_buf: list[str] = []
+                for raw in r.iter_lines():
+                    if raw is None:
+                        continue
+                    if raw == "":
+                        if event and data_buf:
+                            try:
+                                yield {"event": event, "data": json.loads("\n".join(data_buf))}
+                            except json.JSONDecodeError:
+                                pass
+                        event, data_buf = None, []
+                        continue
+                    if raw.startswith("event:"):
+                        event = raw[len("event:"):].strip()
+                    elif raw.startswith("data:"):
+                        data_buf.append(raw[len("data:"):].lstrip())
 
     def resume(self, thread_id: str, *, draft: str | None = None) -> ResumeResponse:
         body: dict = {} if draft is None else {"draft": draft}
