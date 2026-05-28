@@ -41,6 +41,13 @@ def query(text: str, thread_id: str, *,
     return r.json()
 
 
+def graph_query(doc_id: str) -> dict:
+    """GET /graph/{doc_id} — knowledge-graph context for one occurrence."""
+    r = requests.get(f"{BACKEND_URL}/graph/{doc_id}", timeout=_TIMEOUT_RETRIEVE)
+    r.raise_for_status()
+    return r.json()
+
+
 def resume(thread_id: str, draft: str | None = None) -> dict:
     """POST /resume/{thread_id} — finalise with optional edited draft."""
     payload: dict = {}

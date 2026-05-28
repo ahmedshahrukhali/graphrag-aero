@@ -195,6 +195,16 @@ def _register_routes(app: FastAPI) -> None:
             history=trace_from_history(graph, config),
         )
 
+    @app.get("/graph/{doc_id}")
+    def graph_lookup(doc_id: str, request: Request) -> dict:
+        """Return the knowledge-graph context for a single occurrence / AC document."""
+        from graph.query import graph_context_for_occurrences
+        deps = _get_deps(request)
+        rows = graph_context_for_occurrences(deps.agent_deps.neo4j, [doc_id])
+        if not rows:
+            raise HTTPException(status_code=404, detail=f"No graph data for {doc_id!r}")
+        return rows[0]
+
     @app.get("/healthz", response_model=HealthResponse)
     def healthz(request: Request) -> HealthResponse:
         deps = _get_deps(request)
