@@ -13,7 +13,7 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 - Streamlit UI: chat with HITL draft gate + x-ray expander, corpus viewer (/retrieve search), graph viewer (/graph/{doc_id})
 - Backend: added GET /graph/{doc_id} endpoint
 - docker-compose: `ui` service on port 8501 replaces frontend/hf-space
-**Left:** re-chunk finishes → re-embed → restart backend; add PDF bbox rendering to corpus viewer; computer-use MCP was disconnected (deferred)
+**Left:** re-chunk (correct image, running now) → re-embed → restart backend; add PDF bbox rendering to corpus viewer; live UI test still pending
 
 ## Session 12 — 2026-05-27 — opus-4.7 + haiku-4.5
 **Commits:** none (recon only; artifacts in data/recon/tc/, cleanup scripts in repo root)
