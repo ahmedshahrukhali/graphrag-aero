@@ -150,17 +150,6 @@ services:
               count: all
               capabilities: [gpu]
 
-  ui:
-    build:
-      context: ui
-      dockerfile: Dockerfile
-    environment:
-      BACKEND_URL: "http://backend:8080"
-    depends_on:
-      - backend
-    ports:
-      - "8501:8501"
-
   hf-space:
     build:
       context: .
