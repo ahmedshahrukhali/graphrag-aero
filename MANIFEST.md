@@ -77,13 +77,15 @@ None. All resolved.
 MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, otel/otel-collector-config.yaml, per-dir README placeholders
 
 ## Resume pointer
-**NEXT: S4 / Re-embed after re-chunk completes.**
-1. Wait for ingestion container to finish (started 2026-05-28, force-reprocess all 2895 PDFs, ~45 min)
-2. `docker compose --profile embed run --rm embed` — re-embed new chunks into Qdrant
-3. Restart backend: `docker compose restart backend`
-4. Verify: `curl http://localhost:8080/healthz`, then try a query in the Streamlit UI at http://localhost:8501
-5. Add PDF bbox rendering to corpus viewer (port from hf_space/pdf_render.py)
-6. Update CLAUDE.md to reflect new North Star (Streamlit chat, no Gradio/Next.js)
+**NEXT: S5 / Live-verify the Gradio 5 chat rebuild (steps 3–5 deferred from S4).**
+The 3 commits (5d87bfc, 50e7d2a, 05d515f) shipped offline-verified: Gradio 4→5.14+
+upgrade, backend `sources` SSE event, and the gr.Chatbot three-zone UI. 311 tests pass.
+Container builds + serves HTTP 200 on :7860 (gradio 5.50.0). Still to do live:
+1. `docker compose up -d backend hf-space` (full stack)
+2. `curl -N -X POST http://localhost:8080/query/stream -H 'content-type: application/json' -d '{"query":"fuel exhaustion","thread_id":"v1","max_hops":1}'` — confirm SSE order: status… → `sources` (once) → token… → done (no sources in done payload)
+3. **The real correctness check:** `docker logs graphrag-aero-otel-collector-1` — verify retrieve/graph_expand/synthesize spans. UI is NOT the measurement surface.
+4. Browser smoke at http://localhost:7860 — thinking accordion collapses on done, sources accordion renders, answer readable, Accept/Edit/Discard work, right Sidebar Pages/Chunks tabs bind on chat.select. Screenshots verify CSS/layout ONLY.
+5. If all green: mark S5 ☑, append SESSIONS.md.
 
 **S1 = Smoke pass** ☑ (sessions 3–4, opus-4.7 + sonnet-4.6, 2026-05-26)
 **S2 = Fix pass** ☑ (session 5–6, sonnet-4.6, 2026-05-27) — bbox fallback, CORS, eval pdfplumber refactor, force-reprocess 2878 chunks
