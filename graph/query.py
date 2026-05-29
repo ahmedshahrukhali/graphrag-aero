@@ -102,3 +102,81 @@ def graph_context_for_occurrences(
 
     logger.debug("graph_context: %d ids in, %d rows out", len(ids), len(out))
     return out
+
+
+# Outward second hop: regulations the seed occurrences cite that OTHER
+# occurrences also cite. We traverse the *direct* Occurrence-[:CITES]->Regulation
+# edge — the populated one (regex-extracted, ~875 edges) — not the
+# Finding-[:CITES]->Regulation edge, which the LLM extractor barely filled
+# (~166 edges) so it surfaces nothing for most occurrences. The reverse leg
+# (r)<-[:CITES]-(o) gives sibling reports; count(DISTINCT o) is the recurrence
+# degree. Selectivity lives in the WHERE: keep only regs shared beyond the seeds
+# (deg > #seeds) and drop promiscuous hubs (deg <= $max_reg_degree, e.g. generic
+# "general provisions" CARs cited by dozens of reports) so breadth is signal.
+_RECURRING_CYPHER = """
+UNWIND $ids AS seed_id
+MATCH (s:Occurrence {id: seed_id})-[:CITES]->(r:Regulation)
+WITH collect(DISTINCT seed_id) AS seeds, collect(DISTINCT r.id) AS reg_ids
+UNWIND reg_ids AS reg_id
+MATCH (r:Regulation {id: reg_id})<-[:CITES]-(o:Occurrence)
+WITH seeds, reg_id, count(DISTINCT o) AS deg, collect(DISTINCT o.id) AS occ_ids
+WHERE deg > size(seeds) AND deg <= $max_reg_degree
+RETURN reg_id AS reg, deg AS occ_count,
+       [x IN occ_ids WHERE NOT x IN seeds] AS sibling_ids
+ORDER BY occ_count DESC
+LIMIT $max_regs
+""".strip()
+
+
+def recurring_context_for_occurrences(
+    driver: DriverLike,
+    occurrence_ids: Iterable[str],
+    *,
+    max_regs: int = 5,
+    max_siblings_per_reg: int = 3,
+    max_reg_degree: int = 15,
+) -> list[dict]:
+    """Outward second hop — recurring regulatory threads across *other* reports.
+
+    For the seed occurrences, find the regulations they cite (direct
+    Occurrence→CITES→Regulation), then surface OTHER occurrences citing the same
+    regulation. A regulation is kept only if it recurs beyond the seeds
+    (``deg > #seeds``) and isn't a promiscuous hub (``deg <= max_reg_degree``) —
+    the graph-IDF that keeps breadth meaningful rather than noise.
+
+    Each returned row:
+        {reg, occ_count, siblings: [{occ_id, source_doc_id}]}
+    ordered by ``occ_count`` desc, capped at ``max_regs`` regs and
+    ``max_siblings_per_reg`` siblings. Siblings cite at the report level
+    ([tsb/<occ_id>]); Occurrence nodes carry no page, so we don't fabricate one.
+
+    Returns ``[]`` when the seeds share no cited regulation with other
+    occurrences — a direct signal the graph is too sparse for this query.
+    """
+    ids = list(dict.fromkeys(occurrence_ids))
+    if not ids:
+        return []
+
+    out: list[dict] = []
+    with driver.session() as session:
+        result = session.run(
+            _RECURRING_CYPHER,
+            ids=ids,
+            max_regs=max_regs,
+            max_reg_degree=max_reg_degree,
+        )
+        for row in result:
+            sib_ids = [x for x in (row.get("sibling_ids") or []) if x][:max_siblings_per_reg]
+            if not sib_ids:
+                continue
+            # Occurrence ids map back to doc_ids as "tsb/<id>" (Occurrence nodes
+            # are minted only for the tsb corpus), so siblings are citable.
+            sibs = [{"occ_id": x, "source_doc_id": f"tsb/{x}"} for x in sib_ids]
+            out.append({
+                "reg": row.get("reg"),
+                "occ_count": row.get("occ_count", 0),
+                "siblings": sibs,
+            })
+
+    logger.debug("recurring_context: %d seeds in, %d recurring regs out", len(ids), len(out))
+    return out

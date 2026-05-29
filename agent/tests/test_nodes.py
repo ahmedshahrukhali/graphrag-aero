@@ -279,7 +279,15 @@ def test_graph_expand_pulls_occurrences():
     assert len(update["graph_context"]) == 1
     assert update["graph_context"][0]["occ_id"] == "doc000"
     assert update["graph_context"][0]["findings"][0]["text"] == "Fuel tanks empty."
-    assert update["trace"][-1]["node"] == "graph_expand"
+    # graph_expand now also runs the concentration-gated outward hop, so it
+    # appends a second "graph_broaden" trace entry after "graph_expand".
+    trace_nodes = [t["node"] for t in update["trace"]]
+    assert "graph_expand" in trace_nodes
+    broaden = update["trace"][-1]
+    assert broaden["node"] == "graph_broaden"
+    # 1 distinct doc ≤ threshold → the hop fires (the mock yields no siblings).
+    assert broaden["fired"] is True and broaden["distinct_docs"] == 1
+    assert update["recurring_context"] == []
 
 
 def test_graph_expand_handles_no_tsb_candidates():
@@ -291,6 +299,28 @@ def test_graph_expand_handles_no_tsb_candidates():
     ]
     update = node(state)
     assert update["graph_context"] == []
+
+
+def test_graph_expand_skips_broaden_when_already_broad():
+    # 4 distinct docs > broaden_when_docs_lte default (3) → the outward hop must
+    # NOT fire (retrieval is already broad; nothing to broaden).
+    table = {
+        f"doc{i:03d}": {"occ_id": f"doc{i:03d}", "occ_url": "u", "findings": [],
+                        "recommendations": [], "direct_regs": [], "acs": []}
+        for i in range(4)
+    }
+    deps = _make_deps(QdrantClient(":memory:"), graph=FakeGraphDriver(table))
+    node = make_graph_expand_node(deps)
+    state = initial_state("q")
+    state["candidates"] = [
+        scored_chunk_to_dict(ScoredChunk(_rec("a", idx=i, source="tsb"), 0.5, 0.5))
+        for i in range(4)
+    ]
+    update = node(state)
+    broaden = update["trace"][-1]
+    assert broaden["node"] == "graph_broaden"
+    assert broaden["distinct_docs"] == 4 and broaden["fired"] is False
+    assert update["recurring_context"] == []
 
 
 # ─── decide_continue ─────────────────────────────────────────────────────────

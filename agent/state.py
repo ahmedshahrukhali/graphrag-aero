@@ -51,6 +51,7 @@ class AgentState(TypedDict, total=False):
     source: str | None
     candidates: list[ScoredChunkDict]
     graph_context: list[dict]
+    recurring_context: list[dict]
     draft: str | None
     final: str | None
     trace: list[dict]
@@ -68,6 +69,7 @@ def initial_state(
         source=source,
         candidates=[],
         graph_context=[],
+        recurring_context=[],
         draft=None,
         final=None,
         trace=[],

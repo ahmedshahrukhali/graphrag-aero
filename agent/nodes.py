@@ -18,7 +18,10 @@ from qdrant_client import QdrantClient
 from embed.bge_m3 import DenseEmbedder
 
 from graph.client import DriverLike
-from graph.query import graph_context_for_occurrences
+from graph.query import (
+    graph_context_for_occurrences,
+    recurring_context_for_occurrences,
+)
 from retrieve.pipeline import (
     DEFAULT_CHAR_BUDGET,
     DEFAULT_TOP_N_DOCS,
@@ -43,6 +46,15 @@ def _anchored_default() -> bool:
     return os.environ.get("RETRIEVE_ANCHORED", "1").lower() not in ("0", "false", "no")
 
 
+def _broaden_default() -> int:
+    """Fire the outward graph hop only when retrieval is this-narrow or narrower
+    (distinct docs ≤ this). Env-overridable like RETRIEVE_ANCHORED."""
+    try:
+        return int(os.environ.get("GRAPH_BROADEN_WHEN_DOCS_LTE", "3"))
+    except ValueError:
+        return 3
+
+
 @dataclass(frozen=True)
 class AgentDeps:
     """Bundle of injected dependencies — keeps nodes pure-ish and testable."""
@@ -59,6 +71,12 @@ class AgentDeps:
     anchored: bool = field(default_factory=_anchored_default)
     top_n_docs: int = DEFAULT_TOP_N_DOCS
     char_budget: int = DEFAULT_CHAR_BUDGET
+    # Outward graph hop (recurring patterns across other reports), gated by
+    # retrieval concentration. See graph.query.recurring_context_for_occurrences.
+    broaden_when_docs_lte: int = field(default_factory=_broaden_default)
+    recurring_max_regs: int = 5
+    recurring_max_siblings: int = 3
+    recurring_max_reg_degree: int = 15
 
 
 # ─── helpers ─────────────────────────────────────────────────────────────────
@@ -160,14 +178,40 @@ def make_retrieve_node(deps: AgentDeps) -> Callable[[AgentState], dict]:
 def make_graph_expand_node(deps: AgentDeps) -> Callable[[AgentState], dict]:
     def graph_expand_node(state: AgentState) -> dict:
         started = time.time()
-        ids = _occurrence_ids_from(state.get("candidates", []))
+        candidates = state.get("candidates", [])
+        ids = _occurrence_ids_from(candidates)
         rows = graph_context_for_occurrences(deps.neo4j, ids)
         trace = list(state.get("trace", []))
         trace.append(_trace_entry(
             "graph_expand", started,
             n_ids=len(set(ids)), n_rows=len(rows),
         ))
-        return {"graph_context": rows, "trace": trace}
+
+        # Outward second hop, gated by concentration: only broaden when the
+        # retrieved context is narrow (few distinct docs) — exactly when the
+        # answer would otherwise overstate breadth from 2-3 anchored docs.
+        b_started = time.time()
+        distinct_docs = len({c.get("doc_id", "") for c in candidates})
+        fired = bool(ids) and distinct_docs <= deps.broaden_when_docs_lte
+        recurring: list[dict] = []
+        if fired:
+            recurring = recurring_context_for_occurrences(
+                deps.neo4j, ids,
+                max_regs=deps.recurring_max_regs,
+                max_siblings_per_reg=deps.recurring_max_siblings,
+                max_reg_degree=deps.recurring_max_reg_degree,
+            )
+        n_siblings = sum(len(r.get("siblings", [])) for r in recurring)
+        trace.append(_trace_entry(
+            "graph_broaden", b_started,
+            distinct_docs=distinct_docs, fired=fired,
+            n_regs=len(recurring), n_siblings=n_siblings,
+        ))
+        return {
+            "graph_context": rows,
+            "recurring_context": recurring,
+            "trace": trace,
+        }
     return graph_expand_node
 
 
@@ -200,6 +244,7 @@ def make_synthesize_node(deps: AgentDeps) -> Callable[[AgentState], dict]:
             state["query"],
             state.get("candidates", []),
             state.get("graph_context", []),
+            state.get("recurring_context", []),
         )
         draft = deps.llm.chat(SYSTEM_PROMPT, user)
         trace = list(state.get("trace", []))

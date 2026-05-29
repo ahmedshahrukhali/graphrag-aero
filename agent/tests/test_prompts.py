@@ -5,6 +5,7 @@ from agent.prompts import (
     build_user_prompt,
     format_citations,
     format_graph_context,
+    format_recurring_context,
 )
 
 
@@ -85,16 +86,41 @@ def test_format_graph_context_recommendation_with_id():
     assert "[tsb/a01 p.30]" in out
 
 
+def test_format_recurring_context_empty_warns_against_breadth():
+    out = format_recurring_context([])
+    assert "none found" in out.lower()
+    assert "survey" in out.lower()  # instructs the model not to overstate breadth
+
+
+def test_format_recurring_context_renders_cited_siblings():
+    rows = [{
+        "reg": "602.115", "occ_count": 7,
+        "siblings": [
+            {"occ_id": "a02", "source_doc_id": "tsb/a02", "page": 4, "text": "Fuel reserves not met."},
+            {"occ_id": "a03", "source_doc_id": "tsb/a03", "page": 6, "text": "Departed below minimum fuel."},
+        ],
+    }]
+    out = format_recurring_context(rows)
+    assert "CAR 602.115" in out
+    assert "7 reports" in out
+    assert "[tsb/a02 p.4]" in out and "[tsb/a03 p.6]" in out
+    assert "Fuel reserves not met" in out
+
+
 def test_build_user_prompt_includes_everything():
     out = build_user_prompt(
         "what is X?",
         [_cand("tsb/a01", 4, "alpha")],
         [{"occ_id": "a01", "occ_url": "u", "findings": [], "recommendations": [],
           "direct_regs": [], "acs": []}],
+        [{"reg": "602.115", "occ_count": 3,
+          "siblings": [{"occ_id": "a09", "source_doc_id": "tsb/a09", "page": 8, "text": "z"}]}],
     )
     assert "what is X?" in out
     assert "tsb/a01 p.4" in out
     assert "a01" in out
+    assert "CAR 602.115" in out  # recurring block flows through
+    assert "[tsb/a09 p.8]" in out
 
 
 def test_system_prompt_grounds_in_corpus():
@@ -104,5 +130,5 @@ def test_system_prompt_grounds_in_corpus():
 
 def test_user_template_has_required_slots():
     # If we rename slot keys, build_user_prompt breaks; this catches that.
-    for slot in ("{query}", "{graph_context}", "{citations}"):
+    for slot in ("{query}", "{graph_context}", "{recurring_context}", "{citations}"):
         assert slot in USER_TEMPLATE

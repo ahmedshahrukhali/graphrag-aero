@@ -30,6 +30,10 @@ Rules:
   recommendations, and regulations, and surface adjacent or related issues the
   graph context raises (e.g. a regulation several occurrences cite, a recurring
   contributing factor). Lean on this cross-document signal — it is the point.
+  When a "RECURRING ACROSS OTHER REPORTS" block is present, ground any breadth
+  claim ("recurs across N reports", "a common regulatory thread") in it and cite
+  those sibling reports. If that block is empty, do NOT claim a wide survey —
+  speak only to the reports actually cited.
 - Ground EVERY claim with an inline [doc_id p.page] citation
   (e.g. [tsb/a21c0038 p.86]). Cite the specific report+page each fact came
   from; graph-context facts carry their own [doc p.page] — use those. An
@@ -53,10 +57,13 @@ QUESTION:
 GRAPH CONTEXT (structured facts extracted from occurrence reports — cite with [doc p.page]):
 {graph_context}
 
+RECURRING ACROSS OTHER REPORTS (other occurrences citing the same regulations — cite these to support breadth claims):
+{recurring_context}
+
 CITATIONS (ranked text passages — cite with [doc_id p.page]):
 {citations}
 
-Answer the question using the graph context and citations above.
+Answer the question using the graph context, recurring patterns, and citations above.
 """.strip()
 
 
@@ -121,13 +128,41 @@ def format_graph_context(rows: Sequence[dict]) -> str:
     return "\n".join(out)
 
 
+def format_recurring_context(rows: Sequence[dict]) -> str:
+    """Render the outward-hop recurrence as cited lines.
+
+    Each row is a regulation cited across several occurrences; we list a few
+    sibling reports with provenance so the model can ground breadth claims
+    with real [doc p.page] citations. The empty-case string explicitly tells
+    the model not to overstate breadth when no recurrence was found.
+    """
+    if not rows:
+        return "(none found — do not claim a broad survey across reports)"
+    out: list[str] = []
+    for row in rows:
+        reg = row.get("reg", "?")
+        count = row.get("occ_count", 0)
+        out.append(f"- CAR {reg} — cited by {count} reports; e.g.:")
+        for s in (row.get("siblings") or []):
+            doc = s.get("source_doc_id") or s.get("occ_id", "?")
+            page = s.get("page")
+            cite = f"[{doc} p.{page}]" if page is not None else f"[{doc}]"
+            text = (s.get("text") or "").replace("\n", " ").strip()
+            if len(text) > 240:
+                text = text[:240].rstrip() + "..."
+            out.append(f"    {cite} {text}".rstrip())
+    return "\n".join(out)
+
+
 def build_user_prompt(
     query: str,
     candidates: Sequence[ScoredChunkDict],
     graph_context: Sequence[dict],
+    recurring_context: Sequence[dict] = (),
 ) -> str:
     return USER_TEMPLATE.format(
         query=query,
         graph_context=format_graph_context(graph_context),
+        recurring_context=format_recurring_context(recurring_context),
         citations=format_citations(candidates),
     )
