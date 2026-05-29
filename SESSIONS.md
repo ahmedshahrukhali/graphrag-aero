@@ -4,6 +4,15 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 
 ---
 
+## Session 15 — 2026-05-29 — opus-4.7
+**Commits:** `<this>` hf-space: citation-anchored bbox + inline page gallery (two UI pivots)
+**Achieved:**
+- **Pivot 1 — bbox:** highlights now anchored to the answer's citations (`_parse_citations` + `pdfplumber.Page.search` via `search_page_bbox`), **no box if the cited span isn't found**. Bypasses the mis-placed stored chunk bbox (root cause: `_join_pages` char→bbox desync — left for upstream fix). DEFAULT_DPI 120→100.
+- **Pivot 2 — layout:** dropped the right "Sources" sidebar; source pages render as a zoomable `gr.Gallery` message **inline in the chat** after the answer (no token-stream blocking), chunk snippets folded into the "📑 Sources" accordion, dead `on_select` click-to-render removed. Bbox toggle re-renders the inline gallery.
+- Verified: `gr.Gallery`-in-message postprocesses on gradio 5.50; `make_app` + full Blocks build clean in-container; hf-space tests green (+6 pdf_render tests).
+- Documented both pivots + revert paths in `hf_space/README.md` ("Design notes — S15 pivots").
+**Left:** human visual click-through at :7860 (highlight lands on cited sentence, lightbox zoom, toggle redraw) — NOT done this session (no browser MCP). Stack left UP. Real bbox fix still lives upstream in `ingestion/.../chunk.py::_join_pages`.
+
 ## Session 14 — 2026-05-28 — opus-4.7
 **Commits:** `5d87bfc` Gradio 4→5.14+ upgrade, `50e7d2a` backend sources SSE event, `05d515f` gr.Chatbot three-zone UI rebuild, `616b15c` S14 handover, +S5 verify (this entry)
 **Achieved:**

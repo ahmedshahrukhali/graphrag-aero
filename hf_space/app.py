@@ -1,9 +1,13 @@
 """Gradio Blocks app — the HuggingFace Space surface (Gradio 5.x).
 
-Three-zone layout:
+Two-zone layout:
     LEFT  Sidebar — brand + New chat + lang/source filters + recent + samples + health
-    CENTER Column  — gr.Chatbot(type="messages") + HITL row + composer
-    RIGHT Sidebar  — Document gallery + Chunks tabs (per-message artifacts)
+    CENTER Column — gr.Chatbot(type="messages") + HITL row + composer
+
+Each answered turn renders its source PDF pages *inline* in the chat as a
+zoomable ``gr.Gallery`` message (appended after the answer streams). There's
+no separate document panel: the pages live in the conversation next to the
+answer they support.
 
 The Space remains a thin shell over the FastAPI backend at $BACKEND_URL.
 The only locally-computed work is PDF-page-with-bbox rendering.
@@ -12,6 +16,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import uuid
 from datetime import datetime
 from typing import Any
@@ -72,21 +77,87 @@ def _sources_to_retrieve(sources: list[dict], query: str) -> RetrieveResponse:
     return RetrieveResponse(query=query, results=chunks)
 
 
-def _gallery_items(retrieve: RetrieveResponse) -> list[tuple[Any, str]]:
+# A citation in the synthesised answer looks like:  [tsb/a03q0109 p.4] … "the quote"
+# Capture (doc_id, page, quote): the citation tag, then the next quoted string
+# (allowing a short run of words like 'states that' in between, but not crossing
+# into the next citation tag).
+_CITATION_RE = re.compile(
+    r"\[(?P<doc>[^\]\s]+)\s+p\.\s*(?P<page>\d+)\][^\"\[\]]{0,160}?[\"“](?P<quote>[^\"”]+)[\"”]"
+)
+
+
+def _parse_citations(answer: str) -> dict[tuple[str, int], str]:
+    """Map (doc_id, page) → the quoted span the answer attributes to it.
+
+    First citation for a given (doc, page) wins. Used to anchor PDF
+    highlights to exactly what the model cited, not the whole chunk.
+    """
+    out: dict[tuple[str, int], str] = {}
+    for m in _CITATION_RE.finditer(answer or ""):
+        try:
+            key = (m.group("doc"), int(m.group("page")))
+        except (TypeError, ValueError):
+            continue
+        quote = m.group("quote").strip()
+        if key not in out and quote:
+            out[key] = quote
+    return out
+
+
+def _gallery_items(
+    retrieve: RetrieveResponse,
+    *,
+    draw_bbox: bool = True,
+    citations: dict[tuple[str, int], str] | None = None,
+) -> list[tuple[Any, str]]:
+    citations = citations or {}
     items: list[tuple[Any, str]] = []
     for c in retrieve.results:
+        quote = citations.get((c.doc_id, c.page)) if draw_bbox else None
+        tag = " · ✦ cited" if quote else ""
         caption = (
             f"#{c.rank} · {c.doc_id} · p.{c.page} · "
-            f"rerank={'—' if c.rerank_score is None else f'{c.rerank_score:.3f}'}"
+            f"rerank={'—' if c.rerank_score is None else f'{c.rerank_score:.3f}'}{tag}"
         )
         if not c.source_url:
             continue
         try:
-            img = render_page_with_bbox(c.source_url, c.page, c.bbox)
+            if draw_bbox and quote:
+                # Citation-anchored highlight: box only the cited span.
+                img = render_page_with_bbox(
+                    c.source_url, c.page, c.bbox, draw_bbox=True, locate_text=quote,
+                )
+            else:
+                # Not cited (or toggle off) → no misleading box.
+                img = render_page_with_bbox(c.source_url, c.page, c.bbox, draw_bbox=False)
             items.append((img, caption))
         except PdfRenderError as e:
             logger.warning("pdf render failed for %s: %s", c.doc_id, e)
     return items
+
+
+def _gallery_message(items: list[tuple[Any, str]]) -> dict[str, Any]:
+    """Wrap rendered PDF pages as an inline, zoomable Chatbot message.
+
+    ``allow_preview=True`` gives a click-to-zoom lightbox; CSS (``.pdf-inline``)
+    keeps the thumbnails compact so they sit beside the answer.
+    """
+    return {
+        "role": "assistant",
+        "content": gr.Gallery(
+            value=items,
+            columns=2,
+            object_fit="contain",
+            allow_preview=True,
+            show_label=False,
+            elem_classes="pdf-inline",
+        ),
+    }
+
+
+def _is_gallery_message(msg: dict) -> bool:
+    """Our inline page gallery is the only message with non-string content."""
+    return not isinstance(msg.get("content"), str)
 
 
 def _chunks_md(retrieve: RetrieveResponse) -> str:
@@ -102,17 +173,6 @@ def _chunks_md(retrieve: RetrieveResponse) -> str:
             f"{snippet}…\n"
         )
     return "\n---\n".join(out)
-
-
-def _sources_content(retrieve: RetrieveResponse) -> str:
-    """Compact markdown for the sources accordion inside gr.Chatbot."""
-    if not retrieve.results:
-        return "_no sources_"
-    lines: list[str] = []
-    for c in retrieve.results:
-        score = "—" if c.rerank_score is None else f"{c.rerank_score:.3f}"
-        lines.append(f"- `{c.doc_id}` p.{c.page} · rerank={score}")
-    return "\n".join(lines)
 
 
 def _recent_samples(history: list[dict]) -> list[list[str]]:
@@ -156,6 +216,18 @@ _CSS = """
   color: #0f172a !important;
   -webkit-text-fill-color: #0f172a !important;
 }
+/* Inline PDF pages live in the chat. Keep them compact so they sit beside
+   the answer rather than dominating it; the lightbox (allow_preview) is the
+   zoom path. */
+.pdf-inline {
+  max-height: 46vh;
+}
+.pdf-inline img {
+  max-width: 100% !important;
+  height: auto !important;
+  max-height: 42vh;
+  object-fit: contain;
+}
 """
 
 
@@ -165,6 +237,10 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
     """Build the Gradio app. Tests pass a stubbed ``api``."""
     client = api or make_client()
 
+    # Fixed message positions within a single answered turn. The optional
+    # inline page gallery is appended after these (position 4+).
+    IDX_USER, IDX_THINK, IDX_SRC, IDX_ANS = 0, 1, 2, 3
+
     # ── handlers ──────────────────────────────────────────────────────────
 
     def on_ask(
@@ -172,6 +248,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
         lang_v: str,
         source_v: str,
         max_hops_v: int,
+        show_bbox_v: bool,
         history: list[dict] | None,
         sess: dict,
         artifacts: dict,
@@ -182,7 +259,6 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
             return
 
         thread_id = str(uuid.uuid4())
-        IDX_THINK, IDX_SRC, IDX_ANS = 1, 2, 3
 
         chat_list: list[dict] = [
             {"role": "user", "content": q},
@@ -230,13 +306,14 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                     retrieve = _sources_to_retrieve(raw_sources, q)
                     chat_list[IDX_SRC] = {
                         "role": "assistant",
-                        "content": _sources_content(retrieve),
+                        "content": _chunks_md(retrieve),
                         "metadata": {"title": f"📑 Sources ({len(retrieve.results)})"},
                     }
-                    artifacts[IDX_SRC] = {
-                        "gallery": _gallery_items(retrieve),
-                        "chunks_md": _chunks_md(retrieve),
-                    }
+                    # Stash raw sources + query rather than pre-rendered images:
+                    # the inline gallery is rendered after streaming (so PDF
+                    # download/rasterise never delays tokens) and re-rendered on
+                    # bbox-toggle from this stash + the finished answer's citations.
+                    artifacts[IDX_SRC] = {"sources": raw_sources, "query": q}
                     sources_done = True
                     yield _yield(chat=list(chat_list), a=dict(artifacts))
 
@@ -261,12 +338,16 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                         retrieve = _sources_to_retrieve(data["sources"], q)
                         chat_list[IDX_SRC] = {
                             "role": "assistant",
-                            "content": _sources_content(retrieve),
+                            "content": _chunks_md(retrieve),
                             "metadata": {"title": f"📑 Sources ({len(retrieve.results)})"},
                         }
+                        artifacts[IDX_SRC] = {"sources": data["sources"], "query": q}
+                    # Stash the finished answer so the inline gallery renderer can
+                    # anchor highlights to the citations it contains.
+                    if IDX_SRC in artifacts:
                         artifacts[IDX_SRC] = {
-                            "gallery": _gallery_items(retrieve),
-                            "chunks_md": _chunks_md(retrieve),
+                            **artifacts[IDX_SRC],
+                            "draft": "".join(text_buf),
                         }
                     new_history = _push_history(history, q, final_thread_id)
                     new_sess = {
@@ -283,6 +364,13 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                         hist=new_history,
                         rec=gr.update(samples=_recent_samples(new_history)),
                     )
+                    # Render source pages inline *after* the answer is shown so
+                    # PDF download/rasterise never delays the answer or HITL row.
+                    art = artifacts.get(IDX_SRC) or {}
+                    items = _render_gallery(art, show_bbox_v)
+                    if items:
+                        chat_list.append(_gallery_message(items))
+                        yield _yield(chat=list(chat_list))
                     return
 
         except ApiError as e:
@@ -326,15 +414,30 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
     def on_new(_sess):
         return [], {}, {}, gr.update(visible=False), gr.update(visible=False)
 
-    def on_select(evt: gr.SelectData, artifacts: dict):
-        idx = evt.index
-        if isinstance(idx, (list, tuple)):
-            idx = idx[0]
-        art = artifacts.get(idx) or {}
-        return (
-            art.get("gallery") or [],
-            art.get("chunks_md") or "_click a message to see chunks._",
-        )
+    def _render_gallery(art: dict, show_bbox: bool) -> list[tuple[Any, str]]:
+        srcs = art.get("sources") or []
+        if not srcs:
+            return []
+        retrieve = _sources_to_retrieve(srcs, art.get("query", ""))
+        citations = _parse_citations(art.get("draft", "")) if show_bbox else {}
+        return _gallery_items(retrieve, draw_bbox=bool(show_bbox), citations=citations)
+
+    def on_toggle_bbox(chat: list[dict], artifacts: dict, show_bbox: bool):
+        """Redraw the inline page gallery when the bbox toggle flips.
+
+        Strips the trailing gallery message (if any) and re-appends a freshly
+        rendered one. No-op until a turn has produced sources.
+        """
+        art = (artifacts or {}).get(IDX_SRC) or {}
+        if not art.get("sources"):
+            return gr.update()
+        new_chat = list(chat or [])
+        if new_chat and _is_gallery_message(new_chat[-1]):
+            new_chat.pop()
+        items = _render_gallery(art, bool(show_bbox))
+        if items:
+            new_chat.append(_gallery_message(items))
+        return new_chat
 
     def on_pick_sample(evt: gr.SelectData):
         idx = evt.index
@@ -380,8 +483,8 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
         css=_CSS,
         fill_height=True,
     ) as app:
-        sess      = gr.State({})
-        artifacts = gr.State({})
+        sess         = gr.State({})
+        artifacts    = gr.State({})
         try:
             history = gr.BrowserState([])  # type: ignore[attr-defined]
         except Exception:  # noqa: BLE001
@@ -413,6 +516,11 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
             source = gr.Radio(["all", "tsb", "tc"], value="all", label="Corpus")
             with gr.Accordion("Advanced", open=False):
                 max_hops = gr.Slider(1, 5, value=2, step=1, label="Max hops")
+                show_bbox = gr.Checkbox(
+                    value=True,
+                    label="Highlight bbox on pages",
+                    info="Draw the chunk's bounding box on rendered PDF pages.",
+                )
             gr.HTML("<hr>")
             health_md = gr.Markdown("_checking backend…_")
 
@@ -449,33 +557,11 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                 ask_btn  = gr.Button("Send ↑", variant="primary",   scale=0)
                 stop_btn = gr.Button("⏹ Stop",  variant="secondary", scale=0)
 
-        # ── RIGHT SIDEBAR ─────────────────────────────────────────────────
-        with gr.Sidebar(position="right", open=False):
-            gr.Markdown("### Sources")
-            with gr.Tabs():
-                with gr.Tab("Pages"):
-                    doc_gallery = gr.Gallery(
-                        label=None,
-                        show_label=False,
-                        columns=1,
-                        height=420,
-                        object_fit="contain",
-                    )
-                with gr.Tab("Chunks"):
-                    chunks_md_view = gr.Markdown("_click a message to see chunks._")
-
         # ── wiring ────────────────────────────────────────────────────────
         ask_outputs = [chat, sess, artifacts, hitl_row, history, recent]
-        ask_event_a = ask_btn.click(
-            on_ask,
-            inputs=[query, lang, source, max_hops, history, sess, artifacts],
-            outputs=ask_outputs,
-        )
-        ask_event_b = query.submit(
-            on_ask,
-            inputs=[query, lang, source, max_hops, history, sess, artifacts],
-            outputs=ask_outputs,
-        )
+        ask_inputs = [query, lang, source, max_hops, show_bbox, history, sess, artifacts]
+        ask_event_a = ask_btn.click(on_ask, inputs=ask_inputs, outputs=ask_outputs)
+        ask_event_b = query.submit(on_ask, inputs=ask_inputs, outputs=ask_outputs)
 
         stop_btn.click(None, cancels=[ask_event_a, ask_event_b])
 
@@ -487,7 +573,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
 
         new_btn.click(on_new, [sess], [chat, sess, artifacts, hitl_row, save_row])
 
-        chat.select(on_select, [artifacts], [doc_gallery, chunks_md_view])
+        show_bbox.change(on_toggle_bbox, [chat, artifacts, show_bbox], [chat])
         recent.select(on_pick_recent, [history], [query])
         samples.select(on_pick_sample, None, [query, lang, source, max_hops])
         app.load(on_load, [history], [recent, health_md])

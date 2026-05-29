@@ -77,13 +77,20 @@ None. All resolved.
 MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, otel/otel-collector-config.yaml, per-dir README placeholders
 
 ## Resume pointer
-**NEXT: open — Gradio 5 chat rebuild fully verified (S5 + visual pass done). Pick next feature.**
-S5 live verification GREEN on all machine checks (see "S5 results" below) AND the human
-visual click-through at :7860 passed (session 14, user confirmed "looks good"). Stack is
-STOPPED (`docker compose stop` run at end of session 14) — `docker compose start` to resume.
-Candidate next work: (a) investigate the pre-existing reranker dtype / tokenizer "Already
-borrowed" concurrency bug flagged below if it recurs under load; (b) the trycloudflare.com
-tunnel exposing /retrieve — confirm intended or shut down; (c) further UI polish.
+**NEXT: open — user to visually click-test the S15 inline-gallery + citation-anchored bbox at :7860, then pick next feature.**
+S15 (session 15, opus-4.7) landed two UI pivots on the hf-space, committed but **not yet
+human-verified visually** (no browser MCP connectable this session): (1) PDF highlights are
+now anchored to the answer's citations via `pdfplumber.Page.search`, no box if the cited span
+isn't found — the mis-placed stored chunk bbox is bypassed; (2) the right "Sources" sidebar is
+gone — source pages render as a zoomable `gr.Gallery` message **inline in the chat** after the
+answer, chunk snippets folded into the "📑 Sources" accordion. Both pivots + revert paths are
+documented in `hf_space/README.md` ("Design notes — S15 pivots"). Stack is left UP at :7860
+(`docker compose stop` to free GPU/RAM). hf-space tests green (pdf_render +6: search_page_bbox
+hit/miss/empty/error, locate_text hit/miss).
+Candidate next work after visual confirm: (a) the **real** bbox fix upstream in
+`ingestion/processing/chunk.py::_join_pages` (char→bbox alignment desync) so the stored bbox is
+trustworthy; (b) pre-existing reranker dtype / tokenizer "Already borrowed" concurrency bug if it
+recurs under load; (c) the trycloudflare.com tunnel exposing /retrieve — confirm intended or shut down.
 
 **S5 = Live-verify Gradio 5 chat rebuild** ☑ (session 14, opus-4.7, 2026-05-28) — functional core verified live; visual click-through handed to S6.
 
