@@ -77,6 +77,10 @@ class StubLLM:
         self.calls.append((system, user))
         return self.reply
 
+    def chat_stream(self, system: str, user: str):
+        self.calls.append((system, user))
+        yield self.reply
+
 
 class StubNeo4jSession:
     def __enter__(self): return self

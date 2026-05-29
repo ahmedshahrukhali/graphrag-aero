@@ -200,6 +200,7 @@ def _register_routes(app: FastAPI) -> None:
                 "node": "retrieve",
                 "msg": f"Retrieved {len(cands)} chunks · best score {best:.2f}",
             })
+            yield _sse("sources", {"sources": cands})
 
             yield _sse("status", {"node": "graph_expand", "msg": "Looking up graph context…"})
             state.update(make_graph_expand_node(ad)(state))
@@ -231,7 +232,6 @@ def _register_routes(app: FastAPI) -> None:
             yield _sse("done", {
                 "thread_id": req.thread_id,
                 "draft": draft,
-                "sources": state.get("candidates", []),
                 "trace": trace,
             })
 
