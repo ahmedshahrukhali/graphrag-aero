@@ -161,7 +161,10 @@ def _register_routes(app: FastAPI) -> None:
             span.set_attribute("thread_id", req.thread_id)
             span.set_attribute("max_hops", req.max_hops)
             paused = graph.invoke(
-                initial_state(req.query, max_hops=req.max_hops),
+                initial_state(
+                    req.query, max_hops=req.max_hops,
+                    lang=req.lang, source=req.source,
+                ),
                 config=config,
             )
             span.set_attribute("draft.present", bool(paused.get("draft")))
@@ -190,7 +193,10 @@ def _register_routes(app: FastAPI) -> None:
             return f"event: {event}\ndata: {json.dumps(data)}\n\n"
 
         def gen():
-            state = dict(initial_state(req.query, max_hops=req.max_hops))
+            state = dict(initial_state(
+                req.query, max_hops=req.max_hops,
+                lang=req.lang, source=req.source,
+            ))
 
             yield _sse("status", {"node": "retrieve", "msg": "Retrieving relevant chunks…"})
             state.update(make_retrieve_node(ad)(state))

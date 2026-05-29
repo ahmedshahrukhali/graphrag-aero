@@ -45,6 +45,8 @@ class QueryRequest(BaseModel):
     query: str = Field(..., min_length=1)
     thread_id: str = Field(..., min_length=1)
     max_hops: int = Field(2, ge=1, le=5)
+    lang: Literal["en", "fr"] | None = None
+    source: Literal["tsb", "tc"] | None = None
 
 
 class QueryPausedResponse(BaseModel):

@@ -165,20 +165,33 @@ class ApiClient:
         body = {"query": query, "lang": lang, "source": source, "ann_k": ann_k, "top_k": top_k}
         return RetrieveResponse.from_dict(self._request("POST", "/retrieve", json=body))
 
-    def query(self, query: str, thread_id: str, *, max_hops: int = 2) -> QueryPausedResponse:
-        body = {"query": query, "thread_id": thread_id, "max_hops": max_hops}
+    def query(
+        self, query: str, thread_id: str, *, max_hops: int = 2,
+        lang: str | None = None, source: str | None = None,
+    ) -> QueryPausedResponse:
+        body = {
+            "query": query, "thread_id": thread_id, "max_hops": max_hops,
+            "lang": lang, "source": source,
+        }
         return QueryPausedResponse.from_dict(self._request("POST", "/query", json=body))
 
     def query_stream(
         self, query: str, thread_id: str, *, max_hops: int = 2,
+        lang: str | None = None, source: str | None = None,
     ) -> Iterator[dict]:
         """POST /query/stream. Yields parsed SSE events as ``{event, data}``.
 
         Streams status events for retrieve/graph_expand, then token events
         carrying synthesize chunks, then a final ``done`` event with sources
         and trace. Caller drives partial UI updates from each yield.
+
+        ``lang``/``source`` apply the sidebar Lang/Corpus filters to retrieval;
+        ``None`` means "no filter" (the "all" choice).
         """
-        body = {"query": query, "thread_id": thread_id, "max_hops": max_hops}
+        body = {
+            "query": query, "thread_id": thread_id, "max_hops": max_hops,
+            "lang": lang, "source": source,
+        }
         # Use a fresh stream-aware client; the default client may have a
         # short timeout that doesn't suit long generations.
         timeout = httpx.Timeout(self.timeout, read=None)

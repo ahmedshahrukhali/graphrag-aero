@@ -47,6 +47,8 @@ class AgentState(TypedDict, total=False):
     query: str
     hop: int
     max_hops: int
+    lang: str | None
+    source: str | None
     candidates: list[ScoredChunkDict]
     graph_context: list[dict]
     draft: str | None
@@ -54,11 +56,16 @@ class AgentState(TypedDict, total=False):
     trace: list[dict]
 
 
-def initial_state(query: str, *, max_hops: int = 2) -> AgentState:
+def initial_state(
+    query: str, *, max_hops: int = 2,
+    lang: str | None = None, source: str | None = None,
+) -> AgentState:
     return AgentState(
         query=query,
         hop=0,
         max_hops=max_hops,
+        lang=lang,
+        source=source,
         candidates=[],
         graph_context=[],
         draft=None,

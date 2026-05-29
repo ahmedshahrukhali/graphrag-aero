@@ -105,6 +105,8 @@ def make_retrieve_node(deps: AgentDeps) -> Callable[[AgentState], dict]:
     def retrieve_node(state: AgentState) -> dict:
         started = time.time()
         query = state["query"]
+        lang = state.get("lang")
+        source = state.get("source")
         if deps.anchored:
             # Anchored mode pools whole documents and lets the char budget +
             # reading-order sort govern, so we replace candidates wholesale
@@ -120,6 +122,8 @@ def make_retrieve_node(deps: AgentDeps) -> Callable[[AgentState], dict]:
                 top_k=deps.top_k,
                 top_n_docs=deps.top_n_docs,
                 char_budget=deps.char_budget,
+                lang=lang,
+                source=source,
             )
             merged = [scored_chunk_to_dict(r) for r in results]
             n_new = len(merged)
@@ -132,6 +136,8 @@ def make_retrieve_node(deps: AgentDeps) -> Callable[[AgentState], dict]:
                 collection=deps.collection,
                 ann_k=deps.ann_k,
                 top_k=deps.top_k,
+                lang=lang,
+                source=source,
             )
             new = [scored_chunk_to_dict(r) for r in results]
             merged = _merge_candidates(state.get("candidates", []), new, top_k=deps.top_k)

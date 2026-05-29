@@ -101,6 +101,22 @@ def test_healthz_uses_get_and_parses_components():
     assert h.ollama.detail == "ollama down"
 
 
+def test_query_sends_lang_and_source_in_body():
+    """P5: the query path must forward the sidebar Lang/Corpus filters."""
+    seen: dict = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        seen["body"] = json.loads(req.content)
+        return _ok({"thread_id": "t", "draft": "d", "trace": [], "n_candidates": 0})
+
+    api = make_client("http://api.test", transport=httpx.MockTransport(handler))
+    api.query("q", "t", max_hops=1, lang="fr", source="tc")
+
+    assert seen["body"]["lang"] == "fr"
+    assert seen["body"]["source"] == "tc"
+    assert seen["body"]["max_hops"] == 1
+
+
 def test_base_url_defaults_to_env(monkeypatch):
     monkeypatch.setenv("BACKEND_URL", "http://from-env:1234")
     api = make_client()

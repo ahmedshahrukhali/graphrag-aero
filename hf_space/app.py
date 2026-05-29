@@ -14,11 +14,13 @@ The only locally-computed work is PDF-page-with-bbox rendering.
 """
 from __future__ import annotations
 
+import json
 import logging
 import os
 import re
 import uuid
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 import gradio as gr
@@ -57,10 +59,29 @@ def _lang_param(choice: str) -> str | None:
     return None if choice in ("all",) else choice
 
 
+def _source_param(choice: str) -> str | None:
+    return None if choice in ("all",) else choice
+
+
 def _sources_to_retrieve(sources: list[dict], query: str) -> RetrieveResponse:
-    """Adapt the ``sources`` list from /query/stream into a RetrieveResponse."""
+    """Adapt the ``sources`` list from /query/stream into a RetrieveResponse.
+
+    The backend returns candidates in *reading order* (doc_id, page) so the
+    synthesiser sees coherent passages. For the human-facing source list and
+    page gallery we re-sort by rerank descending so ``#1`` is the most
+    relevant chunk and the displayed scores read monotonically (None last).
+    Display rank is decoupled from the model's citation tags, which key on
+    [doc_id p.page], not on this index — so re-ordering here is safe.
+    """
+    ordered = sorted(
+        sources,
+        key=lambda s: (
+            s.get("rerank_score") is None,
+            -(s.get("rerank_score") or 0.0),
+        ),
+    )
     chunks: list[RetrievedChunk] = []
-    for i, s in enumerate(sources, start=1):
+    for i, s in enumerate(ordered, start=1):
         bbox = s.get("bbox") or [0.0, 0.0, 0.0, 0.0]
         chunks.append(RetrievedChunk(
             rank=i,
@@ -78,11 +99,14 @@ def _sources_to_retrieve(sources: list[dict], query: str) -> RetrieveResponse:
 
 
 # A citation in the synthesised answer looks like:  [tsb/a03q0109 p.4] … "the quote"
+# The model frequently trails the page with the chunk's section title it saw in
+# the citation block, e.g. [tsb/a03q0109 p.2 §26 JULY 2003] — so allow any run
+# of non-']' chars after the page before the bracket closes.
 # Capture (doc_id, page, quote): the citation tag, then the next quoted string
 # (allowing a short run of words like 'states that' in between, but not crossing
 # into the next citation tag).
 _CITATION_RE = re.compile(
-    r"\[(?P<doc>[^\]\s]+)\s+p\.\s*(?P<page>\d+)\][^\"\[\]]{0,160}?[\"“](?P<quote>[^\"”]+)[\"”]"
+    r"\[(?P<doc>[^\]\s]+)\s+p\.\s*(?P<page>\d+)[^\]]*\][^\"\[\]]{0,160}?[\"“](?P<quote>[^\"”]+)[\"”]"
 )
 
 
@@ -104,32 +128,58 @@ def _parse_citations(answer: str) -> dict[tuple[str, int], str]:
     return out
 
 
+# Bare citation tag — [doc_id p.page] — with no required trailing quote. This is
+# what the model actually emits, so it's how we decide which pages were cited.
+# In practice gemma appends the chunk's section title inside the bracket
+# (e.g. [tsb/a03q0109 p.2 §26 JULY 2003]), so tolerate any non-']' run after the
+# page. _parse_citations stays the more precise quote-capturing path used to
+# tighten the highlight when a quote exists.
+_CITED_TAG_RE = re.compile(r"\[(?P<doc>[^\]\s]+)\s+p\.\s*(?P<page>\d+)[^\]]*\]")
+
+
+def _cited_keys(answer: str) -> set[tuple[str, int]]:
+    """Set of (doc_id, page) the answer cites, regardless of trailing quote."""
+    keys: set[tuple[str, int]] = set()
+    for m in _CITED_TAG_RE.finditer(answer or ""):
+        try:
+            keys.add((m.group("doc"), int(m.group("page"))))
+        except (TypeError, ValueError):
+            continue
+    return keys
+
+
 def _gallery_items(
     retrieve: RetrieveResponse,
     *,
     draw_bbox: bool = True,
     citations: dict[tuple[str, int], str] | None = None,
+    cited_keys: set[tuple[str, int]] | None = None,
 ) -> list[tuple[Any, str]]:
     citations = citations or {}
+    cited_keys = cited_keys or set()
     items: list[tuple[Any, str]] = []
     for c in retrieve.results:
-        quote = citations.get((c.doc_id, c.page)) if draw_bbox else None
-        tag = " · ✦ cited" if quote else ""
+        key = (c.doc_id, c.page)
+        is_cited = key in cited_keys
+        tag = " · ✦ cited" if is_cited else ""
         caption = (
             f"#{c.rank} · {c.doc_id} · p.{c.page} · "
             f"rerank={'—' if c.rerank_score is None else f'{c.rerank_score:.3f}'}{tag}"
         )
         if not c.source_url:
             continue
+        # Highlight a page only when the answer cites it. Anchor the box to the
+        # model's exact quote if it gave one; otherwise fall back to the chunk's
+        # own text so the box still lands on the cited passage (the model emits
+        # [doc p.page] without quotes, so the quote path rarely fires alone).
+        do_box = bool(draw_bbox and is_cited)
+        locate = citations.get(key) or (c.text if do_box else None)
         try:
-            if draw_bbox and quote:
-                # Citation-anchored highlight: box only the cited span.
-                img = render_page_with_bbox(
-                    c.source_url, c.page, c.bbox, draw_bbox=True, locate_text=quote,
-                )
-            else:
-                # Not cited (or toggle off) → no misleading box.
-                img = render_page_with_bbox(c.source_url, c.page, c.bbox, draw_bbox=False)
+            img = render_page_with_bbox(
+                c.source_url, c.page, c.bbox,
+                draw_bbox=do_box,
+                locate_text=locate if do_box else None,
+            )
             items.append((img, caption))
         except PdfRenderError as e:
             logger.warning("pdf render failed for %s: %s", c.doc_id, e)
@@ -137,21 +187,26 @@ def _gallery_items(
 
 
 def _gallery_message(items: list[tuple[Any, str]]) -> dict[str, Any]:
-    """Wrap rendered PDF pages as an inline, zoomable Chatbot message.
+    """Wrap rendered PDF pages as a collapsible, full-width Chatbot message.
 
-    ``allow_preview=True`` gives a click-to-zoom lightbox; CSS (``.pdf-inline``)
-    keeps the thumbnails compact so they sit beside the answer.
+    ``preview=True`` opens the gallery in preview layout — one page shown
+    full-width with a thumbnail reel beneath it — so a PDF page is actually
+    readable instead of a cramped half-width grid cell. ``allow_preview=True``
+    keeps the click-to-zoom lightbox. ``metadata.title`` renders the whole
+    block inside a collapsible accordion, the same way the Sources section
+    collapses.
     """
     return {
         "role": "assistant",
         "content": gr.Gallery(
             value=items,
-            columns=2,
+            preview=True,
             object_fit="contain",
             allow_preview=True,
             show_label=False,
             elem_classes="pdf-inline",
         ),
+        "metadata": {"title": f"🖼️ Source pages ({len(items)})"},
     }
 
 
@@ -202,6 +257,47 @@ def _sample_rows() -> list[list[str]]:
     return [[q] for q, _, _, _ in SAMPLE_QUERIES]
 
 
+_SAMPLE_CACHE_PATH = Path(__file__).with_name("sample_cache.json")
+
+
+def _load_sample_cache() -> dict[str, dict]:
+    """Pre-computed sample answers (built by ``build_sample_cache.py``).
+
+    A missing/invalid file yields an empty dict so the Space still runs — a
+    sample click just falls back to filling the composer instead of serving an
+    instant answer.
+    """
+    try:
+        return json.loads(_SAMPLE_CACHE_PATH.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+SAMPLE_CACHE: dict[str, dict] = _load_sample_cache()
+
+
+def _thought_from_trace(trace: list[dict]) -> tuple[str, int]:
+    """Render a cached answer's trace as the same bullet list a live run shows.
+
+    Returns ``(markdown, n_steps)``.
+    """
+    lines: list[str] = []
+    for t in trace or []:
+        node = t.get("node")
+        if node == "retrieve":
+            n = t.get("n_new") or t.get("n_merged") or "?"
+            best = t.get("best_rerank")
+            best_s = f" · best score {best:.2f}" if isinstance(best, (int, float)) else ""
+            lines.append(f"Retrieved {n} chunks{best_s}")
+        elif node == "graph_expand":
+            lines.append(f"Graph context · {t.get('n_rows', '?')} edges")
+        elif node == "synthesize":
+            lines.append("Synthesised the answer")
+    if not lines:
+        lines = ["Loaded cached answer"]
+    return "\n".join(f"- {ln}" for ln in lines), len(lines)
+
+
 def _fmt_error(e: ApiError) -> str:
     detail = ""
     if isinstance(e.detail, dict) and "detail" in e.detail:
@@ -216,16 +312,26 @@ _CSS = """
   color: #0f172a !important;
   -webkit-text-fill-color: #0f172a !important;
 }
-/* Inline PDF pages live in the chat. Keep them compact so they sit beside
-   the answer rather than dominating it; the lightbox (allow_preview) is the
-   zoom path. */
+/* Fill the viewport: the app is a flex column (fill_height=True), so let the
+   chat pane grow to consume all space above the HITL row + composer instead of
+   sitting at a fixed height with a dead gap below. min-height:0 lets it shrink
+   inside the flex parent so its own scrollbar (not the page) handles overflow. */
+.chat-pane {
+  flex-grow: 1 !important;
+  min-height: 0 !important;
+}
+/* Inline PDF pages live in the chat as a collapsible "Source pages" block.
+   preview=True shows one page full-width with a thumbnail reel beneath, so
+   give the page real height — readable text matters more than compactness.
+   (The old 2-col grid crammed two half-width pages per row, leaving the
+   margins + OCR text too small to read.) */
 .pdf-inline {
-  max-height: 46vh;
+  max-height: 82vh;
 }
 .pdf-inline img {
   max-width: 100% !important;
   height: auto !important;
-  max-height: 42vh;
+  max-height: 74vh;
   object-fit: contain;
 }
 """
@@ -289,7 +395,10 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
         artifacts = dict(artifacts)
 
         try:
-            for ev in client.query_stream(q, thread_id, max_hops=max_hops_v):
+            for ev in client.query_stream(
+                q, thread_id, max_hops=max_hops_v,
+                lang=_lang_param(lang_v), source=_source_param(source_v),
+            ):
                 et, data = ev.get("event"), ev.get("data") or {}
 
                 if et == "status":
@@ -419,8 +528,13 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
         if not srcs:
             return []
         retrieve = _sources_to_retrieve(srcs, art.get("query", ""))
-        citations = _parse_citations(art.get("draft", "")) if show_bbox else {}
-        return _gallery_items(retrieve, draw_bbox=bool(show_bbox), citations=citations)
+        draft = art.get("draft", "") if show_bbox else ""
+        citations = _parse_citations(draft)
+        cited = _cited_keys(draft)
+        return _gallery_items(
+            retrieve, draw_bbox=bool(show_bbox),
+            citations=citations, cited_keys=cited,
+        )
 
     def on_toggle_bbox(chat: list[dict], artifacts: dict, show_bbox: bool):
         """Redraw the inline page gallery when the bbox toggle flips.
@@ -439,14 +553,53 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
             new_chat.append(_gallery_message(items))
         return new_chat
 
-    def on_pick_sample(evt: gr.SelectData):
+    def on_pick_sample(show_bbox_v: bool, evt: gr.SelectData):
+        """Click a sample → instant cached answer, no backend/gemma call.
+
+        Yields the text answer (user + thought + sources + answer) immediately,
+        then renders the source-page gallery (local PDF raster only) and yields
+        again. Falls back to just filling the composer if the query isn't cached.
+        """
+        nop8 = (gr.update(),) * 8
         idx = evt.index
         if isinstance(idx, (list, tuple)):
             idx = idx[0]
-        if 0 <= idx < len(SAMPLE_QUERIES):
-            q, lang_v, source_v, hops_v = SAMPLE_QUERIES[idx]
-            return q, lang_v, source_v, hops_v
-        return gr.update(), gr.update(), gr.update(), gr.update()
+        if not (0 <= idx < len(SAMPLE_QUERIES)):
+            yield nop8
+            return
+        q, lang_v, source_v, hops_v = SAMPLE_QUERIES[idx]
+        cached = SAMPLE_CACHE.get(q)
+        if not cached:
+            # No cache → original behaviour: populate the composer, don't submit.
+            yield (q, lang_v, source_v, hops_v,
+                   gr.update(), gr.update(), gr.update(), gr.update())
+            return
+
+        retrieve = _sources_to_retrieve(cached.get("sources", []), q)
+        thought, n_steps = _thought_from_trace(cached.get("trace", []))
+        draft = cached.get("draft", "")
+        chat_list: list[dict] = [
+            {"role": "user", "content": q},
+            {"role": "assistant", "content": thought,
+             "metadata": {
+                 "title": f"🧠 Thought ({n_steps} step{'s' if n_steps != 1 else ''})",
+                 "status": "done"}},
+            {"role": "assistant", "content": _chunks_md(retrieve),
+             "metadata": {"title": f"📑 Sources ({len(retrieve.results)})"}},
+            {"role": "assistant", "content": draft},
+        ]
+        art = {"sources": cached.get("sources", []), "query": q, "draft": draft}
+        new_artifacts = {IDX_SRC: art}
+        new_sess = {"thread_id": cached.get("thread_id", ""), "draft": draft, "query": q}
+        # Instant text answer (no generation).
+        yield (q, lang_v, source_v, hops_v,
+               list(chat_list), new_sess, new_artifacts, gr.update(visible=True))
+        # Then the source-page gallery — local PDF raster only, still no gemma.
+        items = _render_gallery(art, bool(show_bbox_v))
+        if items:
+            chat_list.append(_gallery_message(items))
+            yield (gr.update(), gr.update(), gr.update(), gr.update(),
+                   list(chat_list), gr.update(), gr.update(), gr.update())
 
     def on_pick_recent(history: list[dict] | None, evt: gr.SelectData):
         if not history:
@@ -529,9 +682,9 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
             chat = gr.Chatbot(
                 type="messages",
                 show_copy_button=True,
-                height="62vh",
                 label=None,
                 show_label=False,
+                elem_classes=["chat-pane"],
             )
             with gr.Row(visible=False) as hitl_row:
                 accept_btn  = gr.Button("✅ Accept",  variant="primary",   scale=0)
@@ -575,7 +728,11 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
 
         show_bbox.change(on_toggle_bbox, [chat, artifacts, show_bbox], [chat])
         recent.select(on_pick_recent, [history], [query])
-        samples.select(on_pick_sample, None, [query, lang, source, max_hops])
+        samples.select(
+            on_pick_sample,
+            [show_bbox],
+            [query, lang, source, max_hops, chat, sess, artifacts, hitl_row],
+        )
         app.load(on_load, [history], [recent, health_md])
 
     return app

@@ -1,0 +1,1241 @@
+{
+  "fuel exhaustion forced landing": {
+    "draft": "The common thread running through these reports is that fuel exhaustion was the primary cause of forced landings in each case.  \n\n* **Occurrences:** All three occurrences involved pilots who either failed to adequately plan for fuel requirements or did not monitor their fuel levels during flight, leading to a critical shortage before reaching their destination. \n\n* **Contributing Factors:**\n    * **Inadequate Planning:** In [tsb/a03q0109 p.4], the pilot of a Cessna 172 didn't consult his flight manual for fuel requirements and underestimated the amount needed for the journey. Similarly, in [tsb/a13q0098 p.56], the pilot of a Beechcraft King Air 100 failed to calculate the necessary fuel for both legs of the flight, leading to insufficient reserves upon reaching the first destination.\n    * **Lack of Fuel Monitoring:**  [tsb/a13q0098 p.63] highlights that the pilot in this case did not regularly check his fuel gauges and decided to extend the flight without verifying sufficient fuel for the maneuver, ultimately resulting in both engines running out of fuel.\n\n* **Regulatory Context:** The reports emphasize the importance of adhering to Canadian Aviation Regulations (CARs) regarding minimum fuel requirements for flights. [tsb/a13q0098 p.56] states that if flights are planned without sufficient reserves, there is an increased risk of fuel exhaustion.\n\n\nThe investigations also point to weaknesses in pilot training and company oversight, further contributing to these incidents.  \n",
+    "sources": [
+      {
+        "doc_id": "tsb/a03q0109",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a03q0109/eng/a03q0109.pdf",
+        "section_title": "Transportation Safety Board Bureau de la sécurité des transports",
+        "page": 2,
+        "bbox": [
+          72.0,
+          79.47047999999995,
+          539.2330380000001,
+          334.7874
+        ],
+        "chunk_hash": "170ac1cc788733dd51ba973fb1e91a2e69dce42865ca95647cba7ea7081199b2",
+        "lang": "en",
+        "text": "Transportation Safety Board Bureau de la sécurité des transports\nof Canada du Canada\nAVIATION INVESTIGATION REPORT\nA03Q0109\nFUEL EXHAUSTION AND FORCED LANDING\nINSTITUT AÉRONAUTIQUE DE LA CAPITALE\nCESSNA 172M C-GSZC\nQUÉBEC, QUEBEC\n26 JULY 2003\n\nThe Transportation Safety Board of Canada (TSB) investigated this occurrence for the purpose of\nadvancing transportation safety. It is not the function of the Board to assign fault or determine\ncivil or criminal liability.\nAviation Investigation Report\nFuel Exhaustion and Forced Landing\nInstitut aéronautique de la Capitale\nCessna 172M C-GSZC\nQuébec, Quebec\n26 July 2003\nReport Number A03Q0109\nSummary\nThe Cessna 172M, registration C-GSZC, serial number 17264826, carrying the pilot and three\npassengers, was on a visual flight rules (VFR) flight from Sept-Îles, Quebec, to Rivière-du-Loup,\nQuebec. After a short stopover at Rivière-du-Loup to drop off the passengers, the pilot decided\nto continue the flight to Québec, Quebec, without refuelling. En route, the pilot encountered\nadverse weather and requested clearance for special VFR to land at the Québec Airport. About\nnine nautical miles from the threshold of Runway 24, the engine (Lycoming O-320-E2D)\nsputtered and then stopped. At approximately 2009 eastern daylight time, the pilot declared an\nemergency and carried out a forced landing onto the de la Capitale highway. The aircraft struck\na street lamp and the nose dropped before it collided with the ground. The pilot was seriously\ninjured and the aircraft was severely damaged.\nCe rapport est également disponible en français.\n\n- 2 -\nOther Factual Information\nThe records indicated that the aircraft was equipped and maintained in accordance with existing\nregulations. The pilot was certified and qualified for the flight, with a total of 180 flying hours.\nAs part of the instruction for his commercial pilot licence, the pilot had to complete a cross-\ncountry flight. He had planned a flight from Québec to Port-Menier, Quebec, with a stopover at\nRivière-du-Loup to pick up three",
+        "ann_score": 1.0,
+        "rerank_score": 0.9915215980653225
+      },
+      {
+        "doc_id": "tsb/a03q0109",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a03q0109/eng/a03q0109.pdf",
+        "section_title": "26 JULY 2003",
+        "page": 3,
+        "bbox": [
+          71.99999999999991,
+          440.6035740000001,
+          537.9670440000001,
+          696.7384260000002
+        ],
+        "chunk_hash": "dc78f5606d28913b04fbb3d088d8d420a55e656c4c3409fe635c53709f05e42e",
+        "lang": "en",
+        "text": " route time for Québec, which was 1.5 hours, the pilot felt it was not\nnecessary to refuel.\nAfter a short stopover, the pilot took off for Québec. On the way, the weather conditions\ndeteriorated, and visibility was reduced by rain showers. The controller warned him that the\nweather conditions were below the VFR minima and gave him the latest special sequence at\n2323 Coordinated Universal Time: 2½ miles in rain showers and mist, ceiling broken at 1400 feet,\novercast at 3100 feet. The pilot then requested clearance from the Québec tower for a special\nVFR flight to land at his destination. The controller guided the pilot, and at about 9 miles on\nfinal approach for Runway 24, the engine sputtered. The pilot reported the problem to the\ncontroller, who directed him to the de la Capitale highway. A few moments later, the engine\nstopped and the pilot carried out a forced landing on the highway.\nAccording to the Canadian Aviation Regulations, the pilot of an aircraft in day VFR flight must\nhave sufficient fuel to fly to the destination aerodrome and then to fly for 30 minutes at normal\ncruising speed, and at night, to fly for 45 minutes. The aircraft’s two fuel tanks have a total\ncapacity of 38 U.S. gallons. According to the Cessna 172 owner’s manual, the aircraft’s flight\nendurance, at its maximum weight of 2300 pounds, could vary between 3.9 hours and 6.3 hours,\ndepending on the power used and the altitude. To have an endurance of 6 hours, the aircraft\n\n- 3 -\nwould have to be flown at a constant altitude of 10 000 feet with power operation at 2400 rpm,\nwhile also making the mixture leaner. Nothing indicates that these conditions were met during\nthe last two legs of flight.\nExamination of the aircraft at the accident site made it possible to conclude that no technical\ndefects caused the engine to stop. Verification of the two fuel tanks made it possible to conclude\nthat the engine stopped because of fuel exhaustion.\nThe following laboratory report was completed:\nLP 069/03 – ELT & GPS Examination\nThis report is available upon request from the Transportation Safety Board of Canada.\nFindings as to Causes and Contributing Factors\n1. Fuel exhaustion caused the engine to stop, requiring the pilot",
+        "ann_score": 1.0,
+        "rerank_score": 0.9616780264794544
+      },
+      {
+        "doc_id": "tsb/a03q0109",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a03q0109/eng/a03q0109.pdf",
+        "section_title": "26 JULY 2003",
+        "page": 4,
+        "bbox": [
+          71.99999999999996,
+          145.94876399999998,
+          538.0471979999994,
+          478.617822
+        ],
+        "chunk_hash": "7e38bfcc98bf4b327f983d3db26ba042e40233455c6a3e0cf8a6c0a7f8c59ec2",
+        "lang": "en",
+        "text": "ion.\nThe following laboratory report was completed:\nLP 069/03 – ELT & GPS Examination\nThis report is available upon request from the Transportation Safety Board of Canada.\nFindings as to Causes and Contributing Factors\n1. Fuel exhaustion caused the engine to stop, requiring the pilot to carry out a forced\nlanding onto the de la Capitale highway.\n2. The pilot did not use the Cessna 172 flight manual to plan the amount of fuel required\nfor his cross-country flight; he thought he had enough fuel to fly from Rivière-du-\nLoup to Québec.\nThis report concludes the Transportation Safety Board’s investigation into this occurrence. The Board\nauthorized the release of this report on 11 May 2005.\nVisit the Transportation Safety Board’s Web site (www.bst.gc.ca) for information about the\nTransportation Safety Board and its products and services. There you will also find links to other safety\norganizations and related sites.",
+        "ann_score": 1.0,
+        "rerank_score": 0.9873750507184357
+      },
+      {
+        "doc_id": "tsb/a08c0124",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a08c0124/eng/a08c0124.pdf",
+        "section_title": "AVIATION INVESTIGATION REPORT",
+        "page": 2,
+        "bbox": [
+          72.0,
+          38.67635999999993,
+          201.56839200000005,
+          90.63591599999997
+        ],
+        "chunk_hash": "d35749daeab837462a7afabfa13b5f3209b4183082763d0d567e3ca36df38411",
+        "lang": "en",
+        "text": "AVIATION INVESTIGATION REPORT\nA08C0124\nFUEL STARVATION / FORCED LANDING\nMEADOW AIR LIMITED\nCESSNA 337D, C-GYHW\nBUFFALO NARROWS, SASKATCHEWAN, 14 nm NE\n13 JUNE 2008\n\nThe Transportation Safety Board of Canada (TSB) investigated this occurrence for the purpose\nof advancing transportation safety. It is not the function of the Board to assign fault or\ndetermine civil or criminal liability.\nAviation Investigation Report\nFuel Starvation / Forced Landing\nMeadow Air Limited\nCessna 337D, C-GYHW\nBuffalo Narrows, Saskatchewan, 14 nm NE\n13 June 2008\nReport Number A08C0124\nSummary\nThe Meadow Air Cessna 337D (C-GYHW, serial number 337-1111) was returning to\nBuffalo Narrows, Saskatchewan (SK), from Stony Rapids, SK, after having dropped-off a\npassenger. Approximately 14 miles northeast of the airport, the pilot declared an emergency\ndue to a double engine power loss. The pilot completed a forced landing in a swampy area on\nthe east shore of Churchill Lake, SK. The aircraft was substantially damaged. The pilot was\ntransported to hospital in Île-à-la-Crosse, SK, and was subsequently released with minor\ninjuries. The accident occurred at about 1140 central standard time.\nCe rapport est également disponible en français.\n.\n\n-2-\nOther Factual Information\nThe aircraft was contracted to the Saskatchewan Government Ministry of Environment for\nforest fire detection purposes. The operator owned two other Cessna 337s (C-337s) and had\noperated the type for several years. On 12 June 2008, the day before the occurrence flight, the\naircraft had been fully refueled and had completed a 0.9-hour training flight 1. The aircraft was\nnot refueled prior to departing for Stony Rapids on June 13, as it was believed that there was\nsufficient fuel remaining on board the aircraft to complete a round trip flight to Stony Rapids.\nThe pilot completed the two-hour flight to Stony Rapids without incident, and the aircraft was\nnot refueled for",
+        "ann_score": 1.0,
+        "rerank_score": 0.982151261550011
+      },
+      {
+        "doc_id": "tsb/a13q0098",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a13q0098/eng/a13q0098.pdf",
+        "section_title": "AVIATION INVESTIGATION REPORT",
+        "page": 3,
+        "bbox": [
+          86.4,
+          38.438999999999965,
+          542.25,
+          755.93502
+        ],
+        "chunk_hash": "019c136e7d6190a47e92bebc18451d1e2861d0d54b92e62ab62322432cce4174",
+        "lang": "en",
+        "text": "AVIATION INVESTIGATION REPORT\nA13Q0098\nFORCED LANDING FOLLOWING FUEL EXHAUSTION\nAVIATION FLYCIE INC.\nBEECHCRAFT KING AIR 100, C-GJSU\nMONTRÉAL/ST-HUBERT AIRPORT, QUEBEC, 8 NM E\n10 JUNE 2013\n\nTransportation Safety Board of Canada\nPlace du Centre\n200 Promenade du Portage, 4th floor\nGatineau QC K1A 1K8\n819-994-3741\n1-800-387-3557\nwww.tsb.gc.ca\ncommunications@bst-tsb.gc.ca\n© Her Majesty the Queen in Right of Canada, as represented by\nthe Transportation Safety Board of Canada, 2016\nAviation Investigation Report A13Q0098\nCat. No. TU3-5/13-0098-1E-PDF\nISBN 978-0-660-05926-6\nThis report is available on the website of the\nTransportation Safety Board of Canada at www.tsb.gc.ca\nLe présent rapport est également disponible en français.\n\nThe Transportation Safety Board of Canada (TSB) investigated this occurrence for the purpose of\nadvancing transportation safety. It is not the function of the Board to assign fault or determine civil or\ncriminal liability.\nAviation Investigation Report A13Q0098\nForced landing following fuel exhaustion\nAviation Flycie Inc.\nBeechcraft King Air 100, C-GJSU\nMontréal/St-Hubert Airport, Quebec, 8 nm E\n10 June 2013\nSummary\nThe Beechcraft King Air 100 (registration C-GJSU, serial number B-88) operated by Aviation\nFlycie Inc. took off from the Montréal/St-Hubert Airport, Quebec, on a local flight under\nvisual flight rules with 1 pilot and 3 passengers on board. As the aircraft approached\nRunway 24R at the Montréal/St-Hubert Airport, both engines (Pratt & Whitney Canada,\nPT6A-28) stopped due to fuel exhaustion. The pilot diverted to the St-Mathieu-de-Beloeil\nAirport, Quebec, and then attempted a forced landing in a field 0.5 nautical mile west of the\nSt-Mathieu-de-Beloeil Airport. The aircraft struck the ground 30 feet short of the selected\nfield, at 1725 Eastern Daylight",
+        "ann_score": 1.0,
+        "rerank_score": 0.9942474549497627
+      },
+      {
+        "doc_id": "tsb/a13q0098",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a13q0098/eng/a13q0098.pdf",
+        "section_title": "10 JUNE 2013",
+        "page": 25,
+        "bbox": [
+          86.4,
+          38.438999999999965,
+          542.2470000000001,
+          756.35478
+        ],
+        "chunk_hash": "eb07e753ffc122fe94e1a8c99e71af78a5a43970a8cb22fb0e2295e4676bee3e",
+        "lang": "en",
+        "text": ", Volume 0.1, 3.2.11 Engine\nfailure/Emergency shutdown, p. 8.\n28 Raisbeck Engineering, King Air 100 FAA Flight Manual (16 February 1973), Section III, Emergency\nProcedures, p. 3-2.\n\nAviation Investigation Report A13Q0098 | 19\n1.6.8.3.3 Procedure in case of failure of the second engine\nIf the second engine stops, the pilot must perform the following procedure:\nENGINE FLAME-OUT (2nd engine)\n1. Power Lever – IDLE\n2. Propeller – DO NOT FEATHER\n3. Condition Lever – CUT-OFF\n4. Conduct Air Start Procedures\nNOTE\nThe propeller will not unfeather without engine operating.29\nThe procedure published in the company SOPs is similar to that of the AFM, except that all\nof the items must be carried out from memory. Since the possibility of fuel exhaustion is\ndeemed to be very unlikely, no emergency procedure takes that possibility into\nconsideration. The AFM, SOPs and the ECHKL do not mention warning signs of fuel\nexhaustion. Thus, the procedure in the AFM, the SOPs and the ECHKL for dealing with a\nfailure of the second engine attributes the engine failure to a loss of combustion, and directs\nthe pilot to the procedure for restarting an engine in flight.\nNo particular steps are indicated in the SOPs or in the AFM in the event that the engine does\nnot restart.\n1.6.8.3.4 Forced landing\nThere is no procedure for a forced landing in the AFM. However, Aviation Flycie Inc. had\ndeveloped a procedure for that event. It was published in the SOPs (as follows), but was not\nincluded in the ECHKL.\n3.2.16 Forced landing\n1. * Radio ................................................................................................... MAYDAY\n2. * Transponder ................................................................................................ 7700\n3. * Locator Beacon (If installed) ................................................................... EMER\n4. * Seat Belt/ No Smoking Light ...................................................................... ON\n5. * Gear .......................................................................................................... DOWN\n6. * Flaps ......................................................................................................... DOWN\n7. * Airspeed ................................................................................................... 95 KTS\n29 Raisbeck Engineering, King Air 100 FAA Flight Manual (16 February 1973), Section III, Emergency\nProcedures, p. 3-2.\n\n20 |",
+        "ann_score": 1.0,
+        "rerank_score": 0.9580694764363313
+      },
+      {
+        "doc_id": "tsb/a13q0098",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a13q0098/eng/a13q0098.pdf",
+        "section_title": "10 JUNE 2013",
+        "page": 55,
+        "bbox": [
+          86.4,
+          38.438999999999965,
+          542.2470000000001,
+          756.35478
+        ],
+        "chunk_hash": "cb74b5fbda1c8461501e2e9e41f2dd9e7f3b193693cb24a76a4ce1d0c7b873d5",
+        "lang": "en",
+        "text": " pilot can increase the drag, but if the aircraft\nis below the glide path, the pilot has no other options if the drag is at minimum and the\nspeed is already at best glide speed.\n1.19 Useful or effective investigation techniques\nNot applicable.\n\nAviation Investigation Report A13Q0098 | 49\n2.0 Analysis\n2.1 Introduction\nDuring a local test flight carried out by the company’s chief pilot, C-GJSU ran out of fuel\nafter 24 minutes of flight. The resulting glide ended in an aerodynamic stall and collision\nwith the ground just short of the selected landing field.\nExamination of the wreckage showed that there was no fuel on board, that the engines were\nproducing no power, and that the propellers were not feathered at the time of impact.\nNeither the examination of the engines nor that of the fuel system found any defect that\ncould have caused premature fuel exhaustion, failure to supply fuel to the engines, or\ninaccurate readings on the fuel gauges.\nWeather conditions did not play a role in the accident. The pilot had received the required\nground training and in-flight training, and had passed a pilot proficiency check (PPC) on the\nBE10 less than 3 months before the day of the accident.\nApart from the fuel exhaustion, the investigation revealed deficiencies in the pilot’s\nperformance and in the company’s supervision of flights. The investigation also identified\nweaknesses in the process used by Transport Canada (TC) to approve appointments of\noperations management personnel by operators and in the regulatory oversight of flight\noperations.\nTherefore, the analysis will focus on the following items:\n• flight planning;\n• the quantity of fuel on board at the time of departure from Montréal/St-Hubert\nAirport (CYHU), Quebec;\n• the pilot’s handling of the emergency;\n• the company’s supervision of flights;\n• TC’s process for the approval of the selection of operations management personnel by\ncompanies; and\n• TC’s regulatory oversight.\n2.2 Flight planning\nFlight planning for multiple flights makes it possible to, among other things, determine the\nquantity of fuel required by regulation for each flight and to draw up a fuelling plan.\nAccording to the company operations manual (COM), for both visual flight rules (VFR) and\ninstrument flight",
+        "ann_score": 1.0,
+        "rerank_score": 0.8113772884396903
+      },
+      {
+        "doc_id": "tsb/a13q0098",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a13q0098/eng/a13q0098.pdf",
+        "section_title": "10 JUNE 2013",
+        "page": 56,
+        "bbox": [
+          86.4,
+          38.438999999999965,
+          263.187,
+          755.93502
+        ],
+        "chunk_hash": "847109f273f674ec0364ee3d92321dc5e1b68108c28b5209e43483b6a0610586",
+        "lang": "en",
+        "text": " of fuel were required when the aircraft departed CYYG to fly to CYUL. A\nfew hours before departure, the pilot had 527 pounds of fuel added, bringing the total\nquantity on board to 1860 pounds. Consequently, when it departed CYYG, C-GJSU did not\nhave the quantity of fuel required by the COM for the first leg of the flight to CYUL. If flights\nare planned and carried out without the fuel reserves required by the CARs, there is an\nincreased risk of fuel exhaustion resulting from unanticipated situations that extend the\nduration of the flight.\nTo avoid refuelling when arriving at CYUL, it was necessary to determine the quantity of\nfuel required for the next leg’s departure from CYUL and then add the expected fuel\nconsumption to reach CYUL. Since 750 pounds were required at the time of departure from\nCYUL and, according to the operational flight plan, 1467 pounds would be consumed to\nreach CYUL, C-GJSU needed to have at least 2217 pounds when it departed from CYYG to\ncarry out the 2 flights to CYHU without refuelling at CYUL.90\nSince there were 1860 pounds of fuel on board when the aircraft departed CYYG and the\nexpected fuel consumption was 1467 pounds, it was foreseeable that C-GJSU would arrive at\nCYUL with less than 450 pounds of fuel (i.e., fuel for less than 45 minutes of flight). Landing\nunder IFR with less than 45 minutes of fuel does not comply with the minimum fuel\nrequirements of either the COM or the CARs.\n90 Including fuel for taxiing: Charlottetown Airport (CYYG), Prince Edward Island, 40 pounds,\nMontréal/Pierre-Elliott-Trudeau International Airport (CYUL), Quebec, 20 pounds at arrival and\n40 pounds at departure.\n\nAviation Investigation Report A13Q0098 | 51\nThe data available during the planning of these 2 flights were unambiguous; it was not\npossible to carry out these flights in accordance with the COM. The pilot’s decision to fuel C-\nGJSU in order to have a total of 1860 pounds of fuel at CYYG showed deficient planning.\n2.2.2 Continued flight without required fuel",
+        "ann_score": 1.0,
+        "rerank_score": 0.609117340619001
+      },
+      {
+        "doc_id": "tsb/a13q0098",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a13q0098/eng/a13q0098.pdf",
+        "section_title": "10 JUNE 2013",
+        "page": 63,
+        "bbox": [
+          86.40000000000009,
+          69.5338200000001,
+          490.7066580000001,
+          95.51250000000005
+        ],
+        "chunk_hash": "1521d8e549cc194e783fabff45588017ba9d1ce1734e436909ce55c4a968707f",
+        "lang": "en",
+        "text": " flight time by approximately 4 minutes 30 seconds. As a\nresult, C-GJSU no longer had enough fuel to reach CYHU, and it ran dry at 7.4 nm on final\napproach to the runway. The pilot did not monitor the fuel gauges while in flight and\ndecided to extend the flight to carry out a practice instrument approach with insufficient fuel\non board to complete the approach.\n2.4 Pilot’s handling of the emergency\n2.4.1 First signs of imminent fuel exhaustion\nThe warning signs of fuel exhaustion were the changes in the propeller noise and the\nillumination of the RH FUEL PRESSURE light when C-GJSU was 3.2 nm east of the St-\nMathieu-de-Beloeil Airport (CSB3), Quebec,99 at an altitude of approximately 3000 feet above\nsea level (asl). It was at this point that the pilot noticed that the nacelle tank gauge needles\nwere showing “E” (Figure 13). The pilot’s sudden realization that the gauges were on “E”\nindicate that the gauges had likely not been monitored during the flight. If pilots do not\nregularly check the quantity of fuel on board, there is an increased risk of fuel exhaustion.\nThe procedure to be used in the event of a boost pump failure assumes that the boost pump\nhas failed. However, in this occurrence, the primary boost pump introduced air into the\nsupply line because of the low quantity of fuel in the tank, which caused a drop in fuel\npressure and a change in power in the right engine, and led to a momentary dip in the\npropeller’s revolutions per minute (rpm).\nInstead of carrying out the procedure for boost pump failure, the pilot switched all of the\nboost pumps to ON and opened the crossfeed valve. This response suggests that the pilot\nbased those actions not on a failure of the boost pump, but rather on a need to address a\npotential fuel supply problem due to the low quantity of fuel observed.\nBecause the crossfeed valve connects the left fuel tanks to the right fuel tanks, doing so can\naggravate the emergency and potentially cause fuel exhaustion if there is a fuel leak.100 If\n98 Approximately 5 minutes 35 seconds of flying time, plus 2 minutes for the circuit toward\nRunway 24R = 7 minutes 35 seconds.",
+        "ann_score": 1.0,
+        "rerank_score": 0.6550050759787809
+      },
+      {
+        "doc_id": "tsb/a13q0098",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a13q0098/eng/a13q0098.pdf",
+        "section_title": "10 JUNE 2013",
+        "page": 68,
+        "bbox": [
+          86.4,
+          38.438999999999965,
+          397.1636460000002,
+          755.93502
+        ],
+        "chunk_hash": "5e64cef0837d7f3f22a969f32f76dd24f06feda89472a4e42e1938bc0356f017",
+        "lang": "en",
+        "text": ". If a pilot does not maintain control of an aircraft until landing, the\n\n62 | Transportation Safety Board of Canada\nforce of an impact following an aerodynamic stall is likely to be far greater, increasing the\nrisk of injury or death during a forced landing.\n2.4.4 Communications with air traffic control\nThe fact that the first engine stopped must not have come as a surprise to the pilot, because\non becoming aware of the quantity of fuel on board, the pilot was in a position to anticipate\nthat the aircraft’s fuel would run dry. In fact, 6 seconds after the right engine stopped, the\npilot advised ATC of the intention to land at CSB3, without explaining the change in\ndestination.\n2.4.4.1 Declaration of emergency (distress)\nBecause the aircraft was in a state of emergency that can be qualified as in distress, the\ndecision to land at CSB3 was not a choice/course of action for which clearance from ATC\nhad to be obtained.103 In such a circumstance, a pilot must take whatever steps are necessary\nto ensure the safety of the flight. Accordingly, the pilot needed, first and foremost, to carry\nout the critical items of the engine failure procedure, initiate a turn toward Runway 15 at\nCSB3, and then clearly and unambiguously declare the state of emergency to ATC using the\nappropriate distress signal.\nThe pilot had neither declared an emergency nor notified ATC of the situation. The\ncontroller was somewhat puzzled by the change in plan, since C-GJSU was on final approach\nand 9.5 nm from CYHU, and asked the pilot to confirm that the aircraft was no longer going\nto land at CYHU. These communications lasted 17 seconds, at the end of which the controller\ncleared the flight to proceed to CSB3. Meanwhile, C-GJSU remained on its flight path toward\nCYHU (Figure 15).\nUse of the distress signal “MAYDAY MAYDAY MAYDAY”, followed by a brief statement\nabout the imminent fuel exhausion and the preferred plan of action, would have reduced the\ncommunication time and eliminated any confusion about the pilot’s requests. At the same\ntime, it would have enabled ATC to grant priority to C-GJSU and provide the necessary\nassistance, while limiting communications to those dealing with the situation. Since the",
+        "ann_score": 1.0,
+        "rerank_score": 0.9059898203834277
+      },
+      {
+        "doc_id": "tsb/a13q0098",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a13q0098/eng/a13q0098.pdf",
+        "section_title": "10 JUNE 2013",
+        "page": 84,
+        "bbox": [
+          86.4,
+          38.438999999999965,
+          263.187,
+          755.93502
+        ],
+        "chunk_hash": "dd29eef772ee739a790bb68572573ee0fd3cf2bfd6a8b9cdfa66f53a04f73065",
+        "lang": "en",
+        "text": "B3), Quebec, and without communicating the emergency. The\npriority given to communications resulted in the aircraft moving farther away from\nthe intended diversion airport.\n7. The left engine stopped due to fuel exhaustion 36 seconds after the right engine\nstopped, when the aircraft was 7.4 nautical miles from Runway 24R at Montréal/St-\nHubert Airport (CYHU), Quebec, and 2400 feet above sea level.\n8. The pilot’s decision to lower the landing gear while the aircraft was still at 1600 feet\nabove sea level further increased the drag, reducing the aircraft’s gliding range. As a\nresult, the aircraft was not able to reach the runway at St-Mathieu-de-Beloeil Airport\n(CSB3), Quebec.\n9. The operations manager was unable to perform the duties and responsibilities of the\nposition related to monitoring and supervision of flight operations. As a result, the\nsafety of more than half of the flights was compromised.\n\n78 | Transportation Safety Board of Canada\n3.2 Findings as to risk\n1. If the total fuel quantity required for a flight is not calculated and clearly displayed\non the operational flight plan, there is an increased risk that aircraft will depart\nwithout the fuel reserves required by the Canadian Aviation Regulations.\n2. If flights are planned and carried out without the fuel reserves required by the\nCanadian Aviation Regulations, there is an increased risk of fuel exhaustion resulting\nfrom unanticipated situations that extend the duration of the flight.\n3. If pilots elect to extend flight without first determining whether sufficient fuel\nreserves are available to do so, there is an increased risk of fuel exhaustion.\n4. If pilots do not regularly check the quantity of fuel on board, there is an increased risk\nof fuel exhaustion.\n5. If pilots do not rule out a fuel leak before opening the crossfeed valve, they risk losing\nall of the remaining fuel on board.\n6. If a pilot does not maintain control of an aircraft until landing, the force of an impact\nfollowing an aerodynamic stall is likely to be far greater, increasing the risk of injury\nor death during a forced landing.\n7. If a pilot does not declare an emergency to air traffic control in a timely manner, the\npilot may be deprived of assistance and resources that could help deal with the\nemergency, increasing the risk of an",
+        "ann_score": 1.0,
+        "rerank_score": 0.8834372618119071
+      }
+    ],
+    "trace": [
+      {
+        "node": "retrieve",
+        "elapsed_ms": 12238,
+        "anchored": true,
+        "n_new": 11,
+        "n_merged": 11,
+        "best_rerank": 0.9942474549497627
+      },
+      {
+        "node": "graph_expand",
+        "elapsed_ms": 25,
+        "n_ids": 3,
+        "n_rows": 3
+      },
+      {
+        "node": "synthesize",
+        "elapsed_ms": 83682,
+        "prompt_chars": 30169,
+        "draft_chars": 1499
+      }
+    ],
+    "thread_id": "cache-1"
+  },
+  "engine failure after takeoff": {
+    "draft": "The provided text focuses on a specific aviation investigation report (A16Q0119) concerning an engine failure during takeoff of a Cessna Stationair aircraft. \n\nHere's a breakdown of key points extracted from the text:\n\n* **Engine Failure:** The aircraft experienced a sudden engine shutdown shortly after takeoff due to a shear in the engine-driven fuel pump coupling shaft, leading to an immediate loss of power.\n* **Low Altitude:** The failure occurred at a low altitude (200 feet AGL), leaving the pilot with limited time to react and execute emergency procedures.\n* **Lack of Training:** The pilot's training primarily focused on simulated engine failures at altitude, lacking practical experience in handling such situations during takeoff. \n* **Inadequate Procedures:** The flight manual lacked a clear procedure for dealing with engine-driven fuel pump failure specifically during takeoff, potentially contributing to the pilot's inability to respond effectively.\n\n**The text does not contain information about a graph.**\n\n\nLet me know if you have any other questions or need further clarification on the provided text.",
+    "sources": [
+      {
+        "doc_id": "tsb/a10q0098",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a10q0098/eng/a10q0098.pdf",
+        "section_title": "23 JUNE 2010",
+        "page": 15,
+        "bbox": [
+          72.024,
+          38.6332799999999,
+          317.93,
+          86.39999999999998
+        ],
+        "chunk_hash": "fa17670556310b5deb08b94c91d44531ef6be7af353f3671e7c1524bfea07d54",
+        "lang": "en",
+        "text": "\n1.6.5.4 Procedure for Engine Failure After Take-off\nThe procedure for engine failure after take-off was designed so that all critical actions were\nperformed sequentially, in order of priority. For an engine failure after take-off, the SOPs\nreproduced the AFM emergency procedure titled Engine Failure During Takeoff, as well as a\ndiagram showing the flight profile of the aircraft and the tasks to be performed by the crew, but\nit does not specify who performs which tasks. The ECHKL requires the first nine items on the\nfollowing list, which pilots must have memorized, to be performed immediately:\nENGINE FAILURE AFTER LIFT-OFF\n1. Power - MAXIMUM ALLOWABLE\n2. Propeller - FULL INCREASE\n3. Airspeed - MAINTAIN speed at engine failure until obstacles are cleared.\nReduce speed only if single engine BEST RATE OF CLIMB SPEED is exceeded.\n4. Landing Gear - UP\n5. Confirm Inoperative Engine\n6. Propeller (inoperative Engine) - FEATHERED\n7. Airspeed - BEST ANGLE OF CLIMB SPEED (after obstacles clearance altitude is\nreached)\n8. Flaps - UP\n9. Airspeed - BEST RATE OF CLIMB SPEED\n\n-12-\n10. Clean – Up (Inoperative Engine):\na. Condition lever - CUT OFF\nb. Bleed Air Valve - AS REQUIRED\nc. Auto Ignition - OFF\nd. Fuel firewall Valve - CLOSED\ne. Generator - OFF\nf. Fuel Control Heat - OFF\ng. Autofeather Switch - OFF\nh. Propeller Synchrophaser - OFF\n11. Electrical Load - MONITOR\nNOTE: If the autofeather is being used, do not retard the failed engine power lever until\nthe autofeather system has completely stopped propeller rotation. To do so will\ndeactivate the autofeather circuit and prevent automatic feathering.\nIf an engine failure were to occur after take-off from Runway 30 at Québec Airport, performing\nthe first 3 items on the list would provide maximum thrust and an optimal flight profile; the\npower levers would be pushed to produce maximum power, 1628 ft-lb; the propeller levers\nwould be pushed fully forward; and the aircraft would accelerate to the best rate of climb speed\n(120 knots).",
+        "ann_score": 1.0,
+        "rerank_score": 0.9964203573960624
+      },
+      {
+        "doc_id": "tsb/a10q0098",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a10q0098/eng/a10q0098.pdf",
+        "section_title": "23 JUNE 2010",
+        "page": 15,
+        "bbox": [
+          72.024,
+          38.6332799999999,
+          317.93,
+          86.39999999999998
+        ],
+        "chunk_hash": "c330752d170f43f318955fc92fd5f87543a2ebd8bf5ff797f6a0b6efc44a3046",
+        "lang": "en",
+        "text": " for an engine failure, on the first flight of the day. An example follows in\nthe form of a table from the SOP:\nPNF PF\nStandard take-off Runway 30\nV and V at 100 knots\n1 r\nAnything unusual before V / V? Reject take-off.\n1 r\nAfter V / V? Continue take-off.\n1 r\nIn-flight emergency procedures.\nVisual emergency return Runway 24.\nSID or first segment?\nHeading 295, climb 660’, left turn\nheading 274, climb 4000’\nQuestions?\n\n-11-\n1.6.5.3 Emergency Procedures\nIn this occurrence,\n the engine problem occurred less than 30 seconds after take-off;\n the co-pilot reported a problem with the right engine;\n the gear warning tone sounded indicating that the crew had pulled back the power lever\non one engine (Section 1.8.3, Analysis of Communications from APO201);\n the right engine was producing little or no power at the time of the crash (Section 1.11.6,\nExamination of the Engines).\nTaking into account the observations listed above, the procedures for engine problems or\nrequiring a reduction in engine power published in the AFM, the SOPs and the ECHKL were\nconsidered by the investigation:\n Engine fire in-flight: examination of the wreckage ruled out the possibility of an in-flight\nfire.\n Oil and fuel leak: the engine examination revealed no oil and fuel leaks.\n Low oil pressure (below 40PSI): the engine investigation revealed no oil pump system\nmalfunction and proper quantity of oil was found in the engine.\n Engine magnetic chip detector light on: Engine chip plug and oil filter were examined\nand found in good condition, the right chip detector light bulb analysis revealed that it\nwas extinguished at the time of impact.\nTwo remaining procedures were considered:\n Engine failure (power loss) after take-off\n Flight low pitch stop system malfunction.\nThese are discussed in detail in the following paragraphs.\n1.6.5.4 Procedure for Engine Failure After Take-off\nThe procedure for engine failure after take-off was designed so that all critical actions were\nperformed sequentially, in order of priority. For an engine failure after take-off, the SOPs\nreproduced the AFM emergency procedure titled Engine",
+        "ann_score": 1.0,
+        "rerank_score": 0.9925103751011916
+      },
+      {
+        "doc_id": "tsb/a10q0098",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a10q0098/eng/a10q0098.pdf",
+        "section_title": "23 JUNE 2010",
+        "page": 52,
+        "bbox": [
+          72.024,
+          74.51328000000001,
+          530.2612799999999,
+          99.25328000000002
+        ],
+        "chunk_hash": "0ceeab8928c71ddb1922fce9a2e51a373a62261fc8a2f0fc4058270706180569",
+        "lang": "en",
+        "text": " in the propeller. In such a situation, it is reasonable to believe\nthat the pilot would have instinctively pulled back the power lever to control the torque on the\naffected engine.\nIt can be concluded that, without the warning light, the identification of the failure and the\ncarrying out of the appropriate emergency procedure would have been at least delayed. For\nthese reasons, deactivating the flight low pitch stop system warning light or any other warning\nsystem would contravene the regulations and pose a significant risk to flight safety.\n2.5.2.3 Probability of a Flight Low Pitch Stop Failure After Take-off\nThe system components retrieved at the accident site did not reveal any pre-existing defects. All\ndamages to the right propeller and mechanism were caused by the crash. The wiring and some\nelectrical components of the flight low pitch stop system were destroyed in the fire, so it was\nnot possible to determine the condition of the system.\nIn the scenario involving a flight low pitch stop system failure on the right side after take-off,\nthe aircraft would have been expected to briefly yaw left and indicate an engine torque increase\nor fluctuations while maintaining its acceleration and rate of climb. However, according to the\nradar data, the aircraft turned right, then stopped climbing at about 260 feet agl, its speed\nstabilizing at 110 knots before starting to decrease. Only the action of pulling back the power\nlever to decrease the engine power or a loss of power can bring the blades to low pitch as found.\nIf the crew had noticed a flight low pitch stop system failure and started to perform the low\npitch stop failure procedure, they would have reduced the power of the affected engine, pulled\nthe PROP GOV-IDLE STOP circuit breaker and returned power to the engine. If the low pitch\nstop had failed during take-off, the right propeller would have been found in a high (coarse)\npitch position. The evidence indicates that engine power was reduced and that the PROP GOV-\nIDLE STOP circuit breaker was not pulled to regain control of the propeller.\nThese individual elements do not allow a flight low pitch stop system failure to be ruled out,\nbut overall it is unlikely that the crew began the low pitch stop failure procedure in flight\nwithout finishing.\n2.5.3 Failure/Loss of Engine Power\n2.5.3.1 Engine Failure",
+        "ann_score": 1.0,
+        "rerank_score": 0.9618933811875159
+      },
+      {
+        "doc_id": "tsb/a10q0098",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a10q0098/eng/a10q0098.pdf",
+        "section_title": "23 JUNE 2010",
+        "page": 53,
+        "bbox": [
+          72.024,
+          38.6332799999999,
+          420.4795199999999,
+          85.55328000000009
+        ],
+        "chunk_hash": "ee9ee0ad24142919397afbc6ce1af9ae195ed55c0c77128e9f8e3d38274812e2",
+        "lang": "en",
+        "text": " of the propeller.\nThese individual elements do not allow a flight low pitch stop system failure to be ruled out,\nbut overall it is unlikely that the crew began the low pitch stop failure procedure in flight\nwithout finishing.\n2.5.3 Failure/Loss of Engine Power\n2.5.3.1 Engine Failure\nAll damage observed on the engines and their propellers was the result of the impact and the\npost-crash fire. It was therefore not possible to determine that there were pre-existing defects.\nExamination of the engines and their components did not reveal any signs of malfunction or\ndefects that occurred in flight.\n2.5.3.2 Left Engine and Propeller\nThe damage to the left engine was consistent with impact with the ground at medium to high\nengine speed. The ground scars from the left propeller suggest that it was rotating at\napproximately 2200 rpm. Examination of the warning lamp bulbs connected to the components\n\n-49-\nof the left engine revealed that they were extinguished. This suggests that the left engine was\noperating normally during the flight and that the crew pulled the power lever of the right\nengine just before reporting the engine problem. However, the investigation was unable to\ndetermine whether the left engine was capable of producing the maximum power of 1628 ft-lb.\nThe performance tests on the engines during routine inspections and the monitoring of engine\nperformance trends documented by the pilots on a daily basis did not reveal any defects. It\nshould be pointed out that the take-off power of 1628 ft-lb could only be tested by the crew on\ntake-off. The procedure of not exceeding 1500 ft-lb of power limited the opportunities for crews\nto determine whether or not the engines were developing full power on take-off. The\nmaintenance and operating practices did not allow them to determine whether or not the\nengines could produce the maximum power of 1628 ft-lb required at take-off and during\nemergency procedures.\n2.5.3.3 Right Engine and Propeller\nExamination of the right engine revealed that it was turning at very low speed or windmilling\nat the moment of impact. The damage to the right propeller and the ground scars it caused\nindicate that the engine was producing virtually no power. The right yaw on the flight\ntrajectory indicates that this engine was developing less thrust. The crew noticed",
+        "ann_score": 1.0,
+        "rerank_score": 0.9564718602835648
+      },
+      {
+        "doc_id": "tsb/a10q0098",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a10q0098/eng/a10q0098.pdf",
+        "section_title": "23 JUNE 2010",
+        "page": 55,
+        "bbox": [
+          72.024,
+          38.6332799999999,
+          317.93,
+          90.0
+        ],
+        "chunk_hash": "81c6011c633533f2d009a2f0cc4149b8347f87b1cd626ce7683ce137538e8fa7",
+        "lang": "en",
+        "text": ". There is\neven a possibility that the crew could forget to do this, particularly when it is the opposite of\nwhat they usually do. TSB determined that this sort of procedure caused an accident on take-off\nin 2007. 70 TSB issued a safety advisory 71 suggesting that TC take action to ensure that operators\nare aware of the need to use approved flight operations reference material, and that they ensure\nthat crews use the correct flight operations reference material. TC subsequently published the\nsafety advisory in Aviation Safety Letter Issue 2/2008.\n69 The maximum allowable power.\n70 Aviation Investigation Report A07C0119, Engine Power Loss - Forced Landing, Piper PA-31-350\nChieftain C-GRNK\n71 A07C0119 -D1-A1\n\n-51-\n2.7 Crew Management of the Emergency\n2.7.1 General\nIt is important to stress that engine failure or problems at take-off is one of the most complex\nemergencies to manage on a twin-engine light aircraft. When an engine failure or problem\noccurs immediately after take-off, there is no time to consult the appropriate procedure before\ntaking corrective action. In training, pilots learn the critical actions to be performed in this\nsituation: apply full power, ensure that the landing gear is up, confirm identification of which\nengine has failed, and feather the propeller on the failed engine.\nIn this occurrence, the aircraft was flying close to the ground and trying to climb when the\npilots were confronted with a significant loss of thrust. The pilots had to have memorized the\nemergency procedure and carried it out. Since the engine problem occurred relatively close to\nthe ground, the crew had little time to identify the problem and then act in a co-ordinated\nmanner. The items in the engine failure procedure were clearly listed in order in the AFM, the\nECHKL and the Aéropro SOPs, as is required.\n2.7.2 Crew Actions After the Engine Problem\nWhen the problem arose, the pilots had to carry out the priority actions without being\ndistracted. After the engine problem, the pilot flying would above all need to maintain control\nof and navigate the aircraft, while the pilot not flying would, at the request of the pilot flying,\nperform the actions specified in the applicable emergency procedure and then inform ATC of\nthe situation. In the absence of a voice",
+        "ann_score": 1.0,
+        "rerank_score": 0.9645892699236761
+      },
+      {
+        "doc_id": "tsb/a13w0120",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a13w0120/eng/a13w0120.pdf",
+        "section_title": "AVIATION INVESTIGATION REPORT",
+        "page": 3,
+        "bbox": [
+          86.4,
+          60.19344000000001,
+          183.34224,
+          755.85996
+        ],
+        "chunk_hash": "e6b0819715ce0815c799e15c2c2131da4c38577902500eb350a15ed445075d3e",
+        "lang": "en",
+        "text": "AVIATION INVESTIGATION REPORT\nA13W0120\nENGINE FAILURE AFTER TAKEOFF AND\nCOLLISION WITH TERRAIN\nBUFFALO AIRWAYS LTD.\nDOUGLAS DC-3C, C-GWIR\nYELLOWKNIFE AIRPORT, NORTHWEST TERRITORIES\n19 AUGUST 2013\n\n\n\nThe Transportation Safety Board of Canada (TSB) investigated this occurrence for the\npurpose of advancing transportation safety. It is not the function of the Board to assign fault\nor determine civil or criminal liability.\nAviation Investigation Report A13W0120\nEngine failure after takeoff and\ncollision with terrain\nBuffalo Airways Ltd.\nDouglas DC-3C, C-GWIR\nYellowknife Airport, Northwest Territories\n19 August 2013\nSummary\nOn 19 August 2013, a Buffalo Airways Ltd. Douglas DC-3C (registration C-GWIR, serial\nnumber 9371) was operating as a scheduled passenger flight from Yellowknife, Northwest\nTerritories, to Hay River, Northwest Territories. After lift-off from Runway 16 at 1708\nMountain Daylight Time, there was a fire in the right engine. The crew performed an\nemergency engine shutdown and made a low-altitude right turn towards Runway 10. The\naircraft struck a stand of trees southwest of the threshold of Runway 10 and touched down\nsouth of the runway with the landing gear retracted. An aircraft evacuation was\naccomplished and there were no injuries to the 3 crew members or the 21 passengers. There\nwas no post-impact fire and the 406 MHz emergency locator transmitter did not activate.\nLe présent rapport est également disponible en français.\n\n\n\nAviation Investigation Report A13W0120 | 1\nFactual information\nHistory of the flight\nBuffalo Airways Ltd. (Buffalo Airways) has a walk-in / on-demand system whereby\npassengers can arrive to board a plane without having to pre-book a seat on the flight. If the\npassenger/cargo load exceeds the capacity of 1 aircraft, an additional aircraft can be\ndispatched. On 19 August 2013, the occurrence flight, Buffalo 168 (BFL168), was\nsupplemented by another DC-3C (DC-3) for the flight from Yellowknife, Northwest\nTerritories (CYZF), to Hay River, Northwest Territories (CYHY).\nPrior to de",
+        "ann_score": 1.0,
+        "rerank_score": 0.9970764570957289
+      },
+      {
+        "doc_id": "tsb/a16q0119",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a16q0119/eng/a16q0119.pdf",
+        "section_title": "25 September 2016",
+        "page": 16,
+        "bbox": [
+          86.4,
+          37.93679999999995,
+          264.15072,
+          756.2104
+        ],
+        "chunk_hash": "86a1df23d368facf5193025eb107e7bb7fb11ab667d60488a515c34c3043565f",
+        "lang": "en",
+        "text": ", an\ninterlock within the switch automatically trips the right half of the switch to\nthe ON position. When the spring-loaded left half of the switch is released, the\nright half will remain in the ON position until manually returned to the off\nposition.21\n1.6.7 Flight manual emergency procedures\nSection III of the flight manual contains the emergency procedures, including a specific\nprocedure for engine failure after takeoff, as well as several procedures for rough running or\npower loss, such as that caused by a failure of the engine-driven fuel pump.\n18 Ibid., p. 2-3.\n19 Ibid.\n20 Ibid., pp. 2-3 to 2-4.\n21 Ibid., p. 2-4\n\n10 | Transportation Safety Board of Canada\n1.6.7.1 Procedures for rough running or power loss\n1.6.7.1.1 Failure of engine-driven fuel pump\nThe flight manual states that “failure of the engine-driven fuel pump will be evidenced by a\nsudden reduction in the fuel flow indication prior to a loss of power.”22,23\nThe manual also states that\nIn the event of an engine-driven fuel pump failure during take-off,\nimmediately hold the left half of the auxiliary fuel pump switch in the HI\nposition until the aircraft is well clear of obstacles. Upon reaching a safe\naltitude, and reducing the power to a cruise setting, release the HI side of the\nswitch. The ON position will then provide sufficient fuel flow to maintain\nengine operation while maneuvering for a landing.24\nIn this occurrence, to prevent the fuel-air mixture from becoming too rich, the auxiliary fuel\npump was not running when the engine-driven fuel pump failed, because the use of the\nauxiliary fuel pump during takeoff was counter-indicated by Cessna.\n1.6.7.2 Procedure to follow in the event of engine failure after takeoff\nIn the event of an engine failure after takeoff, the flight manual recommends “prompt\nlowering of the nose to maintain airspeed and establish a glide attitude.”25 The manual also\nstates that\n• in most cases, the landing should be planned straight ahead and with only small\nchanges in direction to avoid obstructions,26 and\n• altitude and airspeed are seldom sufficient to execute a 180° gliding turn necessary to\nreturn to the runway.27\nThe procedure for engine failure after takeoff (Figure 4) assumes that there is enough",
+        "ann_score": 1.0,
+        "rerank_score": 0.9872281325067137
+      },
+      {
+        "doc_id": "tsb/a16q0119",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a16q0119/eng/a16q0119.pdf",
+        "section_title": "25 September 2016",
+        "page": 17,
+        "bbox": [
+          86.4,
+          37.93679999999995,
+          541.38624,
+          756.2104
+        ],
+        "chunk_hash": "a9662cc64883a3778f7a3e1b8bd7e3ceaaf4ce57e543c0f4b8868a0f5db37a2e",
+        "lang": "en",
+        "text": " straight ahead and with only small\nchanges in direction to avoid obstructions,26 and\n• altitude and airspeed are seldom sufficient to execute a 180° gliding turn necessary to\nreturn to the runway.27\nThe procedure for engine failure after takeoff (Figure 4) assumes that there is enough time to\nsecure the fuel and ignition systems prior to touchdown.\n22 Ibid., p. 3-8.\n23 The fuel flow meter is located on the right-hand side of the dashboard.\n24 Cessna Aircraft Company, 1975 Cessna Stationair Owner’s Manual (1984), p. 3-8.\n25 Ibid., p. 3-1.\n26 Ibid.\n27 Ibid.\n\nAviation Investigation Report A16Q0119 | 11\nFigure 4. Excerpt from flight manual: Procedure to follow in\nthe event of an engine failure after takeoff (Source: 1975\nCessna Stationair Owner’s Manual)\n1.6.7.2.1 Procedure for in-flight engine failure\nWhile gliding toward a suitable landing area, an effort should be made to identify the cause\nof the engine failure. If time permits, and an engine restart is feasible, the following\nprocedure applies:28\nFigure 5. Excerpt from flight manual: Procedure for in-flight engine\nfailure (Source: 1975 Cessna Stationair Owner’s Manual)\n1.6.7.2.2 Training\nManaging an engine failure during takeoff on a single-engine aeroplane is critical because of\nthe significant workload and the little time available before making an emergency landing.\nCarrying out the procedure for dealing with engine failure after takeoff requires skills that\nare rarely put into practice, even in recurrent training. The pilot had carried out the\nprocedure for dealing with engine failure only during in-flight training; however, for\nobvious safety reasons, the engine failure drills consisted of simulating the failure at altitude.\nBecause the engine was not actually shut off, the pilot never had to carry out the entire\nprocedure for dealing with in-flight engine failure. The pilot had also never practised the\nprocedure for dealing with a failure of the engine-driven fuel pump during takeoff.\nWhen an engine failure occurs immediately after takeoff, the pilot does not have time to look\nup the appropriate procedure before taking corrective measures. In this type of situation, the\npilot needs to have a plan for dealing with the emergency. A flight over an area that",
+        "ann_score": 1.0,
+        "rerank_score": 0.9879462204837635
+      },
+      {
+        "doc_id": "tsb/a16q0119",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a16q0119/eng/a16q0119.pdf",
+        "section_title": "25 September 2016",
+        "page": 33,
+        "bbox": [
+          86.4,
+          37.93679999999995,
+          541.38624,
+          756.2104
+        ],
+        "chunk_hash": "af22b60d8bb6e8bcb45473cecae30c98a1df648b4f174d0119a3cd0859f83e09",
+        "lang": "en",
+        "text": " to\nmaintain speed and by landing straight ahead. It also states that the engine, the fuel supply,\nthe ignition, and the electrical supply should be shut off, if time permits. However, the\nauxiliary fuel pump needs to be used if the engine-driven fuel pump fails during takeoff.\nIf emergency procedures in the flight manual do not include relevant material contained in\nother procedures, there is a risk to the safety of flight if the crew is not able to take\nappropriate actions in time.\nBecause the procedure for dealing with engine failure after takeoff did not include elements\nfrom the procedure specific to failure of the engine-driven fuel pump during takeoff, the\npilot did not have a routine practised during flight training to rely on.\nIn this occurrence, the pilot first had to maintain control of the aircraft and follow the\nprocedure for dealing with engine failure after takeoff, at the same time remembering that\nthere was another procedure to be used if the engine failure was caused by the engine-driven\nfuel pump failing. Because the engine failure occurred at low altitude, the pilot did not have\ntime to identify the type of failure, recall the various relevant procedures, and take actions\nthat could have restored engine power.\n\n28 | Transportation Safety Board of Canada\n2.3.2 Managing engine failure after takeoff\nThe engine failure occurred at a key moment, when the aircraft was in the most vulnerable\nstage of the flight after takeoff, just as it was flying over a forest at low altitude after passing\nthe north shore of the lake.\nConsidering how suddenly the engine failed, how low the aircraft was at the time, and the\nfact that the failure occurred during a phase of the flight when there were significant\ndemands on the pilot’s attention, the pilot had little time to evaluate the situation. Under\nthese circumstances, it would have been vital for the pilot to have a plan or at least to have\nchosen the minimum altitude at which a 180° turn could be attempted in the event of an\nengine failure.\nThe engine failure probably took the pilot by surprise. Once the engine failed, the first\nmeasures to take were to stabilize the speed and put the aircraft into a glide while\nmaintaining control of the aircraft as it proceeded to a landing site. Although it is to be\nexpected that the pilot would take a few seconds to react to the engine failure, the aircraft’s\nspeed",
+        "ann_score": 1.0,
+        "rerank_score": 0.9908034475769532
+      },
+      {
+        "doc_id": "tsb/a16q0119",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a16q0119/eng/a16q0119.pdf",
+        "section_title": "25 September 2016",
+        "page": 33,
+        "bbox": [
+          86.4,
+          37.93679999999995,
+          541.38624,
+          756.2104
+        ],
+        "chunk_hash": "47622cca3385b2594720109185c20d7547b84a49beb8a163bf7d7102a5559c29",
+        "lang": "en",
+        "text": ", it is difficult to\npredict the aircraft’s flight trajectory and evaluate its actual performance in comparison to its\ntheoretical performance. If pilots do not have takeoff performance data for the modified\naircraft, there is an increased risk that the required takeoff distance will exceed the takeoff\narea or that the aircraft will be unable to clear obstacles.\n50 Temperature 10 °C, winds from the north at 10 knots, and altimeter around 30.05 inches of\nmercury.\n\nAviation Investigation Report A16Q0119 | 27\n2.3 Low-altitude engine malfunction\nThe information gathered during the investigation established that the aircraft experienced\nan engine shutdown during the initial climb after takeoff, at 200 feet AGL, an altitude lower\nthan the neighbouring terrain.\nIt can be difficult to diagnose a failure of the engine-driven fuel pump, because the duration\nand characteristics of the symptoms vary depending on the type of failure. If the fuel pump’s\nperformance had deteriorated, the pilot would have observed a gradual reduction in engine\nspeed and possible rough running of the engine. These symptoms would have provided\nnoticeable audible and tactile indications that may have prompted the pilot to apply the\nprocedure for failure of the engine-driven fuel pump. Instead, the shear in the pump\ncoupling shaft resulted in the fuel supply being cut off immediately, in turn shutting off the\nengine.\n2.3.1 Flight manual emergency procedures\nThe section of the flight manual on rough running or power loss contains a specific\nprocedure to follow if the engine-driven fuel pump fails after takeoff. The procedure consists\nprimarily of keeping the auxiliary fuel pump EMERG switch set to HI in order to keep the\nengine running until the aircraft has cleared all obstacles.\nThe procedure for dealing with an in-flight engine failure mentions starting the auxiliary fuel\npump; however, the procedure for dealing with engine failure after takeoff does not. The\nafter-takeoff procedure emphasizes maintaining control by lowering the nose promptly to\nmaintain speed and by landing straight ahead. It also states that the engine, the fuel supply,\nthe ignition, and the electrical supply should be shut off, if time permits. However, the\nauxiliary fuel pump needs to be used if the engine-driven fuel pump fails during take",
+        "ann_score": 1.0,
+        "rerank_score": 0.9716178771000951
+      }
+    ],
+    "trace": [
+      {
+        "node": "retrieve",
+        "elapsed_ms": 16045,
+        "anchored": true,
+        "n_new": 10,
+        "n_merged": 10,
+        "best_rerank": 0.9970764570957289
+      },
+      {
+        "node": "graph_expand",
+        "elapsed_ms": 54,
+        "n_ids": 3,
+        "n_rows": 3
+      },
+      {
+        "node": "synthesize",
+        "elapsed_ms": 46566,
+        "prompt_chars": 35320,
+        "draft_chars": 1126
+      }
+    ],
+    "thread_id": "cache-2"
+  },
+  "carburetor icing": {
+    "draft": "The common thread running through these reports is the danger posed by carburetor icing, particularly in aircraft not equipped with a carburetor temperature indication system.  While the exact cause of engine failure couldn't be definitively determined in each case, the weather conditions were conducive to carburetor icing, and pilots may have been unaware of the risk due to a lack of temperature indicators.\n\nHere's a breakdown:\n\n* **Occurrence a05p0154:** The pilot didn't recall using carburetor heat before takeoff or during the flight.  The helicopter was found with the carburetor heat control in the \"COLD\" position, suggesting it wasn't used effectively.\n* **Occurrence a19p0059:** The aircraft was operating at partial power and in atmospheric conditions conducive to carburetor icing. While the engine teardown didn't reveal mechanical issues, two recent U.S. accidents involving similar aircraft with the same engine modification pointed to carburetor icing as a possible cause.  The pilot wasn't aware of the potential for ice buildup due to a lack of a carburetor air temperature indication system.\n* **Occurrence a22o0165:** The investigation couldn't definitively confirm if carburetor icing was a factor, but the weather conditions were suitable for it.  \n\n**Regulations and Recommendations:**\n\nThe reports highlight that aircraft equipped with carburetors should ideally have a carburetor temperature indication system to alert pilots of potential icing conditions. This would allow them to take appropriate action, such as increasing engine power or using carburetor heat.\n\n\n",
+    "sources": [
+      {
+        "doc_id": "tsb/a05p0154",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a05p0154/eng/a05p0154.pdf",
+        "section_title": "24 JUNE 2005",
+        "page": 3,
+        "bbox": [
+          121.56,
+          673.30896,
+          531.848964,
+          719.98922
+        ],
+        "chunk_hash": "070f29fdeab2503c0774883bd5d00df12cac3a8f8ca5485ecd1820c9954d4d94",
+        "lang": "en",
+        "text": "opter Company Pilot’s Operating Handbook states\nthat operation within this carburetor temperature range (yellow) without carburetor heat must\nbe avoided at any power setting.\nAccording to the carburetor icing chart in Aeronautical Information Publication (A.I.P. Canada),\nSection AIR 2.3, an air temperature of 19°C and a dew point of 12°C fall in the “moderate icing at\ncruise power” or “serious icing at descent power” sector (see Appendix A). Indicators of\ncarburetor ice would normally be a drop in manifold pressure and engine rpm. Severe icing will\nresult in engine stoppage. The Robinson Helicopter Company Pilot’s Operating Handbook\nstates, “The pilot may be unaware of carburetor ice formation as the governor will automatically\nincrease throttle and maintain constant manifold pressure and rpm.”\nThe helicopter is equipped with a low-inertia rotor, susceptible to rapid loss of rotor rpm if\nmishandled. If rotor rpm significantly decreases at a slow airspeed, rotor stall may be inevitable.\nThe Robinson Helicopter Company Pilot’s Operating Handbook provides Safety Notices\nregarding low-rotor stall and carburetor ice.2\n1 All times are Pacific daylight time (Coordinated Universal Time minus seven hours).\n2 SN-10 “Fatal Accidents Caused by Low RPM Rotor Stall”; SN-24 “Low RPM Rotor Stall\nCan be Fatal”; and SN-25 “Carburetor Ice.”\n\n- 4 -\nThe accident helicopter was examined at the TSB regional facility. This examination revealed the\nfollowing:\n• The engine and related systems were deemed to be in an acceptable condition to\nallow the engine to be run. The engine was tested at a manufacturer-approved engine\noverhaul and repair facility and found capable of producing full power.\n• A 5-amp fuse was found installed where a 1.5-amp, in-line fuse prevents the belt-\ntension actuator from overloading the drive belts.\n• The carburetor heat control was found in the “COLD”/Unheated air position.\n• Impact marks indicated that the carburetor heat guillotine slider valve was opened to\nallow the",
+        "ann_score": 1.0,
+        "rerank_score": 0.8797679310636178
+      },
+      {
+        "doc_id": "tsb/a05p0154",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a05p0154/eng/a05p0154.pdf",
+        "section_title": "24 JUNE 2005",
+        "page": 4,
+        "bbox": [
+          121.56,
+          38.467739999999935,
+          527.620944,
+          719.98922
+        ],
+        "chunk_hash": "102f12180cbb94525aa02db3789bcb576b3ad3e2c9b13d5a2192bd900b940bab",
+        "lang": "en",
+        "text": " prevents the belt-\ntension actuator from overloading the drive belts.\n• The carburetor heat control was found in the “COLD”/Unheated air position.\n• Impact marks indicated that the carburetor heat guillotine slider valve was opened to\nallow the intake of filtered but unheated outside air.\n• The fuel system was intact and serviceable, there were no fuel leaks, and the main\ntank contained 22 litres of fuel.\n• The pilot had installed a portable global positioning system (GPS) unit and\ntemporarily secured it with clecos3 onto the side of the instrument console. It was\npowered continuously from a terminal at the clutch tensioner switch and protected\nwith a 2-amp fuse.\nDuring the 12-year inspection, which was started on 25 April 2005 and completed on\n16 May 2005, about 32.5 flight hours before the accident, it was found that the left-side collective\npush-pull (P/P) tube glued-on protection sleeve (P/N A143-1) and the guide bushing\n(P/N C439-9) were worn. The tube and the guide support bracket (P/N A432-1) had worn\nexcessively when the guide bushing (P/N C439-9) had been extruded from the bracket during\noperation. In this original installation, the guide support bracket had a guide bushing (P/N C439-\n9) inserted and trapped between two metal layers of the guide bracket. A guide bushing was\nsubstituted during the 12-year inspection and a substitute airworthy P/P tube was re-installed.\nOn the day of the occurrence, at 1659.9 airframe hours, a collective P/P tube guide upgrade kit\n(P/N KI-130) was installed. A new fuel sender unit (P/N A550-1) was installed due to faulty fuel\nquantity measurement. The fuel gauge was calibrated before the pilot refuelled for his trip to the\naviary.\nAnalysis\nThe weather conditions at the time of the occurrence were conducive to carburetor icing.\nHowever, if the pilot did not closely monitor the engine instruments, the formation of\ncarburetor ice would initially be hidden while the governor was maintaining a constant\nmanifold pressure and engine ",
+        "ann_score": 1.0,
+        "rerank_score": 0.9510513782831763
+      },
+      {
+        "doc_id": "tsb/a05p0154",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a05p0154/eng/a05p0154.pdf",
+        "section_title": "24 JUNE 2005",
+        "page": 5,
+        "bbox": [
+          71.99999999999996,
+          268.34611800000005,
+          539.7919199999998,
+          705.20982
+        ],
+        "chunk_hash": "dc9e1a7fee2e27bdf929af3d3ba901fdaa7595d4a6403a1ad34b0edda050878a",
+        "lang": "en",
+        "text": " the helicopter uncontrollable.\nA 5-amp fuse was found installed where a 1.5-amp, in-line fuse over-current protection is\nrequired to prevent the belt tension actuator from overloading the drive belts. This overloading\ncould occur if both the tension microswitches and the extension limit switch failed to limit both\nthe extension of the actuator and the increasing tension on the drive belts.\nThe pilot had installed a holding fixture for a portable GPS unit onto the side of the instrument\nconsole, secured temporarily with clecos. The GPS was powered continuously from a terminal at\nthe clutch switch. Failure of the temporary fastening could lead to an electrical fire if arcing of\nthe GPS power wiring occurred.\nFindings as to Causes and Contributing Factors\n1. The pilot did not recall applying carburetor heat prior to departure or during take-off.\nIt is likely that carburetor ice adversely affected engine performance and caused the\nengine to stop operating.\n2. Following the loss of engine power, the main rotor rpm decayed rapidly to an\nunrecoverable speed and the pilot was unable to arrest the helicopter’s descent.\nFindings as to Risk\n1. When replaced, the push-pull tube was found to have worn excessively. Failure of this\nprimary flight control would render a helicopter uncontrollable.\n2. Incorrect over-current fuse protection of the belt tension actuator may lead to\noverloading of the drive belts.\n3. A global positioning system unit was secured with clecos onto the side of the\ninstrument console. Failure of the temporary fastening could lead to an electrical fire.\n\n- 6 -\nThis report concludes the Transportation Safety Board’s investigation into this occurrence. Consequently,\nthe Board authorized the release of this report on 22 November 2005.\nVisit the Transportation Safety Board’s Web site (www.tsb.gc.ca) for information about the\nTransportation Safety Board and its products and services. There you will also find links to other safety\norganizations and related sites.\n\n- 7 -\nAppendix A – Carburetor Icing\nExcerpt from the Aeronautical Information Publication, Section AIR 2.3:\nCarburetor icing is a common cause",
+        "ann_score": 1.0,
+        "rerank_score": 0.9584600343879385
+      },
+      {
+        "doc_id": "tsb/a05p0154",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a05p0154/eng/a05p0154.pdf",
+        "section_title": "24 JUNE 2005",
+        "page": 7,
+        "bbox": [
+          72.0,
+          38.467739999999935,
+          538.3952640000002,
+          356.0653320000001
+        ],
+        "chunk_hash": "ce6ac3c3a3b20c81a71ef08c84ae861e16477622e4fe47fb8d2ae7303f3cfccc",
+        "lang": "en",
+        "text": "ation Safety Board and its products and services. There you will also find links to other safety\norganizations and related sites.\n\n- 7 -\nAppendix A – Carburetor Icing\nExcerpt from the Aeronautical Information Publication, Section AIR 2.3:\nCarburetor icing is a common cause of general aviation accidents. Fuel injected\nengines have very few induction system icing accidents, but otherwise no airplane\nand engine combination stands out. Most carburetor icing related engine failure\nhappens during normal cruise. Possibly this is as a result of decreased pilot awareness\nthat carburetor icing will occur at high power settings as well as during descents with\nreduced power.\nIn most accidents involving carburetor icing, the pilot has not fully understood the\ncarburetor heat system of the aircraft and what occurs when it is selected. Moreover, it\nis difficult to understand the countermeasures unless the process of ice formation in\nthe carburetor is understood. Detailed descriptions of this process are available in\nmost good aviation reference publications and any AME employed on type can\nreadily explain the carburetor heat system. The latter is important because of\ndifferences in systems. The pilot must learn to accept a rough-running engine for a\nminute or so as the heat melts and loosens the ice which is then ingested into the\nengine. The following chart provides the range of temperature and relative humidity\nwhich could induce carburetor icing.",
+        "ann_score": 1.0,
+        "rerank_score": 0.9976125907901375
+      },
+      {
+        "doc_id": "tsb/a19p0059",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a19p0059/eng/a19p0059.pdf",
+        "section_title": "",
+        "page": 15,
+        "bbox": [
+          108.0,
+          39.93978000000004,
+          542.145096,
+          105.23471999999992
+        ],
+        "chunk_hash": "a7740006bc903014ab9536c8bd2d1c0a7dd863c26ee48b68ed2cb74305b7f88a",
+        "lang": "en",
+        "text": " of Carburetor & Cabin Heat System (revised 27\nMay 1963).\n\nAIR TRANSPORTATION SAFETY INVESTIGATION REPORT A19P0059 | 11\nCanadian Aviation Regulations\nSubpart 703 of the (CARs), respectively. The accident flight\nwas conducted under Subpart 702.\n1.19 Additional information\n1.19.1 Carburetor icing\nCarburetor icing is a phenomenon where water vapour in the air freezes and adheres to\ninternal surfaces of the carburetor. This occurs because the temperature of air entering the\ncarburetor is reduced by the effect of fuel vaporization and by the decrease in air pressure\ncaused by the Venturi effect. If the air temperature in the carburetor drops below freezing,\nice may form on internal surfaces of the carburetor, including the throttle valve.\nUse of partial power increases the likelihood of ice buildup on the throttle valve and\ndecreases the exhaust system heat available for the anti-ice system. Use of richer mixtures\nincreases the cooling effect of fuel vaporization. As ice forms, this increases the Venturi\ncooling effect due to narrowing of the carburetor throat and this narrowing reduces power\noutput. If significant ice is allowed to develop within the carburetor and full heat is applied\nto melt it, the resultant water flow through the engine causes the engine to run rough and to\nlose further power and may even cause the engine to quit. Unchecked, the ice can quickly\nlead to a complete engine failure. To overcome carburetor icing, aircraft manufacturers\nprovide a system to heat the incoming air and prevent ice accumulation.\nTo help determine whether atmospheric conditions are likely to produce carburetor ice,\ncharts that compare outside ambient temperature and dew point have been produced\n(FFigiugruer 5e. 5C)a.r b uretor icing potential based on ground-level weather conditions at Nilkitkwa,\nBC (Source: Transport Canada, TP 14371, Transport Canada Aeronautical Information Manual [TC AIM],\nAIR – Airmanship [10 October 2019], section 2.3, with TSB annotations)\n\n12 | TRANSPORTATION SAFETY BOARD OF CANADA\nThe chart indicates that",
+        "ann_score": 1.0,
+        "rerank_score": 0.9989474314594652
+      },
+      {
+        "doc_id": "tsb/a19p0059",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a19p0059/eng/a19p0059.pdf",
+        "section_title": "",
+        "page": 16,
+        "bbox": [
+          108.0,
+          39.93978000000004,
+          295.33848,
+          105.23471999999992
+        ],
+        "chunk_hash": "8775c76860b56406dc643447ad181ad8ff1e8adabaf20f8d0a8be13c11a61ea4",
+        "lang": "en",
+        "text": ",\nBC (Source: Transport Canada, TP 14371, Transport Canada Aeronautical Information Manual [TC AIM],\nAIR – Airmanship [10 October 2019], section 2.3, with TSB annotations)\n\n12 | TRANSPORTATION SAFETY BOARD OF CANADA\nThe chart indicates that, based on the temperature and dew point at the weather station\n14 NM from the accident site at the time of the occurrence, the conditions were conducive\nto serious carburetor icing even at cruise power. Although the dew point at the aircraft’s\nlocation is not known, nearby rain showers indicate humidity at least as high as that at the\n11\nweather station. When a dewpoint is not precisely known, the presence of precipitation\nshould indicate to pilots that atmospheric conditions are high in relative humidity.\n12\nFurthermore, the likelihood of accumulating carburetor ice increases as both relative\nhumidity increases and air temperature decreases towards 0°.\nIce that forms in a carburetor during flight rarely remains after a crash, making carburetor\nice difficult to identify as a cause of power loss. Nonetheless, accidents and incidents\ninvolving carburetor icing are prevalent in aviation, and engine power loss due to\n13 14\ncarburetor ice has been indicated in 2 recent U.S. accidents involving Cessna 182 aircraft\nequipped with Texas Skyways O-550 engines, one in 2014 and another in 2018.\n1.20 Useful or effective investigation technique\nNot applicable.\n11\nUK Aeronautical Information Service, Aeronautical Information Circular (AIC) P 077/2009: Induction system\nicing on piston engines as fitted to aeroplanes, helicopters and airships (10 Sept 2009), at\nhttp://www.nats-uk.ead-it.com/aip/current/misc/AIC/EG_Circ_2009_P_077_en.pdf (last accessed on 12 May\n2020).\n12\nFederal Aviation Administration (FAA) A20-113, Pilot precautions and procedures to be taken in preventing\naircraft reciprocating engine induction system and fuel system icing problems (22 October 1981) at\nhttps://www.faa.gov/documentLibrary/media/Advisory_Circular",
+        "ann_score": 1.0,
+        "rerank_score": 0.8373541382064091
+      },
+      {
+        "doc_id": "tsb/a19p0059",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a19p0059/eng/a19p0059.pdf",
+        "section_title": "",
+        "page": 17,
+        "bbox": [
+          54.0,
+          39.93978000000004,
+          542.145096,
+          82.69200000000001
+        ],
+        "chunk_hash": "3a27fca35e18edada16edcda35a9c4bff5c43e20acb1d19e16b856926a17e576",
+        "lang": "en",
+        "text": "tion Administration (FAA) A20-113, Pilot precautions and procedures to be taken in preventing\naircraft reciprocating engine induction system and fuel system icing problems (22 October 1981) at\nhttps://www.faa.gov/documentLibrary/media/Advisory_Circular/AC_20-113.pdf (last accessed on 12 May\n2020).\n13\nNational Transportation Safety Board Aviation Accident Final Report of accident number WPR14LA208, at\nhttps://app.ntsb.gov/pdfgenerator/ReportGeneratorFile.ashx?EventID=20140524X94635&AKey=1&RType=Fi\nnal&IType=LA (last accessed 10 May 2020).\n14\nNational Transportation Safety Board Aviation Accident Preliminary Report of accident number CEN19FA008,\nat\nhttps://app.ntsb.gov/pdfgenerator/ReportGeneratorFile.ashx?EventID=20181016X94909&AKey=1&RType=H\nTML&IType=FA (last accessed 10 May 2020).\n\nAIR TRANSPORTATION SAFETY INVESTIGATION REPORT A19P0059 | 13\n2.0 ANALYSIS\n2.1 Introduction\nThe pilot was medically fit and qualified for the flight. The aircraft had sufficient fuel for the\nintended flight. No performance issues had been reported for almost 3 hours of the flight.\nNo pre-impact mechanical defects were found that would explain a total or partial power\nloss. As a result, this analysis will focus on the effects of carburetor icing.\n2.2 Carburetor icing\nThe engine teardown did not reveal any mechanical cause for an engine power loss.\nThere have been 2 recent accidents in the U.S. indicating carburetor icing on similar aircraft\nwith the same engine modification, signalling that these aircraft may be susceptible to the\naccumulation of carburetor ice.\nThe temperature and humidity in the area where the flight took place were conducive to\nserious carburetor icing at any engine power setting. In addition, the mission required the\naircraft to be operated at low groundspeeds, which necessitated a partial-power setting that\nmade the occurrence engine even more susceptible to the formation of carburetor ice. The\ncombination of the aircraft operating at a partial power setting and in atmospheric\nconditions conducive to",
+        "ann_score": 1.0,
+        "rerank_score": 0.9564718602835648
+      },
+      {
+        "doc_id": "tsb/a19p0059",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a19p0059/eng/a19p0059.pdf",
+        "section_title": "",
+        "page": 17,
+        "bbox": [
+          54.0,
+          39.93978000000004,
+          542.145096,
+          82.69200000000001
+        ],
+        "chunk_hash": "1b4fbd71659dcb4bef292d0e44e5e849b614a4da5cefd91974d2293fdc962f95",
+        "lang": "en",
+        "text": "\naircraft to be operated at low groundspeeds, which necessitated a partial-power setting that\nmade the occurrence engine even more susceptible to the formation of carburetor ice. The\ncombination of the aircraft operating at a partial power setting and in atmospheric\nconditions conducive to carburetor icing likely resulted in ice forming in the carburetor.\nThe GPS (global positioning system) data shows that when the aircraft’s performance\nstarted degrading, the aircraft started a shallow descent (about 19:1 glide ratio) that lasted\nfor almost 2 minutes, consistent with partial engine power. This was followed by a steeper\ndescent (about 8:1 glide ratio) that lasted for over 3 minutes, consistent with a complete\nengine power loss. The ice that likely formed in the carburetor would have initially reduced\nthe engine’s ability to produce enough power to maintain altitude and eventually led to a\ncomplete loss of power.\nThe carburetor heat control was found in the fully-in (cold) position. The pilot owned\n3 carbureted aircraft and would have been familiar with the operation of carburetor heat\nsystems, so it was unlikely that he would not have applied it in these circumstances. The\ninvestigation also considered other scenarios. Carburetor heat may have been selected on at\nsome time before the crash but was likely returned to the cold position before impact. It is\nalso possible, though less likely, that the carburetor heat control was returned to fully-in\n(cold) position when the carburetor air box was crushed at impact. If carburetor ice had\nindeed accumulated, it could not be determined why it would not have been removed or\nreduced by the carburetor heat system.\nThe aircraft was not equipped with a carburetor air temperature indication system, nor was\nit required to be. However, when installed, these systems can indicate to pilots when\nconditions exist that are conducive to carburetor ice formation before ice begins to\naccumulate. If aircraft equipped with carburetors are not equipped with a carburetor\ntemperature indication system, there is an increased risk that pilots will not be aware that\n\n14 | TRANSPORTATION SAFETY BOARD OF CANADA\nthey are in conditions in which carburetor ice accumulation is possible and consequently",
+        "ann_score": 1.0,
+        "rerank_score": 0.9447913126759381
+      },
+      {
+        "doc_id": "tsb/a19p0059",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a19p0059/eng/a19p0059.pdf",
+        "section_title": "",
+        "page": 19,
+        "bbox": [
+          54.0,
+          39.93978000000004,
+          542.145096,
+          82.69200000000001
+        ],
+        "chunk_hash": "6bc11c737b9606e5df25b22613d455c8a3c636aa2ae4742493629b940e15e9af",
+        "lang": "en",
+        "text": " equipped with carburetors are not equipped with a carburetor\ntemperature indication system, there is an increased risk that pilots will not be aware that\n\n14 | TRANSPORTATION SAFETY BOARD OF CANADA\nthey are in conditions in which carburetor ice accumulation is possible and consequently\nwill not take the appropriate remedial actions in time.\n2.3 Forced landing\nFollowing the initial engine problems, the pilot indicated an intention to land at Silver\nHilton Steelhead Lodge airstrip; however, the aircraft tracked away from the airstrip, and\nthe pilot reported that he would land west of it, when in fact the aircraft crashed east of it.\nThe airstrip was not in the aircraft’s GPS database, and, as a result, it is likely that the pilot\nwas unable to locate it in sufficient time to conduct a safe landing before the engine failed.\nThe Babine River was in freshet and no gravel bars or open shorelines were visible. In such\ncircumstances, pilot training at Lakes District Air Service Ltd. suggested forced landings\nshould be made into trees, not water. These factors may have contributed to the pilot’s\ndecision to make a forced landing into trees rather than to ditch in the river.\n\nAIR TRANSPORTATION SAFETY INVESTIGATION REPORT A19P0059 | 15\n3.0 FINDINGS\n3.1 Findings as to causes and contributing factors\nThese are conditions, acts or safety deficiencies that were found to have caused or contributed to\nthis occurrence.\n1. The combination of the aircraft operating at a partial power setting and in atmospheric\nconditions conducive to carburetor icing likely resulted in ice forming in the carburetor.\n2. The ice that likely formed in the carburetor would have initially reduced the engine’s\nability to produce enough power to maintain altitude and eventually led to a complete\nloss of power.\n3. Following the initial engine problems, the pilot indicated an intention to land at Silver\nHilton Steelhead Lodge airstrip; however, the airstrip was not in the aircraft’s global\npositioning system database, and, as a result, it is likely that the pilot was unable to\nlocate it in sufficient time to conduct a safe landing before the engine failed.\n3.2 Findings as to risk\nThese are conditions, unsafe acts or safety de",
+        "ann_score": 1.0,
+        "rerank_score": 0.9561454366001265
+      },
+      {
+        "doc_id": "tsb/a22o0165",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a22o0165/eng/a22o0165.pdf",
+        "section_title": "",
+        "page": 5,
+        "bbox": [
+          108.0,
+          39.46055999999999,
+          541.9051199999999,
+          757.419
+        ],
+        "chunk_hash": "d29a34a051eabb73f9b1ea7dca793e98294621063a2614ea5fc00c35a2a7bcb3",
+        "lang": "en",
+        "text": "L), a\ntemperature of 3 °C, and a dew point of −5 °C.\nThe automatic METAR (METAR AUTO) issued at 1953 for Massena International-Richards Field\nAirport (KMSS), New York, United States (26 NM southwest of the occurrence site), reported\nwinds generally from the south at 6 knots, clear skies, a visibility of 10 statute miles, a\ntemperature of 6 °C, and a dew point of 9 °C.\n−\nCarburetor icing\nCarburetor icing is a phenomenon where water vapour in the air freezes and adheres to internal\nsurfaces of the carburetor. This occurs because the temperature of air entering the carburetor is\nreduced by the effect of fuel vaporization and by the decrease in air pressure caused by the\nVenturi effect. If the air temperature in the carburetor drops below freezing, ice may form on\ninternal surfaces of the carburetor, including the throttle valve.\nTo overcome carburetor icing, aircraft manufacturers provide a system to heat the incoming air\nand prevent ice accumulation. If significant ice is allowed to develop within the carburetor and full\nheat is applied to melt it, the resultant water flow through the engine causes the engine to run\nrough and to lose further power, and it may even cause the engine to quit. Unchecked, the ice\ncan quickly lead to a complete engine failure.\nIce that forms in a carburetor during flight rarely remains after a crash, making carburetor ice\ndifficult to identify as a cause of power loss. Nonetheless, accidents and incidents involving\ncarburetor icing, where engine power loss due to carburetor ice has been suspected, are prevalent\nin aviation.9,10 To help determine whether atmospheric conditions are likely to produce carburetor\nice, charts that compare outside ambient temperature, dew point, and relative humidity have\nbeen produced (Figure 3). However, it is important to note that the formation of carburetor ice is\nalso possible in conditions outside those depicted on the charts.11\n9 Transport Canada, TP 2228E-38, Take Five…for safety: Carburetor Icing (April 2011).\n10 National Transportation Safety",
+        "ann_score": 1.0,
+        "rerank_score": 0.9961755163553627
+      },
+      {
+        "doc_id": "tsb/a22o0165",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a22o0165/eng/a22o0165.pdf",
+        "section_title": "",
+        "page": 7,
+        "bbox": [
+          108.0,
+          39.46055999999999,
+          541.90512,
+          757.419
+        ],
+        "chunk_hash": "070521ff79366f41a48e3676d3b0ce12372065cd036a1fdef82ab71934f0dceb",
+        "lang": "en",
+        "text": " visual flight\nThe principle behind day and night VFR flight is that the pilot uses visual cues (e.g., visual horizon,\nground references) outside the aircraft to determine the aircraft’s attitude. Flying VFR at night\ninvolves numerous risks owing to poor visual cues. Fewer visual cues combined with a reduced\nability to see at night make it difficult to identify terrain and obstacles to navigation. The\nsurrounding environmental and lighting conditions must therefore be sufficient to allow the pilot\nto see these visual cues.\n12 Transport Canada, SOR/96-433, Canadian Aviation Regulations, subsection 601.24(2).\n13 Ibid., subsection 601.23(1).\n\nAIR TRANSPORTATION SAFETY INVESTIGATION REPORT A22O0165 ■ 7\nThe conditions experienced during the occurrence flight were such that visual reference to the\nsurface was possible because of the cultural lighting provided by the Ontario and Quebec\nprovincial highways, and various towns along the planned route. However, it would have been\ndifficult to see the unlit power lines crossing Highway 401 or to see CLA6’s grass runway parallel\nto that highway.\nTSB laboratory report\nThe TSB completed the following laboratory report in support of this investigation:\n• LP131/2022 – NVM Data Recovery - GPS\nSafety messages\nPilots and aircraft owners are reminded that the CARs requirements for annual inspections are in\nplace to ensure that aircraft are maintained in accordance with airworthiness standards and, as a\nresult, are safe for operation.\nBased on the conditions at the time of the occurrence, there was a potential for serious carburetor\nicing with descent power. Even though the investigation was unable to determine if carburetor\nicing was a factor in this occurrence, pilots are reminded that carburetor icing can occur at various\ntemperatures and all engine power settings.\nThis report concludes the Transportation Safety Board of Canada’s investigation into this\noccurrence. The Board authorized the release of this report on 02 August 2023. It was\nofficially released on 08 August 2023.\nVisit the Transportation Safety Board of Canada’s website (www.tsb.gc.ca) for information\nabout the TSB and its products and services. You will also find the Watchlist, which\nidentifies the key safety issues that need",
+        "ann_score": 1.0,
+        "rerank_score": 0.8840392817460332
+      }
+    ],
+    "trace": [
+      {
+        "node": "retrieve",
+        "elapsed_ms": 9150,
+        "anchored": true,
+        "n_new": 11,
+        "n_merged": 11,
+        "best_rerank": 0.9989474314594652
+      },
+      {
+        "node": "graph_expand",
+        "elapsed_ms": 44,
+        "n_ids": 3,
+        "n_rows": 3
+      },
+      {
+        "node": "synthesize",
+        "elapsed_ms": 65776,
+        "prompt_chars": 27986,
+        "draft_chars": 1596
+      }
+    ],
+    "thread_id": "cache-3"
+  },
+  "VFR flight into IMC": {
+    "draft": "The provided text focuses on aviation safety reports from the Transportation Safety Board of Canada (TSB) concerning helicopter accidents related to flying into instrument meteorological conditions (IMC).  It highlights:\n\n* **The dangers of \"avoid-at-all-costs\" approach:** Some helicopter operators rely solely on avoiding IMC, but this can be ineffective and leave pilots unprepared for unexpected situations.\n* **Lack of training requirements:** Unlike airplane pilots, commercial VFR helicopter pilots aren't required to demonstrate proficiency in recovering from IMC during their pilot proficiency checks. \n* **Increased risk for helicopters:** Helicopters are more susceptible to losing visual references than airplanes, making them more vulnerable to IMC accidents.\n\nThe text doesn't contain information about a specific graph or visual data.  \n\n\nLet me know if you have any other questions about the provided text!",
+    "sources": [
+      {
+        "doc_id": "tsb/a04c0051",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a04c0051/eng/a04c0051.pdf",
+        "section_title": "04 MARCH 2004",
+        "page": 5,
+        "bbox": [
+          72.00003599999994,
+          38.61047999999994,
+          538.0999379999998,
+          470.18925600000006
+        ],
+        "chunk_hash": "be2936b4e5bb4f8a591d886a185d4449450845c98f8642a7bc29bf2327f23161",
+        "lang": "en",
+        "text": " when they encountered\nwhiteout conditions.\nWhiteout is a meteorological phenomenon in which a person is unable to discern clouds and\nhorizon from the surrounding surface terrain features. Whiteout conditions occur when natural\nsunlight is diffused by clouds or other obscuring phenomena such as fog, snow, or ice crystals.\nFlight in reduced visibility greatly increases the workload of VFR pilots. Studies have shown that\nnon-instrument rated pilots are likely to lose control of an aircraft within 3-7 minutes after\nentering IMC conditions.2\n1 All times are central standard time (Coordinated Universal Time [UTC] minus six hours)\nunless otherwise noted.\n2 Reference Transport Canada publication TP 2228 E , 178 Seconds\n\n- 4 -\nThe pilots were using a global positioning system (GPS) in conjunction with topographical maps\nas a means of VFR navigation in areas of reduced visibility and featureless terrain along the\nroute of flight.\nExamination of the wreckage and surrounding area indicated that the damage to the main rotor\nand transmission mounts was consistent with a power-on, high-rpm impact with the ground.\nThere was no information to suggest that any type of aircraft equipment malfunction occurred\nor that there were any pre-existing mechanical faults.\nThe Canadian Aviation Regulations for VFR flight are as follows:\nMinimum Visual Meteorological Conditions for VFR Flight in Controlled Airspace\n602.114 No person shall operate an aircraft in VFR flight within controlled airspace\nunless\n(a) the aircraft is operated with visual reference to the surface;\n(b) flight visibility is not less than three miles;\n(c) the distance of the aircraft from cloud is not less than 500 feet vertically\nand one mile horizontally; and\n(d) where the aircraft is operated within a control zone,\n(i) when reported, ground visibility is not less than three miles, and\n(ii) except when taking off or landing, the distance of the aircraft from\nthe surface is not less than 500 feet.\nMinimum Visual Meteorological Conditions for VFR Flight in Uncontrolled Airspace\n602.115 No person shall operate an aircraft in VFR flight within uncontrolled airspace\nunless\n(a) the aircraft is operated with visual reference to the surface;\n(b) where the aircraft is operate",
+        "ann_score": 1.0,
+        "rerank_score": 0.8836382359770631
+      },
+      {
+        "doc_id": "tsb/a04c0051",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a04c0051/eng/a04c0051.pdf",
+        "section_title": "04 MARCH 2004",
+        "page": 6,
+        "bbox": [
+          71.99999999999986,
+          38.61047999999994,
+          538.8827759999998,
+          351.26966400000003
+        ],
+        "chunk_hash": "ffad66453595af19f1aa7d1f2c1e23a5222ec0c90dd631f91832204ea6ba45cd",
+        "lang": "en",
+        "text": " feet.\nMinimum Visual Meteorological Conditions for VFR Flight in Uncontrolled Airspace\n602.115 No person shall operate an aircraft in VFR flight within uncontrolled airspace\nunless\n(a) the aircraft is operated with visual reference to the surface;\n(b) where the aircraft is operated at or above 1,000 feet AGL\n(i) during the day, flight visibility is not less than one mile,\n(ii) during the night, flight visibility is not less than three miles, and\n(iii) in either case, the distance of the aircraft from cloud is not less than\n500 feet vertically and 2,000 feet horizontally;\n(c) Not relevant\n(d) where the aircraft is a helicopter and is operated at less than 1,000 feet\nAGL\n(i) during the day, flight visibility is not less than one mile, except if\notherwise authorized in an air operator certificate or a flight training\nunit operator certificate - helicopter,\n(ii) during the night, flight visibility is not less than three miles, and\n(iii) in either case, the aircraft is operated clear of cloud.\n\n- 5 -\nAnalysis\nThe pilots of C-FIHL were operating in VFR weather conditions when they were advised of IMC\nin the Swift Current area. The chief pilot chose to continue rather than divert or make a\nprecautionary landing, and his decision to proceed toward an area of IMC resulted in the crew’s\nloss of visual reference and collision with terrain. After the decision to continue, the pilots\npassed a point where their actual weather conditions changed to IMC. The use of the GPS\nassisted the crew in navigating in the deteriorating conditions beyond the point at which they\ncould safely fly the helicopter. As a result, they lost control and the helicopter struck the ground.\nThe fact that the pilots had earlier encountered and now anticipated less severe weather than\nwas reported for Swift Current influenced the chief pilot’s decision to proceed into IMC.\nFinancial and personal considerations resulting from a late arrival in Calgary may have\ncontributed to the pressure felt by the chief pilot to reach Calgary.\nFindings as to Causes and Contributing Factors\n1. The chief pilot’s decision to continue a visual flight into instrument meteorological\nconditions resulted in his inability to maintain control of the helicopter, and as a\nresult, the",
+        "ann_score": 1.0,
+        "rerank_score": 0.965250375232816
+      },
+      {
+        "doc_id": "tsb/a21c0038",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a21c0038/eng/a21c0038.pdf",
+        "section_title": "25 April 2021",
+        "page": 56,
+        "bbox": [
+          108.0,
+          39.90444000000002,
+          542.2052399999999,
+          105.08255999999994
+        ],
+        "chunk_hash": "a02200269d577535823f8045f421760edaa168ed4ab18c12b151410f4ee424ef",
+        "lang": "en",
+        "text": "\ne\na\nc\ns\no\n,\nn\nd\nd\nev\ns\no\nto\nid\nl i\no\nv\nf\ne\nv\n”\ni s\na\nu\nrt\na\ni\nl\nc\nr\nle\ne ferences.\nTake Five …for Safety105\nIn 2003, TC published the article “A fatal flight in bad weather: 178 seconds to live” in its\npublication . The article is based on a 1954 study conducted by the\nUniversity of Illinois Institute of Aviation, in which 20 students with no instrument flight\n104 Transport Canada (TC), SOR96/433, Canadian Aviation Regulations, section 101.01.\n105 Transport Canada (TC), “A fatal flight in bad weather: 178 seconds to live,” in Take Five… for Safety, TP 2228E-\n1 (04/2003), at tc.canada.ca/en/aviation/publications/take-fivefor-safety-tp-2228 (last accessed on\n01 February 2024).\n\nTRANSPORTATION SAFETY BOARD OF CANADA ■ 56\n106 107\ntraining flew into simulated IMC, and all went into graveyard spirals or roller coasters.\nOn average, the participants in the study lost control 178 seconds following their first\nsimulated IMC encounter. The underlying message for VFR pilots in TC’s article is that “you\nnow have 178 seconds to live” if you inadvertently encounter IMC. TC’s article outlines a\n“fatal scenario” in which panic and confusion sets in when a pilot is unable to decipher the\ninformation on the flight instruments, ultimately resulting in a crash.\n108\nTo better understand the background behind TC’s article, the investigation reviewed the\noriginal University of Illinois “180-degree turn experiment.” The study, conducted on\nfixed-wing aircraft (Beechcraft Bonanza C-35), was funded by the Aircraft Owners and\nPilots Association (AOPA) Foundation. The Institute of Aviation was tasked to develop a\ncurriculum that would enable a non-instrument pilot to retain control of the aircraft\nsufficiently well under IMC to enable them to fly back to visual conditions. Study\nparticipants covered a broad age spectrum, with experience ranging from 30 to 1625 total\nflight hours.\nTo mimic the flight instrumentation requirements in effect at the time, the artificial horizon,\ndirectional gyroscope, and rate-of-climb indicators were covered. For the",
+        "ann_score": 1.0,
+        "rerank_score": 0.9200744765243405
+      },
+      {
+        "doc_id": "tsb/a21c0038",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a21c0038/eng/a21c0038.pdf",
+        "section_title": "25 April 2021",
+        "page": 85,
+        "bbox": [
+          54.0,
+          39.90444000000002,
+          542.2041599999999,
+          82.81200000000001
+        ],
+        "chunk_hash": "98b527df034cbbac5e30eb5981968837c30c2fc944f2ee54f8d4d50d71003b07",
+        "lang": "en",
+        "text": " IIMC accidents are associated with a pilot on a visual fight rules (VFR) flight\ncontinuing flight in visual meteorological conditions (VMC) until the aircraft enters cloud,\nhence instrument meteorological conditions (IMC). However, it is important to understand\nthat IMC occurs any time there are inadequate visual cues to control the aircraft. Therefore,\nif a pilot is unable to see the references on the ground or is unable to discern a visible\nhorizon, for any reason, the pilot is in IMC and must rely on their flight instruments. As prior\nTSB research has identified, loss of visual reference accidents are more than twice as likely\nto involve helicopters than airplanes.\nWhen the occurrence helicopter began crossing Griffith Island, Nunavut, it was flying near\nthe highest point on the island, towards environmental conditions that were highly\nconducive to flat light and whiteout. The overcast cloud layer likely resulted in diffused light\nthat reflected off the snow-covered featureless terrain producing flat light conditions, which\nwould have significantly reduced or eliminated contrast and shadows. This would have\ndegraded the pilot’s ability to assess height above ground, distance, and rate of closure.\nAdditionally, the presence of snow squalls, in conjunction with the flat light, likely produced\nwhiteout conditions that engulfed the helicopter in a uniformly white glow and that would\nhave made it very difficult for the occurrence pilot to see references in the distance and to\ndiscern a visible horizon, both of which are vital for maintaining aircraft control while\noperating under VFR.\nFurther complicating matters, the insidious effect of flat light and whiteout conditions\nwould have reduced the pilot’s ability to recognize that his visual system was degraded and\nthat he was at increased risk of spatial disorientation. During the final moments of the\noccurrence flight, it is likely that the pilot recognized the need to initiate alternative action\nin order to maintain or regain the visual references needed for VFR flight. However, at that\npoint, or shortly thereafter, the pilot no longer had adequate visual references on the\nsurface or a discernible horizon, and the helicopter inadvertently flew into IMC.\n\nTRANSPORTATION SAFETY BOARD OF CANADA ■",
+        "ann_score": 1.0,
+        "rerank_score": 0.9451974048440384
+      },
+      {
+        "doc_id": "tsb/a21c0038",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a21c0038/eng/a21c0038.pdf",
+        "section_title": "25 April 2021",
+        "page": 86,
+        "bbox": [
+          108.0,
+          39.90444000000002,
+          542.2052399999999,
+          104.48255999999992
+        ],
+        "chunk_hash": "2980bfca97c597f7cf7ea55bd9f5ba0b61211190e2cc2d950d204920b0b1a718",
+        "lang": "en",
+        "text": " VFR flight. However, at that\npoint, or shortly thereafter, the pilot no longer had adequate visual references on the\nsurface or a discernible horizon, and the helicopter inadvertently flew into IMC.\n\nTRANSPORTATION SAFETY BOARD OF CANADA ■ 86\nFinding as to causes and contributing factors\nWhen the helicopter, being operated under day VFR, approached the highest elevation on\nGriffith Island, the uniformly snow-covered and featureless terrain, an overcast sky, and\nsnow squalls likely created flat light and whiteout conditions that resulted in IMC.\nThe wreckage was found on a near-reciprocal heading from and south of the helicopter’s\ninbound track to the Resolute Bay Airport (CYRB), Nunavut. The orientation of the debris\npath and the lateral distance from the inbound track are consistent with a pilot attempting\nto execute a 180° right turn, to the same side of the helicopter that the pilot was flying from,\nper GSH’s training.\nThe debris field is characteristic of a high-energy impact, with considerable forward speed.\nIn order for the helicopter to have reached the point of impact, nearly 180° from its inbound\ntrack, in less than the pre-set 2-minute interval since the last satellite position report, the\nhelicopter would have been required to fly, on average, at or near the airspeed recorded at\nthe last satellite position report. Therefore, it seems likely, based on the length and\ncharacteristics of the debris field, that the helicopter impacted the ground unexpectedly, at\na relatively high airspeed, rather than while manoeuvring at low airspeed (e.g., at or near\n40 knots) as taught during GSH’s reduced-visibility VFR training. This suggests that the pilot\ninitiated evasive action, owing to his sudden realization that continued visual flight was no\nlonger possible, before attempting to make any significant reductions in airspeed. This also\nsuggests that when the pilot initiated the turn, the helicopter likely had already\nencountered, or was just about to encounter, IMC.\nThe pilot had a total of 16.4 hours of instrument flight experience in aircraft and simulators,\nof which 3.5 were in the 5 years before the accident",
+        "ann_score": 1.0,
+        "rerank_score": 0.9869292152258129
+      },
+      {
+        "doc_id": "tsb/a21c0038",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a21c0038/eng/a21c0038.pdf",
+        "section_title": "25 April 2021",
+        "page": 109,
+        "bbox": [
+          108.0,
+          94.40256,
+          515.3329439999999,
+          121.40639999999996
+        ],
+        "chunk_hash": "9c0f6dfb5789e285d13becda61182bb389bd0bf509c361d5c3561f1de21edb4f",
+        "lang": "en",
+        "text": " recover\nfrom inadvertent flight into instrument meteorological conditions (IIMC).\nDuring this investigation, the TSB discovered that some Canadian commercial helicopter\noperators with pilots who possess instrument flight rules (IFR) flight experience place\nconsiderable importance on equipping their aircraft and training their VFR pilots for IIMC\nrecovery when operating above the tree line during the winter months. However, other\ncompanies that only conduct VFR operations, including Great Slave Helicopters 2018 Ltd.\nthe Canadian Aviation Regulations ,\n(GSH), have adopted and rely on an “avoid-at-all-costs” approach to IIMC. This approach,\nwhich is permitted under (CARs) relies on a pilot’s ability\n197\nto avoid IIMC and to fly solely by reference to outside visual cues.\nAs seen in this occurrence, and many others highlighted in this report, it may be\nineffective to rely on an approach predicated on intentionally avoiding something that is\nunintended. Given the number of IIMC accidents that have occurred, and that helicopter\naccidents are more than twice as likely to involve a loss of visual reference than are airplane\naccidents, it is apparent that the “avoid-at-all-costs” approach to IIMC is not effective when\nused in isolation. The reliance on this approach can place pilots and passengers at increased\nrisk of IIMC accidents because that approach typically encourages pilots to fly lower and\nslower as the weather deteriorates until they determine it is no longer safe to do so. This\napproach typically puts helicopters at close proximity to the ground in a flight profile that\ncould make it harder, if not impossible, to transition to flight instruments if visual\nreferences are lost.\nWhen the occurrence pilot recognized the need to take evasive action, he lacked the skills\nnecessary to safely transition to instrument flight and carry out a pre-determined IIMC\nrecovery procedure, such as climbing straight ahead or conducting a 180° turn to return to\nvisual meteorological conditions, before all external references were lost. Instead, the\noccurrence pilot most likely relied on the technique he was trained to use, which was to\n197 See sections 1.18.8.2 Previous investigations, 1.18.8.3 Australian Transportation Safety Bureau\nInvestigation AO-2013-216, and 1.1",
+        "ann_score": 1.0,
+        "rerank_score": 0.9653811611608242
+      },
+      {
+        "doc_id": "tsb/a21c0038",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a21c0038/eng/a21c0038.pdf",
+        "section_title": "25 April 2021",
+        "page": 110,
+        "bbox": [
+          108.0,
+          39.90444000000002,
+          542.20272,
+          105.44255999999996
+        ],
+        "chunk_hash": "cc26df7937b35c940dd0685b1e0c710a1f658c88ab4b81abed9e9ba96354c10e",
+        "lang": "en",
+        "text": " experience can be trained to carry out an IIMC recovery\nprocedure solely by reference to flight instruments.\nOnce pilots obtain their commercial licence, several of these flight test requirements (e.g.,\nautorotations) must be demonstrated during annual pilot proficiency checks. However,\ndespite the number of helicopter IIMC accidents and associated fatalities, there is no\nrequirement for commercial VFR helicopter pilots to demonstrate during pilot proficiency\nchecks that they retain the skills necessary to recover from IIMC. Since there is no\nrequirement to maintain this skill set, there is no requirement for commercial VFR\nhelicopter operators to provide their pilots with IIMC recovery training. Without recurrent\ntraining, either in the aircraft or through other means, skill erosion will occur. The more\ntime that has elapsed since pilots were last tested on the ability to recover from IIMC, the\n200201\nless likely they will have both the skill and confidence to carry out such a manoeuvre under\n,\nreal-life conditions. Therefore, the current regulations allow VFR helicopter pilots to\noperate in environmental conditions conducive to a loss of visual references, without any\nassurances that they possess the skills necessary to recover from an IIMC encounter.\n198 Federal Aviation Administration (FAA), Code of Federal Regulations, Title 14, Part 135, paragraph 135.293.\n199 Transport Canada, TP 3077, Flight Test Guide – Private and Commercial Pilot Licence (Helicopter), Third\nEdition (February 2013), Item Ex. 30 – Instrument Flying.\n200 TSB Aviation Safety Study 90-SP002, Report of a Safety Study on VFR flight into adverse weather\n(13 November 1990).\n201\nAustralian Transport Safety Bureau, AR-2012-122, Avoidable Accidents No. 7: Visual flight at night accidents:\nWhat you can't see can still hurt you, (17 December 2013).\n\nTRANSPORTATION SAFETY BOARD OF CANADA | 111\nIn 1990, the TSB issued Recommendation A90-81 calling for TC to require verification of\nproficiency in basic instrument flying skills for commercially employed helicopter pilots\nUnsatisfactory\nduring annual pilot proficiency flight checks. After a lack of action by TC over several years,\nthe Board considered TC’s response to this recommendation to be and\n202\nchanged the recommendation status",
+        "ann_score": 1.0,
+        "rerank_score": 0.8803863363336775
+      },
+      {
+        "doc_id": "tsb/a21c0038",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a21c0038/eng/a21c0038.pdf",
+        "section_title": "25 April 2021",
+        "page": 117,
+        "bbox": [
+          115.56,
+          39.90444000000002,
+          542.2016399999999,
+          96.33899999999994
+        ],
+        "chunk_hash": "f8a7c951f3e1db86882731a4363acd65e4cfec6812c7c505682bfe93b42fd0c0",
+        "lang": "en",
+        "text": "s are more than\ntwice as likely to involve a loss of visual reference than are airplane accidents. The\ncurrent regulations authorize VFR helicopter pilots to operate in flight visibilities as low as\n½ SM without instrument flight training or basic instruments. This flight regime leaves little\nmargin for error and time to react if there is a further reduction in visibility.\nThe Board believes that additional defences must be implemented for those VFR helicopter\noperations that are approved to operate in reduced visibilities, where the risk of an IIMC\naccident is even greater because of the reduced safety margins associated with operating at\nlower visibilities and, typically, lower altitudes. To offset the increased risk, the operations\nspecification for airplanes includes defences specifically intended to assist a pilot in the\nrecovery from IIMC. However, helicopter pilots approved for reduced-visibility operations\nin uncontrolled airspace are permitted to operate in lower visibility than airplanes and yet\nare expected to rely solely on their ability to avoid IIMC. This means that helicopter pilots\nmay be unprepared should their attempts at avoiding IMC prove ineffective.\nIf regulations continue to allow commercial helicopter operators with the applicable\noperations specification to conduct reduced-visibility operations in uncontrolled airspace at\nlower visibility, and with significantly fewer defences, than commercial airplane operators,\nthese helicopter operators will continue to be at a greater risk of collision as a result of lost\nvisual references.\nTherefore, the Board recommends that\n211 See Section 1.18.5.4 Reduced-visibility limits for visual flight rules operations in uncontrolled airspace of the\nreport.\n\nTRANSPORTATION SAFETY BOARD OF CANADA ■ 118\nthe Department of Transport enhance the requirements for helicopter\noperators that conduct reduced-visibility operations in uncontrolled\nairspace to ensure that pilots have an acceptable level of protection against\nTSB Recommendation A24-04\ninadvertent flight into instrument meteorological conditions accidents.\nThis report concludes the Transportation Safety Board of Canada’s investigation into this\noccurrence. The Board authorized the release of this report on 06 December 2023. It was\nofficially released on 15 February 2024.\nVisit the Transportation Safety Board of Canada’s website (www.ts",
+        "ann_score": 1.0,
+        "rerank_score": 0.9367494780065266
+      },
+      {
+        "doc_id": "tsb/a94p0074",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a94p0074/eng/a94p0074.pdf",
+        "section_title": "AVIATION OCCURRENCE REPORT",
+        "page": 2,
+        "bbox": [
+          71.99999999999997,
+          120.18773999999996,
+          512.60244305,
+          142.14774
+        ],
+        "chunk_hash": "e43f2c7a4d77c60197035e2834b4be037e4e1b2779d8c067277a7c432bfda5e8",
+        "lang": "en",
+        "text": "AVIATION OCCURRENCE REPORT\nVFR FLIGHT INTO IMC -\nLOSS OF CONTROL\nSOUTHERN INTERIOR FLIGHT CENTRE LTD.\nCESSNA 172M C-GIWX\nHOPE SLIDE, BRITISH COLUMBIA\n24 APRIL 1994\nREPORT NUMBER A94P0074\n\nThe Transportation Safety Board of Canada (TSB) investigated this occurrence for the purpose of\nadvancing transportation safety. It is not the function of the Board to assign fault or determine civil or\ncriminal liability.\nAviation Occurrence Report\nVFR Flight into IMC - Loss of Control\nSouthern Interior Flight Centre Ltd.\nCessna 172M C-GIWX\nHope Slide, British Columbia\n24 April 1994\nReport Number A94P0074\nSynopsis\nWhile the pilot was attempting a west to east visual flight through the Coast Mountains of British\nColumbia, he entered a mountain pass that was blocked by low clouds at about the 2,100-foot elevation\nlevel. The aircraft entered the clouds, then re-appeared in a steep,\nnose-down attitude. It then crashed to the ground and burst into flames. The pilot and the two\npassengers were fatally injured; the aircraft was destroyed.\nThe Board determined that the pilot attempted to continue visual flight into instrument meteorological\nconditions. The weather conditions were unsuitable for the proposed VFR flight through the Hope\nSlide pass. After the aircraft entered the clouds, the pilot likely lost control. The aircraft stalled and\ncrashed to the ground.\nCe rapport est également disponible en français.\n\nTABLE OF CONTENTS\nTable of Contents\nPage\n1.0 Factual Information ..................................................... 1\n1.1 History of the Flight .................................................... 1\n1.2 Injuries to Persons ...................................................... 2\n1.3 Damage to Aircraft ..................................................... 2\n1.4 Other Damage ......................................................... 2\n1.5 Personnel Information ................................................... 2\n1.6 Aircraft Information .................................................... 2\n1.7 Meteorological and Flight Planning Information .............................. 3\n1.7.1 Weather Aftercast ...................................................... 3\n1.7.2 Pilot Weather Briefing ................................................... 3\n1.7.3 Observed Weather ...................................................... 3\n1.8 Wreckage and Impact Information ......................................... 4\n1.9 Medical Information .................................................... 4\n1.10 Survival Aspects ........................................................ 4\n1.11 Add",
+        "ann_score": 1.0,
+        "rerank_score": 0.9978342328009973
+      },
+      {
+        "doc_id": "tsb/a94p0074",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a94p0074/eng/a94p0074.pdf",
+        "section_title": "REPORT NUMBER A94P0074",
+        "page": 10,
+        "bbox": [
+          36.0,
+          35.527739999999994,
+          114.892992,
+          755.2995
+        ],
+        "chunk_hash": "f6a205db79bf1e9b6199ea3ef2789d0a9aa859ecbde4a7e2cd6b6faabccc4521",
+        "lang": "en",
+        "text": " the flight. The engine rpm, flaps\nposition, and prop damage are all consistent\nwith the aircraft being in cruise configuration\nand the engine developing power at impact.\nThe vertical, nose-down attitude of the aircraft\nat impact is consistent with control having been\nlost and the aircraft having stalled during flight\nin cloud.\n2.2 Flight into Unsuitable Weather\nConditions\nDuring his briefing prior to taking off from\nAbbotsford, the pilot had been made aware of\nthe prevailing low ceiling and visibility, and had\nbeen told that an earlier VFR flight had to\ndetour around the Hope Slide because of poor\nweather conditions. The fact that the pilot\ncontinued the flight to the township of Hope,\nthereby passing the entry point for the Ross\nLake detour, suggests that he may have rejected\nthe detour as an option.\nThe weather at Hope had deteriorated\nbetween 1100 PDT, the time of the weather\nobservation that the pilot received during his\nbriefing, and 1200 PDT. The ceiling conditions\nof 1,800 broken observed at 1200 PDT were\nlower than the altitude of the Hope Slide\n(2,432 feet asl).\nThe pilot was certified for day\nVFR flight only. Although the weather was\nsuitable for the VFR flight to Hope, the\nconditions were unsuitable for the proposed\nVFR flight through the\nHope Slide pass. Nonetheless, the pilot\nattempted to continue visual flight into the\ninstrument meteorological conditions (IMC)\nthat prevailed through the pass.\nWhen the pilot began to encounter the\nlow clouds, the valley was too narrow to permit\nthe aircraft to reverse its course. After the\naircraft entered the clouds, it is likely that the\npilot lost control of the aircraft, which stalled\nand crashed to the ground.\n6\nTRANSPORTATION SAFETY BOARD\n\n\n\nCONCLUSIONS\n3.0 Conclusions\n3.1 Findings\n1. The pilot was certified and qualified for\nthe proposed day VFR flight in\naccordance with existing regulations.\n2. There was no evidence found of any\nengine or airframe failure or system\nmalfunction prior to or during the\nflight.\n3. The weather conditions were not\nsuitable for the proposed VFR flight\nthrough the Hope Slide pass.\n4. After the aircraft entered the clouds, it\nis likely that the pilot lost control of the\naircraft, which stalled and crashed to\nthe ground.\n3.2 Causes\nThe pilot attempted to continue visual flight\ninto instrument meteorological conditions.",
+        "ann_score": 1.0,
+        "rerank_score": 0.9449947117065459
+      }
+    ],
+    "trace": [
+      {
+        "node": "retrieve",
+        "elapsed_ms": 11922,
+        "anchored": true,
+        "n_new": 10,
+        "n_merged": 10,
+        "best_rerank": 0.9978342328009973
+      },
+      {
+        "node": "graph_expand",
+        "elapsed_ms": 87,
+        "n_ids": 3,
+        "n_rows": 3
+      },
+      {
+        "node": "synthesize",
+        "elapsed_ms": 37982,
+        "prompt_chars": 34606,
+        "draft_chars": 922
+      }
+    ],
+    "thread_id": "cache-4"
+  },
+  "alimentation en carburant": {
+    "draft": "The provided text describes an aircraft accident investigation report involving a Cessna 185A that experienced a fuel starvation incident during flight.  \n\nHere's a breakdown of key information from the text:\n\n* **Accident Summary:** The Cessna 185A was flying from Summer Beaver to Thunder Bay when the engine lost power, forcing an emergency landing in trees. Both the pilot and passenger survived, but the aircraft sustained significant damage.\n* **Fuel System:** The Cessna 185A had two wing tanks that fed fuel by gravity into a central accumulator. From there, fuel flowed to the engine-driven fuel pump. There was no low-fuel warning system.\n* **Investigation Findings:**  The investigation revealed that the left wing tank was nearly empty, while the right wing tank contained no fuel. Fuel was leaking from the left wing's vent line and the filler cap. The accumulator had only 13 ounces of fuel remaining, significantly less than its capacity.\n\n**To answer your question directly, we need to know what specific question you have about the text.**  \n\n\nFor example, are you asking:\n\n* What caused the engine failure?\n* How much fuel was in each tank at the time of the accident?\n* Were there any contributing factors to the pilot's decision-making?\n\n\n\nPlease provide a more specific question so I can give you a more helpful answer. \n",
+    "sources": [
+      {
+        "doc_id": "tsb/a02q0119",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a02q0119/fra/a02q0119.pdf",
+        "section_title": "LE 2 SEPTEMBRE 2002",
+        "page": 4,
+        "bbox": [
+          72.0,
+          37.63404000000003,
+          74.8548,
+          61.998660000000086
+        ],
+        "chunk_hash": "ef010779c19095a401dfe0b92b4f6657451e9800b6ea659dcaa540e69db82f7b",
+        "lang": "fr",
+        "text": "cher de la cabine. Tous les filtres carburants ont été vérifiés et nettoyés\nconformément aux exigences du constructeur et de la réglementation applicable. L=appareil a été remis en\nservice et n=a éprouvé aucun ennui de moteur jusqu=au jour de l=accident.\nL=examen des pales de l=hélice a confirmé que celle-ci ne tournait pas au moment de l=impact. Des témoins ont\négalement signalé avoir aperçu de la fumée bleue noire s=échapper du moteur au début de la montée. Afin de\ndéterminer les facteurs ayant pu contribuer à l=arrêt du moteur et à l=écrasement, l=épave a été transportée au\nLaboratoire technique du BST pour une analyse plus approfondie. Le démontage et l=examen complet du\nmoteur, des accessoires électriques et d=alimentation en air n=ont révélé aucune anomalie qui aurait pu causer\nune perte de puissance ou l=arrêt du moteur. Les enquêteurs ont donc porté leur recherche sur le système\nd=alimentation en carburant. L=inspection complète du système de carburant a permis d=établir qu=il n=y avait\naucun contaminant dans ses filtres ou ses composantes. Les réservoirs, les bouchons et les prises d=air ne\nprésentaient aucune anomalie, et rien n=indiquait la présence d=eau dans l=essence retrouvée dans le système\n\n4\nd=injection. Une forte odeur d=essence était présente au site de l=écrasement, ce qui tend à confirmer la présence\nd=une quantité importante de carburant à bord de l=aéronef. Tout porte à croire que les deux réservoirs étaient\npleins lors du départ de Québec, ce qui correspond à une autonomie de quatre heures et demi. La source de\nravitaillement utilisée possédait des filtres convenables et elle était fréquemment utilisée. Aucun pilote ayant\nutilisé la même source de ravitaillement n=a signalé la présence d=impuretés dans le carburant.\nLors de l=impact, le sélecteur de carburant, situé sur le plancher juste devant le pilote, était placé sur le\nréservoir droit, indiquant que le moteur était alimenté à",
+        "ann_score": 1.0,
+        "rerank_score": 0.9412234441519332
+      },
+      {
+        "doc_id": "tsb/a08q0082",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a08q0082/fra/a08q0082.pdf",
+        "section_title": "RAPPORT D’ENQUÊTE AÉRONAUTIQUE",
+        "page": 2,
+        "bbox": [
+          72.0,
+          38.51700000000005,
+          308.76888,
+          757.14
+        ],
+        "chunk_hash": "86c0744de79729965ffa323d293701bf34aa9c812d0238de006021148f96c750",
+        "lang": "fr",
+        "text": "RAPPORT D’ENQUÊTE AÉRONAUTIQUE\nA08Q0082\nPANNE D’ALIMENTATION EN CARBURANT D’UN MOTEUR\nCAUSÉE PAR UNE DÉFAILLANCE EN VOL DE\nL’ALIMENTATION EN CARBURANT\nDE L’AIRBUS A330-343 C-GFAH\nEXPLOITÉ PAR AIR CANADA\nÀ 50 MILLES MARINS À L’OUEST DE MONTRÉAL (QUÉBEC)\nLE 30 AVRIL 2008\n\nLe Bureau de la sécurité des transports du Canada (BST) a enquêté sur cet événement dans le\nseul but de promouvoir la sécurité des transports. Le Bureau n’est pas habilité à attribuer ni à\ndéterminer les responsabilités civiles et pénales.\nRapport d’enquête aéronautique\nPanne d’alimentation en carburant d’un moteur\ncausée par une défaillance en vol de l’alimentation\nen carburant\nde l’Airbus A330-343 C-GFAH\nexploité par Air Canada\nà 50 nm à l’ouest de Montréal (Québec)\nLe 30 avril 2008\nRapport numéro A08Q0082\nSommaire\nL’Airbus A330-343 (immatriculation C-GFAH, numéro de série 0279), exploité par Air Canada\net assurant le vol ACA418, quitte l’aéroport international Lester B. Pearson de Toronto (Ontario)\nà 16 h 22, heure avancée de l’Est, à destination de l’aéroport international Pierre Elliott Trudeau\nde Montréal (Québec), avec 228 passagers et 10 membres d’équipage à son bord. Durant le vol,\nplusieurs avertissements de basse pression des pompes à carburant apparaissent, et les pompes\ntouchées sont mises hors tension selon la procédure publiée appropriée. Au cours de la descente\nvers Montréal, des avertissements de basse pression apparaissent pour les pompes qui\nfonctionnent encore. Elles sont également mises hors tension, et les moteurs continuent de\nfonctionner normalement au moyen de l’alimentation en carburant par gravité. Durant la mise\nen palier à 11 000 pieds au-dessus du niveau de la mer, le régime du moteur gauche\n(Rolls Royce, RB211 TRENT 772B-60) chute sous le régime de ralenti, ce qui",
+        "ann_score": 1.0,
+        "rerank_score": 0.9718325271427217
+      },
+      {
+        "doc_id": "tsb/a08q0082",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a08q0082/fra/a08q0082.pdf",
+        "section_title": "Annexe B – Procédure d’alimentation en carburant par gravité de",
+        "page": 7,
+        "bbox": [
+          71.99664000000007,
+          38.83344000000011,
+          470.36736,
+          757.14
+        ],
+        "chunk_hash": "3253021aa7f7f25fd9c4ffc6bf34b7c92b83e10f78db98e5b0cecf77e0c8c07d",
+        "lang": "fr",
+        "text": "\nquantité totale de carburant était répartie ainsi : 450 kg de carburant dans chacun des réservoirs\nalaires extérieurs, gauche et droit, 4500 kg de carburant dans chacun des réservoirs alaires\nintérieurs, gauche et droit, et aucun carburant dans le réservoir d’équilibrage. La FOB au\nmoment du départ était donc de 9900 kg.\nFigure 1. Circuit du carburant\n1.4 Renseignements sur l’aéronef\nL’avion était certifié, équipé et entretenu conformément à la réglementation en vigueur et aux\nprocédures approuvées. Par contre, l’eau que pouvaient contenir les réservoirs de carburant\nn’avait pas été vidangée comme le prescrivait le document de planification de la maintenance.\n1.4.1 Circuit carburant de l’A330\nChacun des réservoirs intérieurs est équipé de 3 pompes à carburant électriques : deux pompes\nprincipales et une pompe auxiliaire. La quantité de carburant de chacun des réservoirs\nintérieurs est maintenue entre 3500 et 4000 kg au moyen des robinets de transfert des réservoirs\nextérieurs, lesquels s’ouvrent automatiquement pour assurer le transfert du carburant par\ngravité, du réservoir extérieur au réservoir intérieur. Un réservoir d’alimentation en carburant\nd’une capacité d’environ 1150 kg est situé dans chacun des réservoirs intérieurs. Il assure une\nréserve de carburant pour chacune des pompes à carburant principale ainsi qu’une protection\n\n- 4 -\ncontre le facteur de charge négative pour alimenter les moteurs. Le réservoir d’alimentation\nreste plein tant et aussi longtemps qu’une des pompes principales fonctionne. Le débit\nd’essence de l’une ou l’autre des pompes à carburant principales active une pompe jet qui\naspire le carburant du réservoir intérieur afin de garder le réservoir d’alimentation plein.\nL’arrêt des deux pompes à carburant principales interrompt le fonctionnement de la pompe à jet\net le carburant du réservoir d’alimentation correspondant se déverse alors dans le réservoir\nintérieur jusqu’à ce que le niveau des deux réservoirs s’égalise. Ce processus d’équilibrage peut\nprendre jusqu’à 45 minutes, tout dépendant de la quantité de carburant contenu dans le\nréservoir intérieur.",
+        "ann_score": 1.0,
+        "rerank_score": 0.9267027235112548
+      },
+      {
+        "doc_id": "tsb/a08q0082",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a08q0082/fra/a08q0082.pdf",
+        "section_title": "Annexe B – Procédure d’alimentation en carburant par gravité de",
+        "page": 8,
+        "bbox": [
+          71.99664000000007,
+          38.83344000000011,
+          381.8375999999999,
+          757.14
+        ],
+        "chunk_hash": "5643af28b24a04af25665f8a353bedd2542382548c0f84cccadab0a142d88911",
+        "lang": "fr",
+        "text": "alimentation correspondant se déverse alors dans le réservoir\nintérieur jusqu’à ce que le niveau des deux réservoirs s’égalise. Ce processus d’équilibrage peut\nprendre jusqu’à 45 minutes, tout dépendant de la quantité de carburant contenu dans le\nréservoir intérieur.\nTrois manocontacts (référence HTE69000-1)\nsont situés l’un à côté de l’autre dans le\nlongeron arrière de chacune des ailes, et ils\ncaptent la pression du débit carburant de\nchacune des pompes au moyen d’une\nconduite de détection distincte (voir la\nfigure 2). Les manocontacts déclenchent un\navertissement de basse pression si la pression\ndu débit assurée par une pompe est inférieure\nà 6 livres par pouce carré (lb/po2). Les\npompes à carburant principales\nfonctionnement continuellement, tandis que\nles pompes auxiliaires situées à l’extérieur du\nréservoir d’alimentation fonctionnent\nseulement lorsqu’une basse pression du débit\ndes pompes à carburant principales est\ndétectée. Un clapet de non-retour est raccordé\nà l’orifice de sortie de chacune des pompes Figure 2. Pompes à carburant et manocontacts\npour empêcher le retour du débit carburant\nvers la pompe hors tension.\nN’importe laquelle des 6 pompes peut alimenter les deux moteurs lorsque le robinet\nd’intercommunication6 est ouvert. Si les 6 pompes à carburant alaires sont hors tension,\nl’alimentation en carburant se fait par gravité vers les pompes haute et basse pression entraînées\npar le moteur.\n6 Le robinet d’intercommunication permet à n’importe quelle pompe d’alimenter les moteurs au\nmoyen du réservoir alaire gauche ou droit, ou des deux réservoirs alaires.\n\n- 5 -\n1.4.2 Renseignements sur la quantité de carburant\nUne page du moniteur électronique\ncentralisé de bord (ECAM) présente la\nquantité de carburant consommée, la\ntempérature du carburant, la FOB ainsi\nque la quantité de carburant dans\nchacun des réservoirs (voir la\nfigure 3). La quantité de carburant du\nréservoir d’alimentation intérieur est\négalement donnée distinctement, mais\nelle est comprise dans la quantité de\ncarburant contenue dans le réservoir\nintérieur.\nFigure 3. Indication de la quantité de carburant\nLes pompes à",
+        "ann_score": 1.0,
+        "rerank_score": 0.9149009549929797
+      },
+      {
+        "doc_id": "tsb/a08q0082",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a08q0082/fra/a08q0082.pdf",
+        "section_title": "Annexe B – Procédure d’alimentation en carburant par gravité de",
+        "page": 14,
+        "bbox": [
+          72.0,
+          66.76499999999999,
+          367.30500000000023,
+          108.91056000000005
+        ],
+        "chunk_hash": "49ab47b39f0fa5fd2c82b30b0980bff5b53727f943280e0860f07db7219ff134",
+        "lang": "fr",
+        "text": " concernant\nun bas niveau de carburant (FUEL LO LVL) durant l’approche et l’atterrissage. Cette procédure\nde la compagnie prévoit l’exécution de directives concernant le bas niveau de carburant des\nréservoirs alaires gauche et droit (FUEL L (R) WING TK LO LVL) comme, entre autres,\nl’ouverture du robinet d’intercommunication avant le moment habituel. Toutefois, cette\nprocédure est contraire à la procédure d’alimentation en carburant par gravité, qui prescrit la\nfermeture du robinet d’intercommunication une fois que l’avion se trouve sous le plafond\nd’alimentation par gravité.\n1.7.2 Alimentation en carburant par gravité\nLorsque les 3 pompes à carburant d’un réservoir intérieur ne fonctionnent pas, on peut quand\nmême avoir accès au carburant grâce à la procédure d’alimentation en carburant par gravité\n(voir l’annexe B). La procédure prescrit de régler le commutateur d’allumage à « IGN » pour\ntenter de faire redémarrer le moteur si le régime de celui-ci chute sous le régime de ralenti en\nvol. On détermine ensuite le plafond d’alimentation en carburant par gravité et, lorsque l’avion\nse trouve sous ce plafond, le robinet d’intercommunication est fermé. Si, depuis le décollage, le\nvol dure moins de 30 minutes, le plafond d’alimentation en carburant par gravité sera de\n15 000 pieds asl; s’il dure plus de 30 minutes depuis le décollage, le plafond sera de\n20 000 pieds. Aucune limite relative à la quantité minimale de carburant n’est publiée\nconcernant les opérations d’alimentation en carburant par gravité.\n\n- 11 -\nUne panne électrique19 coupera l’alimentation électrique des pompes à carburant, et\nl’alimentation en carburant sera assurée par gravité. Par ailleurs, en configuration\nd’alimentation électrique d’urgence, alors que l’avion vole à l’aide de la turbine à air\ndynamique20, lorsque la vitesse est réduite21, la dernière pompe à carburant sera\nautomatiquement mise hors tension pour réduire les charges électriques, ce qui amorcera\nl’alimentation en carburant par gravité. De plus, certaines défectuosités électriques\ncommandent d’enfoncer le bouton-poussoir « LAND RECOVERY » pour rétablir l’alimentation\nde certains éléments nécessaires à l",
+        "ann_score": 1.0,
+        "rerank_score": 0.9542227274192233
+      },
+      {
+        "doc_id": "tsb/a08q0082",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a08q0082/fra/a08q0082.pdf",
+        "section_title": "Annexe B – Procédure d’alimentation en carburant par gravité de",
+        "page": 18,
+        "bbox": [
+          72.0,
+          66.19344000000001,
+          533.88048,
+          90.91199999999992
+        ],
+        "chunk_hash": "d56506e3547aaf08a2e0081bf82a263aeeb5061a63a96a77d3210890e8e19d5f",
+        "lang": "fr",
+        "text": "îné une panne\nd’alimentation en carburant du moteur. Toutefois, le débit de carburant était suffisant pour que\nle moteur reste allumé, et la chambre de combustion est restée au moins partiellement allumée,\nce qui a permis de rétablir rapidement la poussée lorsque l’on a pu de nouveau assurer une\nalimentation suffisante en carburant, au moment où les pompes principales ont été remises sous\ntension.\n1.10 Faits établis durant les essais en vol d’Airbus\nEn tentant de reproduire les indications de fonctionnement irrégulier du circuit carburant\ndonnées au cours du vol en question, Airbus a utilisé un avion neuf pour effectuer des essais en\nvol. Le niveau de carburant de l’aile gauche a été réduit pour reproduire la quantité de\ncarburant du vol en question. Les pompes à carburant principales gauches ont ensuite été mises\nhors tension, et l’alimentation en carburant du moteur s’est poursuivie normalement au moyen\nde la seule pompe à carburant auxiliaire.\nVingt-quatre minutes après l’arrêt des pompes à carburant principales gauches, un\navertissement de basse pression de la pompe à carburant auxiliaire est apparu, et cette dernière\na été mise hors tension, conformément à la procédure de l’ECAM. C’est alors que l’alimentation\nen carburant par gravité a débuté, comme dans le vol d’Air Canada. À ce moment-là, la quantité\nde carburant dans le réservoir intérieur gauche était de 2150 kg, dont une quantité de 550 kg se\ntrouvait dans le réservoir d’alimentation. Par conséquent, il restait 1600 kg (2150 moins 550)\ndans le réservoir intérieur gauche, à l’extérieur du réservoir d’alimentation, lorsque\nl’avertissement de basse pression de la pompe à carburant auxiliaire est apparu.\nQuatorze minutes plus tard, le moteur a commencé à fonctionner de façon irrégulière\n(réduction de la température des gaz d’échappement28). Les pompes principales ont été remises\nsous tension, et le fonctionnement du moteur est redevenu normal. À ce moment-là, le réservoir\nintérieur contenait 1330 kg de carburant, dont une quantité de 170 kg se trouvait dans le\nréservoir d’alimentation, ce qui fait que la partie du réservoir intérieur autre que le réservoir\nd",
+        "ann_score": 1.0,
+        "rerank_score": 0.9391365537751081
+      },
+      {
+        "doc_id": "tsb/a08q0082",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a08q0082/fra/a08q0082.pdf",
+        "section_title": "Annexe B – Procédure d’alimentation en carburant par gravité de",
+        "page": 18,
+        "bbox": [
+          71.99664000000004,
+          38.83344000000011,
+          320.63952,
+          757.14
+        ],
+        "chunk_hash": "b45b1e8d3503c57741c0853bbde4c07647545efb606b2f8cbe926ba31ee501a1",
+        "lang": "fr",
+        "text": "’écouler vers les pompes à\ncarburant basse pression et haute pression entraînées par le moteur. Les orifices d’entrée des\npompes principales numéro un et deux se trouvent respectivement à 126 mm et 195 mm sous\nl’orifice d’entrée de la pompe auxiliaire. À la longue, l’effet d’aspiration créé par les pompes\nentraînées par le moteur pendant l’alimentation en carburant par gravité fera entrer de l’air\ndans la conduite de carburant, lorsque le niveau de carburant s’approchera de l’orifice d’entrée\nde la pompe auxiliaire.\n27 [TRADUCTION] Référence verticale : Dans la conception d’un aéronef, la référence verticale\nindique la position verticale des éléments de l’aéronef. Il s’agit (habituellement) de l’axe\nvertical (Z) d’un système de coordonnées (XYZ); les deux autres dimensions étant la référence\nlongitudinale (X) et la référence transversale (Y). Standard Aircraft Worker’s Manual, Fletcher\nAircraft Training System, Section 5, page 6.\n\n- 14 -\nThéoriquement, une panne d’alimentation carburant de la pompe auxiliaire se produit lorsque\nla quantité de carburant se trouvant dans le réservoir intérieur, à l’extérieur du réservoir\nd’alimentation est réduite à 1000 kg. Par contre, un vortex peut se former au-dessus de l’orifice\nd’entrée de la pompe et de l’air peut être aspiré dans la conduite de carburant, même si le\nniveau de carburant est plus élevé que le niveau théorique d’une panne d’alimentation\ncarburant. La profondeur du vortex change en fonction du débit du carburant qui entre dans\nl’orifice d’entrée de la pompe.\n1.9 Analyse de Rolls Royce\nL’analyse du ralentissement du moteur effectuée par le motoriste (Rolls Royce) a révélé que le\ndébit carburant ne suffisait pas à la demande du moteur, ce qui a entraîné une panne\nd’alimentation en carburant du moteur. Toutefois, le débit de carburant était suffisant pour que\nle moteur reste allumé, et la chambre de combustion est restée au moins partiellement allumée,\nce qui a permis de rétablir rapidement la poussée lorsque l’",
+        "ann_score": 1.0,
+        "rerank_score": 0.9278877945870695
+      },
+      {
+        "doc_id": "tsb/a08q0082",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a08q0082/fra/a08q0082.pdf",
+        "section_title": "Annexe B – Procédure d’alimentation en carburant par gravité de",
+        "page": 22,
+        "bbox": [
+          71.99664000000004,
+          38.83344000000011,
+          320.63952,
+          757.14
+        ],
+        "chunk_hash": "4f360e8debc7354320337312c1df67d7b484c57de395c1c0b648ce64af8427f1",
+        "lang": "fr",
+        "text": "u lorsque la\nquantité de carburant du réservoir intérieur, sans compter le carburant contenu dans le\nréservoir d’alimentation, était d’environ 1600 kg; cette quantité de carburant est\nconsidérablement plus élevée que la valeur de la modélisation d’Airbus fixée à 1000 kg. Comme\nle réservoir d’alimentation reste plein (1150 kg) tant qu’une des pompes principales fonctionne,\nun avertissement de basse pression pourrait apparaître même si le réservoir intérieur contient\nautant que 2750 kg en tout, si la dernière pompe principale était mise hors tension ou tombait\nen panne.\n\n- 18 -\n2.3 Alimentation en carburant par gravité\nDurant l’alimentation en carburant par gravité, le carburant est aspiré par les pompes\nentraînées par le moteur et passe par les orifices d’entrée des 3 pompes au lieu du seul orifice\nd’entrée de la pompe auxiliaire. Par conséquent, un débit de carburant moins élevé entre dans\nl’orifice d’entrée de la pompe auxiliaire, ce qui réduit la profondeur du vortex; l’air ne s’infiltre\ndonc plus dans la conduite de carburant. Toutefois, lorsque le niveau de carburant à l’extérieur\ndu réservoir d’alimentation atteint l’orifice d’entrée de la pompe auxiliaire, l’air est de nouveau\naspiré dans la conduite de carburant, ce qui provoque un fonctionnement irrégulier ou un\nralentissement du moteur. Durant les essais en vol d’Airbus, l’ingestion d’air en question s’est\nproduite 14 minutes après le début de l’alimentation en carburant par gravité, et elle a provoqué\nle fonctionnement irrégulier du moteur alors que la quantité de carburant dans le réservoir\nintérieur à l’extérieur du réservoir d’alimentation était de 1160 kg, ce qui est légèrement\nsupérieur à la valeur de 1000 kg utilisée dans la modélisation d’Airbus.\n2.4 Vol en question\nDurant le vol de l’événement, la quantité de carburant à l’extérieur du réservoir d’alimentation,\nau moment où le moteur a ralenti, n’a pu être calculée avec précision, car les pompes à\ncarburant principales ont été remises sous tension par l’équipage à divers moments, aux fins de\ndépannage. Comme les pompes principales fonctionnaient lorsque l’équi",
+        "ann_score": 1.0,
+        "rerank_score": 0.9740426428022031
+      },
+      {
+        "doc_id": "tsb/a08q0082",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a08q0082/fra/a08q0082.pdf",
+        "section_title": "Annexe B – Procédure d’alimentation en carburant par gravité de",
+        "page": 24,
+        "bbox": [
+          71.99664000000004,
+          38.83344000000011,
+          320.63952,
+          757.14
+        ],
+        "chunk_hash": "7cd3c528bac83a957000a0766617daf6a349ec419a634dd3879a079688747f34",
+        "lang": "fr",
+        "text": "ingestion possible d’air lorsque la quantité de\n29 « QRH GRAVITY FUEL FEEDING »\n\n- 20 -\ncarburant est inférieure à 2750 kg. D’autres pannes électriques de l’A330, comme une panne\nd’omnibus30, pourraient faire que l’avion vole avec une seule pompe à carburant principale qui\nfonctionne dans le réservoir intérieur, ce qui reproduirait la condition de la MEL citée\nprécédemment et mènerait au même niveau de vunérabilité.\nIl est peu probable que diverses pannes non connexes menant à une alimentation en carburant\npar gravité se produisent tandis qu’un bas niveau de carburant favorise l’entrée d’air dans le\ncircuit. Toutefois, certaines défaillances électriques, ainsi que l’utilisation du bouton-poussoir\n« LAND RECOVERY », entraînent une alimentation en carburant par gravité, sans aucune\ndéfaillance du circuit carburant. Par conséquent, les procédures qui prescrivent l’utilisation de\nla fonction « LAND RECOVERY » lorsque la quantité de carburant de chacun des réservoirs\nintérieurs est inférieure à 2500 kg pourraient provoquer une panne moteur, comme dans le vol\nen question.\nAucun des documents en circulation au moment de l’incident ne faisait état des vulnérabilités\ndu circuit carburant lorsque le niveau de carburant est bas. Il est essentiel que les membres des\néquipages soient au courant de ces problèmes et les comprennent bien, car ceux-ci peuvent\navoir une incidence sur la prise d’une décision de dérouter l’avion plus tôt pendant le vol. Cette\ndocumentation doit également expliquer clairement à l’équipage les liens entre le\nfonctionnement des pompes principales et le niveau de carburant à l’intérieur du réservoir\nd’alimentation. Les équipages pourraient alors confirmer si les pompes principales fonctionnent\nen observant si la quantité de carburant atteint 1150 kg dans le réservoir d’alimentation.\nDans les circuits types d’un avion, un composant désigné comme étant « auxiliaire » lui confère\nune fonction d’élément ou de circuit de secours. Dans le circuit carburant de l’A330, la pompe\nauxiliaire ne répond pas à ces attentes si le niveau de carburant est bas. Bien que les pompes\nprincipales puissent, grâce à la pompe à jet",
+        "ann_score": 1.0,
+        "rerank_score": 0.923592316649553
+      },
+      {
+        "doc_id": "tsb/a09c0167",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a09c0167/fra/a09c0167.pdf",
+        "section_title": "RAPPORT D’ENQUÊTE AÉRONAUTIQUE",
+        "page": 2,
+        "bbox": [
+          72.0,
+          38.51700000000005,
+          308.76888,
+          757.14
+        ],
+        "chunk_hash": "bffd8be0130f7f9cf0e263af4c4cb258941e474e88271736f086771ef3a22d02",
+        "lang": "fr",
+        "text": "RAPPORT D’ENQUÊTE AÉRONAUTIQUE\nA09C0167\nPANNE D’ALIMENTATION EN CARBURANT\nET ATTERRISSAGE FORCÉ\nDU CESSNA 185A C-FBWP\nEXPLOITÉ PAR WEST CARIBOU AIR SERVICE INC.\nÀ 10 nm AU NORD-EST DE THUNDER BAY (ONTARIO)\nLE 23 OCTOBRE 2009\n\nLe Bureau de la sécurité des transports du Canada (BST) a enquêté sur cet événement dans le\nseul but de promouvoir la sécurité des transports. Le Bureau n’est pas habilité à attribuer ni à\ndéterminer les responsabilités civiles et pénales.\nRapport d’enquête aéronautique\nPanne d’alimentation en carburant\net atterrissage forcé\ndu Cessna 185A C-FBWP\nexploité par West Caribou Air Service Inc.\nà 10 nm au nord-est de Thunder Bay (Ontario)\nle 23 octobre 2009\nRapport numéro A09C0167\nSommaire\nLe Cessna 185A (immatriculation C-FBWP, numéro de série 185-0430), monté sur flotteurs et\nexploité par West Caribou Air Service Inc., quitte Summer Beaver avec un pilote et un passager\nà son bord pour effectuer un vol à vue à destination de Thunder Bay (Ontario). À l’approche de\nThunder Bay, le pilote tourne en rond alors qu’il tente de communiquer avec la tour de contrôle.\nPendant un virage à faible inclinaison vers la droite, le moteur perd sa puissance et le pilote doit\nfaire un atterrissage forcé dans des arbres, à environ 10 milles marins au nord-est de\nThunder Bay. Le pilote et le passager s’en tirent indemnes, mais l’avion est lourdement\nendommagé. L’accident se produit de jour, à 14 h 58, heure avancée de l’Est.\nThis report is also available in English.\n\n- 2 -\nAutres renseignements de base\nConditions météorologiques\nLe message d’observation météorologique régulière pour l’aviation (METAR) de 15 h1 pour\nl’aéroport de Thunder Bay était le suivant : vent de 060 degrés vrai (T) à 10 nœuds, visibilité de\n20 milles terrestres (sm), température de 3 °C, ciel couvert à",
+        "ann_score": 1.0,
+        "rerank_score": 0.9339146213324513
+      },
+      {
+        "doc_id": "tsb/a09c0167",
+        "source_url": "https://www.bst-tsb.gc.ca/sites/default/files/rapports-reports/aviation/a09c0167/fra/a09c0167.pdf",
+        "section_title": "LE 23 OCTOBRE 2009",
+        "page": 8,
+        "bbox": [
+          72.0,
+          38.83344000000011,
+          373.13808,
+          757.14
+        ],
+        "chunk_hash": "dd8dc0d016b1125d60f8baaa275f67ca18b93ef90a5bcfbd30d9011e4d6d6e75",
+        "lang": "fr",
+        "text": " relié\nà un indicateur de quantité de carburant situé dans le tableau de bord. L’avion n’est pas équipé\nd’un système ou d’un voyant d’avertissement de bas niveau de carburant. Le carburant s’écoule\npar gravité dans des conduites d’alimentation reliées aux coins inférieurs avant et arrière de\nchacun des réservoirs d’aile. Les conduites d’alimentation en carburant sont raccordées à un\naccumulateur monté sur la cloison pare-feu, sous le tableau de bord. Le carburant contenu dans\nl’accumulateur s’écoule ensuite dans un robinet d’arrêt du carburant, un filtre à carburant et\nune conduite de dérivation de la pompe à carburant électrique d’appoint (lorsqu’elle ne\nfonctionne pas), vers la pompe à carburant entraînée par le moteur. La pompe à carburant\nélectrique d’appoint comprend deux vitesses de fonctionnement (positions « HI » et « LO »), et\nelle est habituellement utilisée pour le démarrage du moteur ou la purge de vapeurs. La\nposition « HI » est habituellement utilisée en cas d’urgence, notamment en cas de perte de\npuissance du moteur.\nExamen du lieu de l’accident\nAprès l’accident, du carburant s’échappait de la conduite de mise à l’air libre du réservoir\ncarburant gauche, et un des premiers intervenants l’a bouchée. Plus tard, le bouchon a été\nenlevé par les enquêteurs du Bureau de la sécurité des transports afin de vérifier si cette\nconduite contenait du carburant. Un débit continu de carburant a été constaté. Le bouchon de\nremplissage extérieur de l’aile gauche a également été défait, et du carburant s’est échappé par\nl’ouverture. Le réservoir de l’aile droite a été examiné, et il ne contenait pas de carburant. Il n’y\navait aucune tache de carburant sur la surface des ailes. L’accumulateur a été vidé, et il\ncontenait 13 onces de carburant; sa capacité normale est de 115 onces. Les conduites\nd’alimentation en carburant ont été ouvertes à la hauteur du régulateur de carburant et du\nrobinet de vidange de la tubulure d’alimentation, et elles ne contenaient pas de carburant",
+        "ann_score": 1.0,
+        "rerank_score": 0.982423116732664
+      }
+    ],
+    "trace": [
+      {
+        "node": "retrieve",
+        "elapsed_ms": 8680,
+        "anchored": true,
+        "n_new": 11,
+        "n_merged": 11,
+        "best_rerank": 0.982423116732664
+      },
+      {
+        "node": "graph_expand",
+        "elapsed_ms": 31,
+        "n_ids": 3,
+        "n_rows": 3
+      },
+      {
+        "node": "synthesize",
+        "elapsed_ms": 56799,
+        "prompt_chars": 36999,
+        "draft_chars": 1342
+      }
+    ],
+    "thread_id": "cache-5"
+  },
+  "approach procedures helicopter": {
+    "draft": "The documents analyzed reveal a consistent concern regarding helicopter approach procedures, particularly in high-traffic areas like H1 classified heliports.  These heliports, often located on rooftops or in congested urban environments, present unique challenges due to limited space, numerous obstacles, and increased risk to personnel and property.\n\nKey findings include:\n\n* **Performance Requirements:** Helicopters operating at H1 heliports must meet stringent performance criteria outlined in CAR 325.19(2)(a) [doc_id p.8] to ensure safe operation even in the event of engine failure. These requirements are detailed in Transport Canada Advisory Circular AC 305-001 Issue 01 [doc_id p.5].\n* **Obstacle Clearance:**  Accurate obstacle information is crucial for pilots operating at H1 heliports. The Canadian Aviation Regulations (CAR) mandate a comprehensive survey of the approach/departure path area to identify obstacles and their elevations [doc_id p.8, doc_id p.9]. \n* **Landing Area Size:** Minimum landing area dimensions are specified in CAR 325.25(5) [doc_id p.6] and must be at least as large as those outlined in the helicopter's Aircraft Flight Manual (AFM) for Category A operations [doc_id p.9].\n* **Heliport Design Standards:**  H1 heliports are subject to specific design standards, including those related to landing area size, obstacle clearance, and approach/departure pathways [doc_id p.5]. These standards aim to minimize the risk of accidents and ensure safe operations.\n\nThe documents highlight a recurring theme: the need for rigorous safety measures and clear communication between helicopter operators, heliport designers, and Transport Canada to mitigate risks associated with operating helicopters in challenging environments like H1 classified heliports. \n\n\n",
+    "sources": [
+      {
+        "doc_id": "tc/AC_700-034_ISSUE_01",
+        "source_url": null,
+        "section_title": "",
+        "page": 10,
+        "bbox": [
+          72.024,
+          37.73160000000007,
+          542.86888,
+          756.0516
+        ],
+        "chunk_hash": "9d5b3d14a77a86386bc31d62e764763739e58fe3a1a286ed7c4c7f627d83aff3",
+        "lang": "en",
+        "text": " size of the proposed work zone depicted on\na map of the area;\n(g) aerial work zone security arrangements and security arrangements for areas to be\noverflown to ensure that no hazard is created to persons or property;\n(h) if external load operations are to be conducted to roof tops, safety precautions to be\ntaken in event of a forced landing onto the roof or load penetration through the roof; and\n(i) name of contact person designated by the air operator.\n1.1.3 Risk assessment\nAll applications shall include an assessment of all hazards (risk assessment), risk mitigation\nprocedures and safety requirements.\n1.2 Operational procedures\n1.2.1 Emergency landing area(s)\nPrior to conducting low flight over a built-up area, carrying helicopter class B, C or D external\nloads over a built-up area or aerial work zone, and/or conducting a take-off, approach or landing\nwithin a built-up area of a city or town, the pilot-in-command shall ensure that at any given altitude\nand speed, the aircraft can safely reach the identified and approved emergency landing area, if\nrequired in the event of an emergency.\n1.2.2 Best practices\nOperational risks are reduced through an in-depth evaluation of potential hazards. Preparation,\nby conducting detailed planning, re-enforces desirable company culture, resulting in a reduction\nof complacency and increased flight safety through situational awareness. Operators are to\ndevelop a checklist of best practices applicable to these operations.\n1.3 Ground training (initial and recurrent)\n1.3.1 The air operator shall have an approved initial and recurrent ground training program to qualify\npilots respecting the conduct of the intended low flight operations over built up areas, including:\n(a) flights at altitudes and distances less than those specified in Paragraph 602.14(2) of the\nCARs;\n(b) helicopter class B, C or D external load carriage over a built-up areas or aerial work\nzones; as applicable, and;\n(c) take-off, approach or landing procedures within built-up areas of a city or town in\nsituations other than those detailed in paragraph 602.13(1) of the CARs.\n2021-09-24 10 of 15 AC 700-034 Issue 01\n\nLow Flight, Take-off or Land",
+        "ann_score": 1.0,
+        "rerank_score": 0.6088848027664968
+      },
+      {
+        "doc_id": "tc/ac_401_004",
+        "source_url": null,
+        "section_title": "",
+        "page": 11,
+        "bbox": [
+          72.024,
+          37.70172000000002,
+          545.52888,
+          755.99772
+        ],
+        "chunk_hash": "7560ba222e517b74d0f30f684f245c86c8af1ede119f682671a6deff77a8ec5e",
+        "lang": "en",
+        "text": " be conducted on helicopters.\n(b) Aeroplane control skills – An IPC requires two or more different approaches. One of\nthe approaches will be a RNAV/GNSS approach. For a satisfactory IPC, the pilot must\nbe able to meet the Performance Criteria published for all the manoeuvres and tasks in\nthe Flight Test Guide – Instrument Rating – Aeroplane (TP9939) or Helicopter (TP15099)\nfor the instrument rating group held. If the pilot is flying a multi-engine aircraft, an\napproach with a simulated engine failure is essential.\nNote 1: Owners of privately-registered non-GNSS equipped aircraft may use their aircraft for the\nconduct of their personal IPC.\nNote 2: RNAV/GNSS approaches do not have to be conducted in helicopters, presently not\nequipped, until the issuance of the Second Edition of TP15099 - Flight Test Guide –\nInstrument Rating – Group 4, which will introduce the requirement that RNAV/GNSS\nequipment are installed.\n(i) Does the pilot maintain control of the aircraft when faced with a major distraction,\nand/or when flying the missed approach procedure?\n(c) Aircraft systems – The pilot should be thoroughly familiar with both normal and abnormal\noperation of all installed systems and understand how they work together in IFR flying:\n(i) Does the pilot demonstrate required knowledge and proficiency in using installed\navionics and aircraft systems, including installed GNSS moving maps and\nautopilot?\n(ii) Does the pilot correctly manage the sequence for selecting navigation sources\nand the arming of autopilot modes?\n(iii) Does the pilot effectively access and manage the information available in\nonboard databases?\n(d) Decision-making skills – Give the pilot multiple opportunities to make decisions. Asking\nquestions about those decisions is an excellent way to get the information you need to\nevaluate those decision-making skills, including risk management. Be alert to the pilot’s\ninformation and automation management skills as well. For example:\n(i) Does the pilot perform regular “common sense” crosschecks of what the GPS\nand/or the autopilot are doing?\n(ii) Does the pilot always maintain positional orientation when being vectored?\n(iii) Does the pilot maintain awareness of weather,",
+        "ann_score": 1.0,
+        "rerank_score": 0.7568970420586438
+      },
+      {
+        "doc_id": "tc/rdims_1310114",
+        "source_url": null,
+        "section_title": "",
+        "page": 3,
+        "bbox": [
+          72.024,
+          37.70172000000002,
+          542.88888,
+          755.99772
+        ],
+        "chunk_hash": "675877f3e52222fcc137691a0e7ca4166ad041af1b752317dc864185a84870e9",
+        "lang": "en",
+        "text": ".— “D” is sometimes referred to in the text using the terminology “D-value”.\nEmergency landing area - means an area where an unavoidable landing or ditching may take\nplace with a reasonable expectancy of no injuries to persons or damage to property on the\nsurface.\nFATO - means a final approach and take-off area, which consists of a defined area over which\nthe final phase of a helicopter approach manoeuvre to hover or land is completed and from which\nthe take-off manoeuvre is commenced.\nHostile environment [ICAO definition] - an environment in which:\na) a safe forced landing cannot be accomplished because the surface and surrounding\nenvironment are inadequate; or\nb) the helicopter occupants cannot be adequately protected from the elements; or\nc) search and rescue response/capability is not provided consistent with anticipated\nexposure; or\nd) there is an unacceptable risk of endangering persons or property on the ground.\nLanding decision point (LDP) - the point used in determining landing performance from which,\nan engine failure occurring at this point, the landing may be safely continued or a balked landing\ninitiated.\nObstacle information – as detailed in ICAO Annex 15 – Aeronautical Information Services (AIS),\nNAV CANADA requires; the type of obstacle, obstacle position, represented by geographical\ncoordinates in degrees, minutes, second and hundredths of seconds and obstacle elevation and\nheight to the nearest foot or meter.\nOperations in performance Class 1 [ICAO definition] - operations with performance such that,\nin the event of a critical engine failure, performance is available to enable the helicopter to safely\ncontinue the flight to an appropriate landing area, unless the failure occurs prior to reaching the\ntake-off decision point (TDP) or after passing the landing decision point (LDP), in which cases the\nhelicopter must be able to land within the rejected take-off or landing area.\nSurvey – examine and record the area and features of an area of land so as to construct a map,\nplan or description. This has generally been accepted to be a top-view, 2 dimensional map or\nplan with possible added descriptions.\n2017-11-15 3 of 19 AC 305-001 Issue 01\n\nStandards Associated with H1 Classified Heliports\nTake",
+        "ann_score": 1.0,
+        "rerank_score": 0.7397985681509067
+      },
+      {
+        "doc_id": "tc/rdims_1310114",
+        "source_url": null,
+        "section_title": "",
+        "page": 5,
+        "bbox": [
+          72.024,
+          37.70172000000002,
+          542.88888,
+          755.99772
+        ],
+        "chunk_hash": "aceb739007a09ac10817cf067ee800ede6957327afc39b5ec0fe8b013fba4ed8",
+        "lang": "en",
+        "text": "engined and capable of remaining at least 4.5 meters (15 feet) above all obstacles within\nthe approach/departure area when operating in accordance with their aircraft flight manual with\none engine inoperative\nThe heliport standard for H1 classified heliports requires the operation to be conducted in\naccordance with the Aircraft (Rotorcraft) Flight Manual (AFM / RFM). Category “A” limitations or\nsupplement information provide performance criteria, departure and arrival profiles and\nsometimes specific procedures consistent with the H1 classified heliport criteria with the\nexception of obstacle height clearance. All conditions and limitations contained in the supplement\nmust be followed for the performance charts to be applicable. Third party supplement information\nsometimes may only address a portion of the RFM limitations, this does not negate the\nrequirements for helicopter operators to follow additional RFM limitations not addressed in the\nsupplement.\nThe information detailed in Category “A” or performance class 1 operations is consistent with the\nFAR 29-2C Certification of Transport Category Rotorcraft and is in line with the requirements\ndetailed in ICAO Annex 6 Part 3 and also in the EASA Rotorcraft Operations standards.\nCanadian heliport standards for obstacle height clearance are 4.5 meters which is consistent with\n2017-11-15 5 of 19 AC 305-001 Issue 01\n\nStandards Associated with H1 Classified Heliports\nsome helicopter certification performance limits. Category “A” certification and performance class\n1 operations have the additional requirement to be at or above 10.7 meters (35 feet) at V for\nTOSS\nfurther obstacle height clearance.\nAppendix C is reproduced from the ICAO Annex 6 Part 3 Helicopter Operations Standards and\ndepicts a typical ‘performance class 1’ departure profile from a surface level and an elevated\n(roof-top) heliport. The approach profiles have not been included because in most cases the\ndeparture from an H1 classified heliport is more critical with regards to performance requirements\nuntil optimal speed and altitude have been gained. The ICAO diagrams show the requirement to\nobtain V to avoid further obstacles by at least 10.7m, while the Canadian standard, as\nTOSS\nmentioned above, only requires a clearance of 4.5m throughout the approach or departure profile.\nIt is the responsibility of the",
+        "ann_score": 1.0,
+        "rerank_score": 0.7943849604299823
+      },
+      {
+        "doc_id": "tc/rdims_1310114",
+        "source_url": null,
+        "section_title": "",
+        "page": 5,
+        "bbox": [
+          72.024,
+          37.70172000000002,
+          542.88888,
+          755.99772
+        ],
+        "chunk_hash": "4f22f675a086b777dc9b67cf074ff4119248d04a01a25ebf53afd2a8bdfb9bf2",
+        "lang": "en",
+        "text": "ability of\nemergency landing areas and the obstacle environment along and around each of the\napproach/take-off surfaces (pathways). The performance requirements recognized the risk and\nexposure to third parties at or around the heliport and its associated pathways. As the risk and\nexposure increased, usually due to reduced or no emergency landing areas, the level of\nperformance required increased. This concept fundamentally follows the standards presented in\nICAO Annex 14 Volume II and Annex 6, Part III; with some slight Canadian variations.\nH1 classified heliports (pathways) usually located within very congested built-up areas at both\nroof-top and surface level heliports and found at many hospital locations present the highest\ndegree of challenge for heliport designers and operators, helicopter operators and Transport\nCanada Inspectors. These heliports have few or no available emergency landing areas and are\ntypically within an obstacle rich environment, thus the performance requirements of the helicopter\noperating into these locations is the highest.\nThe H1 heliport classification is the most demanding with regards to performance requirements\nand as such has some very specific heliport standards. This AC will expand and provide guidance\nfor these specific H1 classified heliports standards.\nNote: All regulations and standards referenced in this AC are reproduced in Appendixes A and B.\n4.0 HELICOPTER PERFORMANCE REQUIREMENTS FOR H1 OPERATIONS\nH1 classified approach and take-off surfaces require helicopters operating along these pathways\ninto these heliports to demonstrate certain performance conditions to normally achieve flyaway\nand obstacle clearance. The helicopters using the heliport must be operated at a weight, and in\nsuch a manner that, in case of an engine failure at any time during approach or take-off, the\nhelicopters can either land and safely stop on the FATO or TLOF area, or safely continue the\nflight to an appropriate landing area. In addition, helicopters permitted to use an H1 heliport shall\nbe multi-engined and capable of remaining at least 4.5 meters (15 feet) above all obstacles within\nthe approach/departure area when operating in accordance with their aircraft flight manual with\none engine inoperative\nThe heliport standard for H1 classified heliports requires the operation to be conducted in",
+        "ann_score": 1.0,
+        "rerank_score": 0.6794977974847524
+      },
+      {
+        "doc_id": "tc/rdims_1310114",
+        "source_url": null,
+        "section_title": "",
+        "page": 8,
+        "bbox": [
+          72.024,
+          37.70172000000002,
+          542.88888,
+          755.99772
+        ],
+        "chunk_hash": "781e6fcc76c62720b8570763469555f1fc7a18e5b5ad2a52abcabf79ed6d5dd0",
+        "lang": "en",
+        "text": "deck size. In all cases the\nintent is to establish a hard surface that is visible and load supporting for the helicopter to land on\nif an engine failure occurs.\nMost RFMs when making reference to Category ‘A’ operations, will have different dimensions for\ncircular and square landing surfaces. There might be different dimensions published for day and\nnight operations as well as surface level versus elevated/roof-top heliports.\nIn most cases CAR 325.25(5)(a) will be applicable to surface level heliports and all cases (for\nsurface level heliports) the FATO minimum size will never be less than 1.5 X D. (‘D’ defined in\nsection 2.3 of this AC.) 1.5 X D is also applicable as a minimum size when no dimensions are\nsupplied in the RFM.\nCAR 325.25(5)(b) is applicable to elevated/roof-top heliports and in all cases (for elevated/roof-\ntop heliports) the TLOF minimum size will never be less than 1.0 X D. 1.0 X D is also applicable\nas a minimum size when no dimensions are supplied in the RFM.\nHeliport designers and heliport manufacturers need to pay special attention when reviewing the\nRFM Category ‘A’ dimensions to establish the most restrictive or demanding dimension that\nwould be applicable for the intended operations.\nCaution must also be exercised when referring to the RFM information as some manuals only\nprovide criteria for off-shore ‘helideck’ procedures and/or dimensions for offshore helicopter\noperations, which are not categorized as Category ‘A’ operations. This information is not valid to\nbe used in relation to on-shore surface level or on-shore elevated/roof-top heliports. Many ‘off-\nshore’ procedures establish a different level of acceptable risk and may allow for departure\nprofiles that may not be available within the on-shore environment.\nNote: Heliports may have more than one classification and thus limitations/restrictions may not\napply to all of the classified approach and take-off surfaces identified.\n7.0 H1 SURVEY REQUIREMENTS\nCAR 305.29(3) requires a heliport operator/designer operating (intending to operate) a heliport\nwith H1 classified approach/departure pathways, to submit a survey of the approach",
+        "ann_score": 1.0,
+        "rerank_score": 0.8512122384507991
+      },
+      {
+        "doc_id": "tc/rdims_1310114",
+        "source_url": null,
+        "section_title": "",
+        "page": 8,
+        "bbox": [
+          72.024,
+          37.70172000000002,
+          542.88888,
+          755.99772
+        ],
+        "chunk_hash": "849a1e2c1268af07cf2b60c0f6daca689c042f43da236508422f0a581bc94ba7",
+        "lang": "en",
+        "text": " approach and take-off surfaces identified.\n7.0 H1 SURVEY REQUIREMENTS\nCAR 305.29(3) requires a heliport operator/designer operating (intending to operate) a heliport\nwith H1 classified approach/departure pathways, to submit a survey of the approach/departure\npath area that identifies obstacle information. This information that includes location and height of\nthe obstacles, may be needed by the helicopter operator to calculate the performance\nrequirements of the helicopter at this facility in order to meet CAR 325.19(2)(a). It would be the\nresponsibility of the helicopter air operator to obtain all necessary additional survey information, if\nrequired for performance calculations, from the heliport operator directly. Transport Canada is not\ninvolved in this process. As there is no specific OLS for H1 classified heliports, there are no\nadditional diagrams required and the heliport operator/designer need not publish slope\ninformation for H1 classified approach/departure pathways. Further details of the standards\nrequired of the H1 survey are found in CAR 325.29(3).\nIt should be noted that two surveys are required; that can be presented as a single survey\ncovering both requirements. A survey out to 625 meters identifies obstacles that may affect\nhelicopter performance and a survey out to 1000 meters identifies obstacle that need to be\nconsidered for marking and lighting (CAR 325.37(1)).\n7.1 Publication of Slopes\nPublication of slopes is only applicable to heliports with H3 and/or H2 classified approach/take-off\nsurfaces. Some heliport operators have had published by NAV CANADA slopes associated with\n2017-11-15 8 of 19 AC 305-001 Issue 01\n\nStandards Associated with H1 Classified Heliports\nH1 classified heliports. Although there are no specific regulations prohibiting the publishing of H1\nslope angles, it does present misleading information and consideration should be made to not\npublish the H1 slopes.\nAs a result of these “H1 slope” calculations, a number of issues have been identified that\ncomplicate the non-standard (and not required) use of slopes at H1 classified heliports.\nThe publication of an H1 slope, identified as the slope joining from the edge of the safety area to",
+        "ann_score": 1.0,
+        "rerank_score": 0.7505527565366589
+      },
+      {
+        "doc_id": "tc/rdims_1310114",
+        "source_url": null,
+        "section_title": "",
+        "page": 9,
+        "bbox": [
+          72.024,
+          37.70172000000002,
+          542.88888,
+          755.99772
+        ],
+        "chunk_hash": "5702d5a1c581f4f70100ee749fd6a6d2aa604cdfd61f12da621f23b4c96c1f4c",
+        "lang": "en",
+        "text": "H1 slope” calculations, a number of issues have been identified that\ncomplicate the non-standard (and not required) use of slopes at H1 classified heliports.\nThe publication of an H1 slope, identified as the slope joining from the edge of the safety area to\nthe height of the most restrictive obstacle within the approach/departure pathway may lead a pilot\nto believe that the identified slope needs to be adhered to in order to avoid all obstacles on that\napproach/departure pathway. In actuality there may be few or no other restricting obstacles\ntowards (from) the highest obstacle. Additionally, adherence to the published slope may\neliminate any drop-off advantage that could be used from elevated or roof-top heliports.\nThe departure/arrival profile flown by one helicopter might be quite different than others in order\nto meet the requirements of CAR 325.19(2)(a). The onus is placed upon the helicopter operators\nto operate their helicopters in accordance with their Aircraft Flight Manual (AFM) to clear the\nidentified obstacles.\nCAR 305.08(1) requires a heliport applicant (operator/designer) to submit to the Minister for\napproval a Heliport Operations Manual that shall include the physical specifications of the heliport\nand the provisions of CAR 305.57(b) in addition to other provisions. Transport Canada inspectors\nmay be hesitant to approve unverifiable information for which there is no regulatory requirement.\nTC inspectors have no way to verify slope information provided for H1 classified approach /\ndeparture pathways unless additional information is provided from the heliport operator/designer.\nIf this information is provided, individual regional inspectors may choose to accept the slopes\nprovided for publication, which may in turn impose a more restrictive operating environment.\n8.0 INFORMATION PUBLISHED IN CANADA FLIGHT SUPPLEMENT (CFS)\n8.1 Sketches Depicting Obstacles\nNAV CANADA has suggested the following format for scale sketch depiction at heliports that\nhave H1 classified heliports.\na) Roof-top H1 classified heliports with specific approach/take-off surfaces should have 3\nsketches. Appendix D shows some examples of de",
+        "ann_score": 1.0,
+        "rerank_score": 0.5051954306801173
+      },
+      {
+        "doc_id": "tc/rdims_1310114",
+        "source_url": null,
+        "section_title": "",
+        "page": 10,
+        "bbox": [
+          72.024,
+          37.70172000000002,
+          542.88888,
+          755.99772
+        ],
+        "chunk_hash": "bc42baabc7110678be1cc31cb183f57063a7e26dd0c240b4afe4b1bb2a492eed",
+        "lang": "en",
+        "text": "PR and the onus would be placed upon\nthe heliport operator and the helicopter operators to discuss exact obstacle location information\nfor performance calculations. The CFS heliport entries do not include a scale for the specific\ndiagrams as this is for information only and not to be used for performance calculations.\nIt is the responsibility of the heliport operator to draft the CFS information and diagrams (CAR\n305.17(2)). Transport Canada only verifies this information prior to submission the NAV\nCANADA.\n8.2 Additional Information Published in CFS\nNAV CANADA publishes the load bearing strength and the maximum overall helicopter length in\nthe HELI DATA section for each applicable heliport. This relates to the critical helicopter type. The\nmaximum overall helicopter length relates only to obstacle clearance (from the FATO or TLOF\nouter edge) and is not related to possible Category “A” operational TLOF/FATO size.\nThe specific category/classification, bearings and slope for each approach/departure pathway is\ndetailed in the individual heliport PRO section of the CFS. The definitions of the heliport\napproach/departure classifications (H1, H2 and H3) [in addition to being detailed in CAR 325.19]\nare published in the GENERAL section of the CFS under Procedures (PRO).\nOperating restrictions/limitations that are specified by the Minister in order to comply with the\nAirport/Heliport Certificate issued for the aerodrome/heliport will be annotated with (CAR 602.96)\nwithin the HELI DATA section of the CFS for weight and length limits and the PRO section of the\nCFS for classification of approach and take-off pathways to emphasize the regulatory\nrequirement.\nAlternate approach/departure pathway information not published in the CFS or not made available\nby the heliport operator, have NOT been assessed and thus cannot be arbitrarily flown.\nThe heliport standards were created in part to ensure that there is a reasonable expectancy of no\ninjuries to persons or damage to property on the surface. Approaches and departures along non-\nassessed pathways results in operations outside of the defined heliport standards.\n9.0 SUMMARY\nPerformance based heliport standards were introduced almost 20 years ago, in part, to",
+        "ann_score": 1.0,
+        "rerank_score": 0.620794049681062
+      },
+      {
+        "doc_id": "tc/rdims_1310114",
+        "source_url": null,
+        "section_title": "",
+        "page": 14,
+        "bbox": [
+          72.024,
+          37.70172000000002,
+          542.88888,
+          755.99772
+        ],
+        "chunk_hash": "959be3d34be167c2aa1e254b16679a7266e92076d271dc8a9e625f0c8b0ed9ab",
+        "lang": "en",
+        "text": "(1)(a);\nTouchdown and Lift-off Areas (TLOF)\n(i) the requirements for an TLOF, in respect of H1 heliports, are the following:\n(i) the dimension of the TLOF shall not be less than the dimensions specified in paragraph\n325.25(3)(a),\n(ii) the dimensions of the TLOF of an H1 heliport shall not be less than the dimensions of the\nlanding and take-off surface where specified in the Aircraft Flight Manual (AFM) for\nCategory A operation for the helicopter type with the most critical performance\ncharacteristics the heliport is intended to serve, and\n(iii) if the Aircraft Flight Manual does not specify dimensions for the landing and take-off\nsurface, the dimensions shall comply with the specifications set out in paragraphs\n325.25(2)(a) or 325.25(3)(a) which ever are applicable to the heliport.\nSpecial Requirements for non-instrument FATO in respect of H1 Heliports\n325.29(3) For the purposes of subsection 305.29(2) of the Canadian Aviation Regulations, the\nrequirements in respect of approach or take-off surfaces for a non-instrument FATOs, are the following:\n(a) in the case of an approach or take-off Surfaces, an H1 heliport shall comply with the following\nrequirements respecting its OLS instead of the technical specifications provided in subparagraph\n325.29(1)(a)(v) and (1)(b)(iv):\n2017-11-15 14 of 19 AC 305-001 Issue 01\n\nStandards Associated with H1 Classified Heliports\n(i) the take-off and approach OLS shall commence at the edge of the safety area and shall\ncontinue in a line that links the maximum elevation points of all critical obstacles within the\napproach/departure path,\n(ii) a survey of the approach/departure path area that determines obstacle information shall be\ncarried out by the heliport operator at least once every five years unless no new obstacles have\nbeen established in the approach/departure path area during the five-year period and a report to\nthat effect is made to the certifying authority,\n(iii) the obstacle survey shall be updated each time new construction is carried out that will\npenetrate the slope of the OLS established under subparagraph 325.29(3)(c)(",
+        "ann_score": 1.0,
+        "rerank_score": 0.694406297296704
+      }
+    ],
+    "trace": [
+      {
+        "node": "retrieve",
+        "elapsed_ms": 8638,
+        "anchored": true,
+        "n_new": 10,
+        "n_merged": 10,
+        "best_rerank": 0.8512122384507991
+      },
+      {
+        "node": "graph_expand",
+        "elapsed_ms": 0,
+        "n_ids": 0,
+        "n_rows": 0
+      },
+      {
+        "node": "synthesize",
+        "elapsed_ms": 57508,
+        "prompt_chars": 20615,
+        "draft_chars": 1793
+      }
+    ],
+    "thread_id": "cache-6"
+  }
+}

@@ -49,6 +49,35 @@ def _sse_events(text: str) -> list[str]:
     return [ln[len("event:"):].strip() for ln in text.splitlines() if ln.startswith("event:")]
 
 
+def _sources_payload(text: str) -> list[dict]:
+    """Pull the `sources` event's source list out of an SSE response body."""
+    import json
+    for block in text.split("\n\n"):
+        if "event: sources" in block:
+            data_line = next(ln for ln in block.splitlines() if ln.startswith("data:"))
+            return json.loads(data_line[len("data:"):].strip()).get("sources", [])
+    return []
+
+
+def test_query_stream_applies_source_filter(make_client):
+    """P5: the Corpus filter must reach retrieval. The stub corpus is all
+    `tsb/*`, so source='tc' yields no chunks while source='tsb' yields some —
+    proving lang/source plumb schema → route → retrieve node → pipeline."""
+    client = make_client()
+
+    r_tc = client.post("/query/stream", json={
+        "query": "fuel", "thread_id": "tcf", "max_hops": 1, "source": "tc",
+    })
+    assert r_tc.status_code == 200, r_tc.text
+    assert _sources_payload(r_tc.text) == [], "tc filter should exclude the tsb-only corpus"
+
+    r_tsb = client.post("/query/stream", json={
+        "query": "fuel", "thread_id": "tsbf", "max_hops": 1, "source": "tsb",
+    })
+    assert r_tsb.status_code == 200, r_tsb.text
+    assert _sources_payload(r_tsb.text), "tsb filter should keep the tsb corpus"
+
+
 def test_query_stream_emits_sources_before_tokens(make_client):
     """The /query/stream SSE order must deliver `sources` exactly once, after
     the last retrieve status and before the first synthesize token. The `done`
