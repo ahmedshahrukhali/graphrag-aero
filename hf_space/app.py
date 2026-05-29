@@ -603,20 +603,6 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                 show_label=False,
                 elem_classes=["chat-pane"],
             )
-            # Source PDF pages — standalone gallery in preview mode (one full-
-            # width page + thumbnail reel), inside a collapsible accordion. A
-            # gallery embedded in a chat message can't enter preview mode, so it
-            # lives here instead. Populated via render_pages (.then) per turn.
-            with gr.Accordion("📄 Source pages", open=False) as pages_acc:
-                pages_gallery = gr.Gallery(
-                    value=[],
-                    preview=True,
-                    object_fit="contain",
-                    allow_preview=True,
-                    show_label=False,
-                    height=480,
-                    elem_classes="pdf-inline",
-                )
             with gr.Row():
                 query = gr.Textbox(
                     placeholder="Ask in English or French…",
@@ -629,6 +615,21 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                 )
                 ask_btn  = gr.Button("Send ↑", variant="primary",   scale=0)
                 stop_btn = gr.Button("⏹ Stop",  variant="secondary", scale=0)
+            # Source PDF pages — standalone gallery in preview mode (one full-
+            # width page + thumbnail reel), in a collapsible accordion *below*
+            # the composer. Tall enough (1000px) that the full page renders. A
+            # gallery embedded in a chat message can't enter preview mode, so it
+            # lives here. Populated via render_pages (.then) per turn.
+            with gr.Accordion("📄 Source pages", open=False) as pages_acc:
+                pages_gallery = gr.Gallery(
+                    value=[],
+                    preview=True,
+                    object_fit="contain",
+                    allow_preview=True,
+                    show_label=False,
+                    height=1000,
+                    elem_classes="pdf-inline",
+                )
 
         # ── wiring ────────────────────────────────────────────────────────
         ask_outputs = [chat, sess, artifacts, history, recent]
