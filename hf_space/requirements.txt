@@ -1,12 +1,9 @@
 # P8 HuggingFace Space — Gradio shell over the FastAPI backend.
 # Pure UI + PDF rendering — no model weights, no DB clients.
-gradio>=4.40,<5
-# Gradio 4.x's oauth.py imports HfFolder, which huggingface_hub 1.0 removed.
-# Pin to the 0.x line so the import resolves.
-huggingface_hub>=0.23,<1.0
-# Starlette 1.x removed backward-compat for TemplateResponse(name, context) —
-# gradio 4.x uses the old signature; pin to keep starlette on 0.x line.
-starlette<1.0
+gradio>=5.14.0,<6
+# Gradio 5.x ships its own compatible starlette and huggingface_hub;
+# the 4.x compat pins are no longer needed.
+huggingface_hub>=0.27
 httpx>=0.27,<0.29
 pdfplumber>=0.10,<0.12
 Pillow>=10.0,<12
