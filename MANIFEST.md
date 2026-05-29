@@ -77,15 +77,13 @@ None. All resolved.
 MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, otel/otel-collector-config.yaml, per-dir README placeholders
 
 ## Resume pointer
-**NEXT: S6 / Human visual click-through at http://localhost:7860 (only remaining S5 item).**
-S5 live verification is GREEN on everything machine-checkable (see "S5 results" below).
-The only unfinished piece is the interactive visual pass — no browser was connectable
-this session (Chrome extension not connected; preview MCP won't attach to the container's
-port). When ready, eyeball :7860 and confirm (CSS/layout ONLY — UI is not the measurement surface):
-1. Thinking accordion collapses on `done`; sources accordion renders; answer readable.
-2. Accept/Edit/Discard HITL buttons work.
-3. Right Sidebar Pages/Chunks tabs populate on `chat.select`.
-Stack is currently UP (`docker compose ps`). To free GPU/RAM: `docker compose stop`.
+**NEXT: open — Gradio 5 chat rebuild fully verified (S5 + visual pass done). Pick next feature.**
+S5 live verification GREEN on all machine checks (see "S5 results" below) AND the human
+visual click-through at :7860 passed (session 14, user confirmed "looks good"). Stack is
+STOPPED (`docker compose stop` run at end of session 14) — `docker compose start` to resume.
+Candidate next work: (a) investigate the pre-existing reranker dtype / tokenizer "Already
+borrowed" concurrency bug flagged below if it recurs under load; (b) the trycloudflare.com
+tunnel exposing /retrieve — confirm intended or shut down; (c) further UI polish.
 
 **S5 = Live-verify Gradio 5 chat rebuild** ☑ (session 14, opus-4.7, 2026-05-28) — functional core verified live; visual click-through handed to S6.
 
