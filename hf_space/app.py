@@ -325,7 +325,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
         sess: dict,
         artifacts: dict,
     ):
-        """Streaming generator. Yields (chat, sess, artifacts, hitl_row, history, recent)."""
+        """Streaming generator. Yields (chat, sess, artifacts, history, recent)."""
         q = (query_text or "").strip()
         if not q:
             return
@@ -341,19 +341,16 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
             {"role": "assistant", "content": ""},
         ]
 
-        nop6 = (gr.update(),) * 6
-
-        def _yield(chat=None, s=None, a=None, hitl=None, hist=None, rec=None):
+        def _yield(chat=None, s=None, a=None, hist=None, rec=None):
             return (
                 chat if chat is not None else gr.update(),
                 s if s is not None else gr.update(),
                 a if a is not None else gr.update(),
-                hitl if hitl is not None else gr.update(),
                 hist if hist is not None else gr.update(),
                 rec if rec is not None else gr.update(),
             )
 
-        yield _yield(chat=chat_list, hitl=gr.update(visible=False))
+        yield _yield(chat=chat_list)
 
         text_buf: list[str] = []
         final_thread_id = thread_id
@@ -382,7 +379,8 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                     chat_list[IDX_SRC] = {
                         "role": "assistant",
                         "content": _chunks_md(retrieve),
-                        "metadata": {"title": f"📑 Sources ({len(retrieve.results)})"},
+                        "metadata": {"title": f"📑 Sources ({len(retrieve.results)})",
+                                     "status": "done"},
                     }
                     # Stash raw sources + query rather than pre-rendered images:
                     # the inline gallery is rendered after streaming (so PDF
@@ -414,7 +412,8 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                         chat_list[IDX_SRC] = {
                             "role": "assistant",
                             "content": _chunks_md(retrieve),
-                            "metadata": {"title": f"📑 Sources ({len(retrieve.results)})"},
+                            "metadata": {"title": f"📑 Sources ({len(retrieve.results)})",
+                                         "status": "done"},
                         }
                         artifacts[IDX_SRC] = {"sources": data["sources"], "query": q}
                     # Stash the finished answer so the inline gallery renderer can
@@ -435,7 +434,6 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                         chat=list(chat_list),
                         s=new_sess,
                         a=dict(artifacts),
-                        hitl=gr.update(visible=True),
                         hist=new_history,
                         rec=gr.update(samples=_recent_samples(new_history)),
                     )
@@ -453,37 +451,8 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
             yield _yield(chat=list(chat_list))
             return
 
-    def on_accept(chat: list[dict], sess: dict):
-        new_sess = {k: v for k, v in sess.items() if k != "draft"}
-        return chat, new_sess, gr.update(visible=False)
-
-    def on_edit(sess: dict):
-        draft = sess.get("draft", "")
-        return gr.update(value=draft, visible=True), gr.update(visible=True)
-
-    def on_save_edit(edited: str, chat: list[dict], sess: dict):
-        new_chat = list(chat)
-        for i in range(len(new_chat) - 1, -1, -1):
-            m = new_chat[i]
-            if m.get("role") == "assistant" and not m.get("metadata"):
-                new_chat[i] = {**m, "content": edited}
-                break
-        return new_chat, {**sess, "draft": edited}, gr.update(visible=False), gr.update(visible=False)
-
-    def on_cancel_edit():
-        return gr.update(visible=False), gr.update(visible=False)
-
-    def on_discard(chat: list[dict], sess: dict):
-        new_chat = list(chat)
-        while new_chat and new_chat[-1].get("role") == "assistant":
-            new_chat.pop()
-        if new_chat and new_chat[-1].get("role") == "user":
-            new_chat.pop()
-        new_sess = {k: v for k, v in sess.items() if k != "draft"}
-        return new_chat, new_sess, gr.update(visible=False), gr.update(visible=False)
-
     def on_new(_sess):
-        return [], {}, {}, gr.update(visible=False), gr.update(visible=False)
+        return [], {}, {}
 
     def _render_gallery(art: dict, show_bbox: bool) -> list[tuple[Any, str]]:
         srcs = art.get("sources") or []
@@ -517,18 +486,18 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
         chained render_pages handler. Falls back to filling the composer if the
         query isn't cached.
         """
-        nop8 = (gr.update(),) * 8
+        nop7 = (gr.update(),) * 7
         idx = evt.index
         if isinstance(idx, (list, tuple)):
             idx = idx[0]
         if not (0 <= idx < len(SAMPLE_QUERIES)):
-            return nop8
+            return nop7
         q, lang_v, source_v, hops_v = SAMPLE_QUERIES[idx]
         cached = SAMPLE_CACHE.get(q)
         if not cached:
             # No cache → original behaviour: populate the composer, don't submit.
             return (q, lang_v, source_v, hops_v,
-                    gr.update(), gr.update(), gr.update(), gr.update())
+                    gr.update(), gr.update(), gr.update())
 
         retrieve = _sources_to_retrieve(cached.get("sources", []), q)
         thought, n_steps = _thought_from_trace(cached.get("trace", []))
@@ -540,13 +509,14 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                  "title": f"🧠 Thought ({n_steps} step{'s' if n_steps != 1 else ''})",
                  "status": "done"}},
             {"role": "assistant", "content": _chunks_md(retrieve),
-             "metadata": {"title": f"📑 Sources ({len(retrieve.results)})"}},
+             "metadata": {"title": f"📑 Sources ({len(retrieve.results)})",
+                          "status": "done"}},
             {"role": "assistant", "content": draft},
         ]
         new_artifacts = {IDX_SRC: {"sources": cached.get("sources", []), "query": q, "draft": draft}}
         new_sess = {"thread_id": cached.get("thread_id", ""), "draft": draft, "query": q}
         return (q, lang_v, source_v, hops_v,
-                list(chat_list), new_sess, new_artifacts, gr.update(visible=True))
+                list(chat_list), new_sess, new_artifacts)
 
     def on_pick_recent(history: list[dict] | None, evt: gr.SelectData):
         if not history:
@@ -633,17 +603,6 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                 show_label=False,
                 elem_classes=["chat-pane"],
             )
-            with gr.Row(visible=False) as hitl_row:
-                accept_btn  = gr.Button("✅ Accept",  variant="primary",   scale=0)
-                edit_btn    = gr.Button("✏️ Edit",    variant="secondary", scale=0)
-                discard_btn = gr.Button("✕ Discard", variant="secondary", scale=0)
-            edit_box = gr.Textbox(
-                label="Edit answer", lines=5, visible=False,
-                placeholder="Edit the draft answer…",
-            )
-            with gr.Row(visible=False) as save_row:
-                save_btn   = gr.Button("Save",   variant="primary",   scale=0)
-                cancel_btn = gr.Button("Cancel", variant="secondary", scale=0)
             # Source PDF pages — standalone gallery in preview mode (one full-
             # width page + thumbnail reel), inside a collapsible accordion. A
             # gallery embedded in a chat message can't enter preview mode, so it
@@ -672,7 +631,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                 stop_btn = gr.Button("⏹ Stop",  variant="secondary", scale=0)
 
         # ── wiring ────────────────────────────────────────────────────────
-        ask_outputs = [chat, sess, artifacts, hitl_row, history, recent]
+        ask_outputs = [chat, sess, artifacts, history, recent]
         ask_inputs = [query, lang, source, max_hops, show_bbox, history, sess, artifacts]
         pages_out = [pages_gallery, pages_acc]
         clear_pages = (lambda: (gr.update(value=[]), gr.update(open=False)))
@@ -684,16 +643,8 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
 
         stop_btn.click(None, cancels=[ask_event_a, ask_event_b])
 
-        accept_btn.click(on_accept, [chat, sess], [chat, sess, hitl_row])
-        edit_btn.click(on_edit, [sess], [edit_box, save_row])
-        save_btn.click(on_save_edit, [edit_box, chat, sess], [chat, sess, edit_box, save_row])
-        cancel_btn.click(on_cancel_edit, None, [edit_box, save_row])
-        discard_btn.click(
-            on_discard, [chat, sess], [chat, sess, hitl_row, save_row]
-        ).then(clear_pages, None, pages_out)
-
         new_btn.click(
-            on_new, [sess], [chat, sess, artifacts, hitl_row, save_row]
+            on_new, [sess], [chat, sess, artifacts]
         ).then(clear_pages, None, pages_out)
 
         show_bbox.change(render_pages, [artifacts, show_bbox], pages_out)
@@ -701,7 +652,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
         samples.select(
             on_pick_sample,
             None,
-            [query, lang, source, max_hops, chat, sess, artifacts, hitl_row],
+            [query, lang, source, max_hops, chat, sess, artifacts],
         ).then(render_pages, [artifacts, show_bbox], pages_out)
         app.load(on_load, [history], [recent, health_md])
 
