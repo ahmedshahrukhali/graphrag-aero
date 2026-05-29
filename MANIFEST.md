@@ -77,15 +77,24 @@ None. All resolved.
 MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, otel/otel-collector-config.yaml, per-dir README placeholders
 
 ## Resume pointer
-**NEXT: S5 / Live-verify the Gradio 5 chat rebuild (steps 3–5 deferred from S4).**
-The 3 commits (5d87bfc, 50e7d2a, 05d515f) shipped offline-verified: Gradio 4→5.14+
-upgrade, backend `sources` SSE event, and the gr.Chatbot three-zone UI. 311 tests pass.
-Container builds + serves HTTP 200 on :7860 (gradio 5.50.0). Still to do live:
-1. `docker compose up -d backend hf-space` (full stack)
-2. `curl -N -X POST http://localhost:8080/query/stream -H 'content-type: application/json' -d '{"query":"fuel exhaustion","thread_id":"v1","max_hops":1}'` — confirm SSE order: status… → `sources` (once) → token… → done (no sources in done payload)
-3. **The real correctness check:** `docker logs graphrag-aero-otel-collector-1` — verify retrieve/graph_expand/synthesize spans. UI is NOT the measurement surface.
-4. Browser smoke at http://localhost:7860 — thinking accordion collapses on done, sources accordion renders, answer readable, Accept/Edit/Discard work, right Sidebar Pages/Chunks tabs bind on chat.select. Screenshots verify CSS/layout ONLY.
-5. If all green: mark S5 ☑, append SESSIONS.md.
+**NEXT: S6 / Human visual click-through at http://localhost:7860 (only remaining S5 item).**
+S5 live verification is GREEN on everything machine-checkable (see "S5 results" below).
+The only unfinished piece is the interactive visual pass — no browser was connectable
+this session (Chrome extension not connected; preview MCP won't attach to the container's
+port). When ready, eyeball :7860 and confirm (CSS/layout ONLY — UI is not the measurement surface):
+1. Thinking accordion collapses on `done`; sources accordion renders; answer readable.
+2. Accept/Edit/Discard HITL buttons work.
+3. Right Sidebar Pages/Chunks tabs populate on `chat.select`.
+Stack is currently UP (`docker compose ps`). To free GPU/RAM: `docker compose stop`.
+
+**S5 = Live-verify Gradio 5 chat rebuild** ☑ (session 14, opus-4.7, 2026-05-28) — functional core verified live; visual click-through handed to S6.
+
+### S5 results
+- **SSE order (live `/query/stream`, query "fuel exhaustion"):** `status, status → sources (×1) → status×3 (graph_expand) → token×many → done`. `done` payload carries thread_id+draft, **no sources** ✅. Matches the unit test exactly.
+- **Grounded, not stubbed:** retrieved the exact fuel-exhaustion report (tsb/a03q0109) + synthesized a cited answer (`[tsb/a03q0109 p.4]`, `[tsb/a97o0103 p.4]`…) ✅
+- **OTel (the real correctness surface):** spans flow to collector, `service.name=graphrag-aero-backend`; custom `agent.query`/`agent.resume`/`retrieve` spans present; **0 errors on today's run**. (Two stale RuntimeErrors in the log — `expected scalar type Float but found Half` (reranker fp16/fp32) and `Already borrowed` (tokenizer concurrency) — are from 2026-05-27, a prior session; flagged below, not introduced by S5.)
+- **UI shell:** :7860 serves HTTP 200 (gradio 5.50.0); config exposes the rebuilt tree — 2 sidebars, 1 chatbot, tabs+2 tabitems, gallery, accordion, 2 datasets, 2 radios, slider ✅
+- **⚠ Pre-existing backend bug to watch (not S5 scope):** reranker dtype mismatch + tokenizer "Already borrowed" under concurrent `/query` (LangGraph path) on 05-27. Did not recur today. Revisit if it reappears under load.
 
 **S1 = Smoke pass** ☑ (sessions 3–4, opus-4.7 + sonnet-4.6, 2026-05-26)
 **S2 = Fix pass** ☑ (session 5–6, sonnet-4.6, 2026-05-27) — bbox fallback, CORS, eval pdfplumber refactor, force-reprocess 2878 chunks

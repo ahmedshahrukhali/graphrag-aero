@@ -5,12 +5,13 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 ---
 
 ## Session 14 — 2026-05-28 — opus-4.7
-**Commits:** `5d87bfc` Gradio 4→5.14+ upgrade, `50e7d2a` backend sources SSE event, `05d515f` gr.Chatbot three-zone UI rebuild
+**Commits:** `5d87bfc` Gradio 4→5.14+ upgrade, `50e7d2a` backend sources SSE event, `05d515f` gr.Chatbot three-zone UI rebuild, `616b15c` S14 handover, +S5 verify (this entry)
 **Achieved:**
-- Pivot UI from Streamlit back to canonical Gradio hf-space (:7860); rebuilt chat on gr.Chatbot(type="messages") three-zone layout (left/right Sidebars + center chat) with collapsible thinking + sources accordions, streaming answer, UI-side HITL Accept/Edit/Discard, right Sidebar Pages/Chunks tabs bound to chat.select
-- Backend `/query/stream`: dedicated `sources` SSE event after last retrieve status, before first token; dropped sources from `done` payload; added StubLLM.chat_stream + ordering test
-- Offline-verified: 311 tests pass; container builds + serves HTTP 200 on :7860 (gradio 5.50.0); Sidebar import + make_app() OK
-**Left:** live verification deferred (S5): SSE order via `curl -N`, OTel collector span check (the real correctness surface), browser smoke at :7860. UI is NOT the measurement surface — see resume pointer.
+- Pivot UI from Streamlit back to canonical Gradio hf-space (:7860); rebuilt chat on gr.Chatbot three-zone layout (left/right Sidebars + center chat), collapsible thinking + sources accordions, streaming, UI-side HITL, right Sidebar Pages/Chunks tabs on chat.select
+- Backend `/query/stream`: dedicated `sources` SSE event before tokens; dropped sources from `done`; +StubLLM.chat_stream + ordering test. 311 tests pass
+- **S5 live-verified (stack up):** SSE order correct + `done` has no sources; real grounded cited answer (tsb/a03q0109); OTel spans flow w/ 0 errors today; :7860 serves gradio 5.50.0 w/ full component tree
+- Flagged pre-existing (not mine): stale 05-27 reranker dtype + tokenizer "Already borrowed" errors under concurrent /query
+**Left:** S6 = human visual click-through at :7860 (no browser connectable this session). Stack left UP — `docker compose stop` to free GPU/RAM.
 
 ## Session 13 — 2026-05-28 — sonnet-4.6
 **Commits:** `089f3b7` chunk overlap+sections, `df96f5f` Streamlit chat app, `fbe7d6a` corpus+graph viewers
