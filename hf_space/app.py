@@ -4,10 +4,10 @@ Two-zone layout:
     LEFT  Sidebar — brand + New chat + lang/source filters + recent + samples + health
     CENTER Column — gr.Chatbot(type="messages") + HITL row + composer
 
-Each answered turn renders its source PDF pages *inline* in the chat as a
-zoomable ``gr.Gallery`` message (appended after the answer streams). There's
-no separate document panel: the pages live in the conversation next to the
-answer they support.
+Each answered turn renders its source PDF pages in a collapsible "Source pages"
+panel below the chat — a standalone ``gr.Gallery`` in preview mode (one
+full-width page + a thumbnail reel). A gallery embedded inside a Chatbot
+message can't enter preview mode, so the panel lives outside the chat.
 
 The Space remains a thin shell over the FastAPI backend at $BACKEND_URL.
 The only locally-computed work is PDF-page-with-bbox rendering.
@@ -186,35 +186,6 @@ def _gallery_items(
     return items
 
 
-def _gallery_message(items: list[tuple[Any, str]]) -> dict[str, Any]:
-    """Wrap rendered PDF pages as a collapsible, full-width Chatbot message.
-
-    ``preview=True`` opens the gallery in preview layout — one page shown
-    full-width with a thumbnail reel beneath it — so a PDF page is actually
-    readable instead of a cramped half-width grid cell. ``allow_preview=True``
-    keeps the click-to-zoom lightbox. ``metadata.title`` renders the whole
-    block inside a collapsible accordion, the same way the Sources section
-    collapses.
-    """
-    return {
-        "role": "assistant",
-        "content": gr.Gallery(
-            value=items,
-            preview=True,
-            object_fit="contain",
-            allow_preview=True,
-            show_label=False,
-            elem_classes="pdf-inline",
-        ),
-        "metadata": {"title": f"🖼️ Source pages ({len(items)})"},
-    }
-
-
-def _is_gallery_message(msg: dict) -> bool:
-    """Our inline page gallery is the only message with non-string content."""
-    return not isinstance(msg.get("content"), str)
-
-
 def _chunks_md(retrieve: RetrieveResponse) -> str:
     if not retrieve.results:
         return "_no chunks retrieved._"
@@ -320,18 +291,13 @@ _CSS = """
   flex-grow: 1 !important;
   min-height: 0 !important;
 }
-/* Inline PDF pages live in the chat as a collapsible "Source pages" block.
-   preview=True shows one page full-width with a thumbnail reel beneath, so
-   give the page real height — readable text matters more than compactness.
-   (The old 2-col grid crammed two half-width pages per row, leaving the
-   margins + OCR text too small to read.) */
-.pdf-inline {
-  max-height: 82vh;
-}
+/* Source-pages panel: a standalone gr.Gallery in preview mode (one full-width
+   page + thumbnail reel) inside a collapsible accordion below the chat. Give
+   the page real height — readable text matters more than compactness. (The old
+   2-col grid crammed two half-width pages per row, too small to read.) */
 .pdf-inline img {
   max-width: 100% !important;
   height: auto !important;
-  max-height: 74vh;
   object-fit: contain;
 }
 """
@@ -473,13 +439,9 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                         hist=new_history,
                         rec=gr.update(samples=_recent_samples(new_history)),
                     )
-                    # Render source pages inline *after* the answer is shown so
-                    # PDF download/rasterise never delays the answer or HITL row.
-                    art = artifacts.get(IDX_SRC) or {}
-                    items = _render_gallery(art, show_bbox_v)
-                    if items:
-                        chat_list.append(_gallery_message(items))
-                        yield _yield(chat=list(chat_list))
+                    # Source pages render into the collapsible "Source pages"
+                    # panel via the chained render_pages handler (.then) once
+                    # streaming ends — keeps PDF rasterise off the token path.
                     return
 
         except ApiError as e:
@@ -536,44 +498,37 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
             citations=citations, cited_keys=cited,
         )
 
-    def on_toggle_bbox(chat: list[dict], artifacts: dict, show_bbox: bool):
-        """Redraw the inline page gallery when the bbox toggle flips.
+    def render_pages(artifacts: dict, show_bbox: bool):
+        """Render source pages into the collapsible panel, and open it.
 
-        Strips the trailing gallery message (if any) and re-appends a freshly
-        rendered one. No-op until a turn has produced sources.
+        Runs after a turn finishes (chained via ``.then``) or when the bbox
+        toggle flips. Local PDF raster only — never blocks the answer. Returns
+        (gallery value, accordion open-state); empty + closed when no sources.
         """
         art = (artifacts or {}).get(IDX_SRC) or {}
-        if not art.get("sources"):
-            return gr.update()
-        new_chat = list(chat or [])
-        if new_chat and _is_gallery_message(new_chat[-1]):
-            new_chat.pop()
-        items = _render_gallery(art, bool(show_bbox))
-        if items:
-            new_chat.append(_gallery_message(items))
-        return new_chat
+        items = _render_gallery(art, bool(show_bbox)) if art.get("sources") else []
+        return gr.update(value=items), gr.update(open=bool(items))
 
-    def on_pick_sample(show_bbox_v: bool, evt: gr.SelectData):
-        """Click a sample → instant cached answer, no backend/gemma call.
+    def on_pick_sample(evt: gr.SelectData):
+        """Click a sample → instant cached answer (no backend/gemma call).
 
-        Yields the text answer (user + thought + sources + answer) immediately,
-        then renders the source-page gallery (local PDF raster only) and yields
-        again. Falls back to just filling the composer if the query isn't cached.
+        Returns the answered chat (user + thought + sources + answer) from the
+        pre-built cache. Source pages render into the collapsible panel via the
+        chained render_pages handler. Falls back to filling the composer if the
+        query isn't cached.
         """
         nop8 = (gr.update(),) * 8
         idx = evt.index
         if isinstance(idx, (list, tuple)):
             idx = idx[0]
         if not (0 <= idx < len(SAMPLE_QUERIES)):
-            yield nop8
-            return
+            return nop8
         q, lang_v, source_v, hops_v = SAMPLE_QUERIES[idx]
         cached = SAMPLE_CACHE.get(q)
         if not cached:
             # No cache → original behaviour: populate the composer, don't submit.
-            yield (q, lang_v, source_v, hops_v,
-                   gr.update(), gr.update(), gr.update(), gr.update())
-            return
+            return (q, lang_v, source_v, hops_v,
+                    gr.update(), gr.update(), gr.update(), gr.update())
 
         retrieve = _sources_to_retrieve(cached.get("sources", []), q)
         thought, n_steps = _thought_from_trace(cached.get("trace", []))
@@ -588,18 +543,10 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
              "metadata": {"title": f"📑 Sources ({len(retrieve.results)})"}},
             {"role": "assistant", "content": draft},
         ]
-        art = {"sources": cached.get("sources", []), "query": q, "draft": draft}
-        new_artifacts = {IDX_SRC: art}
+        new_artifacts = {IDX_SRC: {"sources": cached.get("sources", []), "query": q, "draft": draft}}
         new_sess = {"thread_id": cached.get("thread_id", ""), "draft": draft, "query": q}
-        # Instant text answer (no generation).
-        yield (q, lang_v, source_v, hops_v,
-               list(chat_list), new_sess, new_artifacts, gr.update(visible=True))
-        # Then the source-page gallery — local PDF raster only, still no gemma.
-        items = _render_gallery(art, bool(show_bbox_v))
-        if items:
-            chat_list.append(_gallery_message(items))
-            yield (gr.update(), gr.update(), gr.update(), gr.update(),
-                   list(chat_list), gr.update(), gr.update(), gr.update())
+        return (q, lang_v, source_v, hops_v,
+                list(chat_list), new_sess, new_artifacts, gr.update(visible=True))
 
     def on_pick_recent(history: list[dict] | None, evt: gr.SelectData):
         if not history:
@@ -697,6 +644,20 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
             with gr.Row(visible=False) as save_row:
                 save_btn   = gr.Button("Save",   variant="primary",   scale=0)
                 cancel_btn = gr.Button("Cancel", variant="secondary", scale=0)
+            # Source PDF pages — standalone gallery in preview mode (one full-
+            # width page + thumbnail reel), inside a collapsible accordion. A
+            # gallery embedded in a chat message can't enter preview mode, so it
+            # lives here instead. Populated via render_pages (.then) per turn.
+            with gr.Accordion("📄 Source pages", open=False) as pages_acc:
+                pages_gallery = gr.Gallery(
+                    value=[],
+                    preview=True,
+                    object_fit="contain",
+                    allow_preview=True,
+                    show_label=False,
+                    height=480,
+                    elem_classes="pdf-inline",
+                )
             with gr.Row():
                 query = gr.Textbox(
                     placeholder="Ask in English or French…",
@@ -713,8 +674,13 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
         # ── wiring ────────────────────────────────────────────────────────
         ask_outputs = [chat, sess, artifacts, hitl_row, history, recent]
         ask_inputs = [query, lang, source, max_hops, show_bbox, history, sess, artifacts]
+        pages_out = [pages_gallery, pages_acc]
+        clear_pages = (lambda: (gr.update(value=[]), gr.update(open=False)))
+
         ask_event_a = ask_btn.click(on_ask, inputs=ask_inputs, outputs=ask_outputs)
+        ask_event_a.then(render_pages, [artifacts, show_bbox], pages_out)
         ask_event_b = query.submit(on_ask, inputs=ask_inputs, outputs=ask_outputs)
+        ask_event_b.then(render_pages, [artifacts, show_bbox], pages_out)
 
         stop_btn.click(None, cancels=[ask_event_a, ask_event_b])
 
@@ -722,17 +688,21 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
         edit_btn.click(on_edit, [sess], [edit_box, save_row])
         save_btn.click(on_save_edit, [edit_box, chat, sess], [chat, sess, edit_box, save_row])
         cancel_btn.click(on_cancel_edit, None, [edit_box, save_row])
-        discard_btn.click(on_discard, [chat, sess], [chat, sess, hitl_row, save_row])
+        discard_btn.click(
+            on_discard, [chat, sess], [chat, sess, hitl_row, save_row]
+        ).then(clear_pages, None, pages_out)
 
-        new_btn.click(on_new, [sess], [chat, sess, artifacts, hitl_row, save_row])
+        new_btn.click(
+            on_new, [sess], [chat, sess, artifacts, hitl_row, save_row]
+        ).then(clear_pages, None, pages_out)
 
-        show_bbox.change(on_toggle_bbox, [chat, artifacts, show_bbox], [chat])
+        show_bbox.change(render_pages, [artifacts, show_bbox], pages_out)
         recent.select(on_pick_recent, [history], [query])
         samples.select(
             on_pick_sample,
-            [show_bbox],
+            None,
             [query, lang, source, max_hops, chat, sess, artifacts, hitl_row],
-        )
+        ).then(render_pages, [artifacts, show_bbox], pages_out)
         app.load(on_load, [history], [recent, health_md])
 
     return app
