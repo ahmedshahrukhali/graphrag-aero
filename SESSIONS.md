@@ -4,6 +4,14 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 
 ---
 
+## Session 16 — 2026-05-29 — opus-4.8
+**Commits:** `e8eb8c0`, `885dcda`, `a7f006e`, `b931ec2`, `3b6bc64`
+**Achieved:**
+- Root cause of "nothing changes after edits": app images bake source (no volume) → rebuilt backend+hf-space; all fixes verified live in browser
+- hf-space UX: cross-doc cite-every-claim prompt, sources sorted high→low, lang/source filters wired, citation regex tolerates `§section` so bbox draws; instant cached examples (`build_sample_cache.py`→`sample_cache.json`, 6 queries); Source pages → collapsible full-width preview gallery+reel below composer; HITL gate removed (normal chat); Thought/Sources collapsed
+- **Graph outward hop v1** (`3b6bc64`): concentration-gated `recurring_context_for_occurrences` on the direct `Occurrence→CITES→Regulation` edge; `graph_broaden` trace; rendered into synthesis. 109 graph+agent tests; live = 4 regs / 12 siblings for "engine failure after takeoff" (generic-CAR hubs filtered at deg>15)
+**Left:** recurrence is reg-level-thin (`Finding→Regulation` edge only 1.5% filled, 166/10719) → next = **A** densify LLM finding-extraction (deferred data expansion, highest payoff), **B** cheap-enrich siblings with their own top finding text+page, or **C** fix gemma's uncited clarifying-question hedge on procedure-heavy bare-phrase queries (pre-existing, not the graph). Stack stopped to free CPU/RAM.
+
 ## Session 15 — 2026-05-29 — opus-4.7
 **Commits:** `<this>` hf-space: citation-anchored bbox + inline page gallery (two UI pivots)
 **Achieved:**

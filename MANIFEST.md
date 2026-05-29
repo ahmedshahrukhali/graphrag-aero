@@ -77,20 +77,23 @@ None. All resolved.
 MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, otel/otel-collector-config.yaml, per-dir README placeholders
 
 ## Resume pointer
-**NEXT: open — user to visually click-test the S15 inline-gallery + citation-anchored bbox at :7860, then pick next feature.**
-S15 (session 15, opus-4.7) landed two UI pivots on the hf-space, committed but **not yet
-human-verified visually** (no browser MCP connectable this session): (1) PDF highlights are
-now anchored to the answer's citations via `pdfplumber.Page.search`, no box if the cited span
-isn't found — the mis-placed stored chunk bbox is bypassed; (2) the right "Sources" sidebar is
-gone — source pages render as a zoomable `gr.Gallery` message **inline in the chat** after the
-answer, chunk snippets folded into the "📑 Sources" accordion. Both pivots + revert paths are
-documented in `hf_space/README.md` ("Design notes — S15 pivots"). Stack is left UP at :7860
-(`docker compose stop` to free GPU/RAM). hf-space tests green (pdf_render +6: search_page_bbox
-hit/miss/empty/error, locate_text hit/miss).
-Candidate next work after visual confirm: (a) the **real** bbox fix upstream in
-`ingestion/processing/chunk.py::_join_pages` (char→bbox alignment desync) so the stored bbox is
-trustworthy; (b) pre-existing reranker dtype / tokenizer "Already borrowed" concurrency bug if it
-recurs under load; (c) the trycloudflare.com tunnel exposing /retrieve — confirm intended or shut down.
+**NEXT: open — pick A / B / C on the graph-native breadth direction (see S16 "Left").**
+S16 (opus-4.8) shipped a full hf-space UX overhaul (verified live in-browser) + **graph-native
+breadth v1**: a concentration-gated outward hop (`graph.query.recurring_context_for_occurrences`)
+that, when retrieval anchors on few docs, surfaces *other* occurrences citing the same regulations
+and feeds them (cited) into synthesis. Gate + counts are in the `graph_broaden` trace step.
+Live-verified working: 4 regs / 12 siblings for "engine failure after takeoff", generic-CAR hubs
+filtered at `deg>15`. Plan: `~/.claude/plans/is-the-graph-good-rustling-whale.md`.
+**Empirical answer to "is the graph good enough": structurally yes, semantically thin.** The
+populated edge is `Occurrence→CITES→Regulation` (reg-id only, ~875 edges); the rich
+`Finding→CITES→Regulation` edge is ~1.5% filled (166/10719), so recurrence has no finding text to
+synthesize richly — siblings cite at `[tsb/<id>]` report level only.
+Next options: **(A)** densify LLM finding-extraction so findings link their regs — the deferred
+data expansion, highest payoff; **(B)** cheap — enrich each sibling with its own top finding
+(text+page); **(C)** separate synthesis bug — gemma hedges with an *uncited clarifying question*
+on procedure-heavy bare-phrase queries (e.g. "engine failure after takeoff"); pre-existing, not
+the hop. Stack **stopped** this session to free CPU/RAM — resume with
+`docker compose up -d qdrant neo4j postgres ollama otel-collector` then `docker compose up -d backend hf-space`.
 
 **S5 = Live-verify Gradio 5 chat rebuild** ☑ (session 14, opus-4.7, 2026-05-28) — functional core verified live; visual click-through handed to S6.
 
