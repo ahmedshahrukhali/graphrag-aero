@@ -4,6 +4,14 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 
 ---
 
+## Session 17 — 2026-05-30 — opus-4.8
+**Commits:** `e3974fd`
+**Achieved:**
+- Finished + committed unlogged WIP from a token-limited session: hf-space **Corpus / Graph / Eval tabs** alongside Chat (`gr.Tabs()` in center pane), all over the existing FastAPI backend — no new ML in the Space.
+- corpus_tab = retrieve+rerank search w/ PDF bbox preview; graph_tab = per-doc KG lookup via new `ApiClient.graph_lookup` → `GET /graph/{doc_id}`; eval_tab = live Recall@k/MRR/nDCG bench w/ embedded 4-query dataset (metrics inlined, no eval/ dep).
+- Verified: 15 new tab tests green on host; `make_app()` builds all 4 tabs in the hf-space image (gradio 5.50.0, offline stub client).
+**Left:** WIP only *committed*, not deployed — HF Space not redeployed (stack stopped, no tunnel). Graph-native breadth **A/B/C decision still open** (see S16). `image1.png` at repo root left untracked (unrelated screenshot).
+
 ## Session 16 — 2026-05-29 — opus-4.8
 **Commits:** `e8eb8c0`, `885dcda`, `a7f006e`, `b931ec2`, `3b6bc64`
 **Achieved:**

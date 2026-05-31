@@ -78,6 +78,10 @@ MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, o
 
 ## Resume pointer
 **NEXT: open — pick A / B / C on the graph-native breadth direction (see S16 "Left").**
+S17 (opus-4.8) cleared the one outstanding loose end: an unlogged, uncommitted WIP from a
+token-limited session — the hf-space **Corpus / Graph / Eval tabs** — is now finished and
+committed (`e3974fd`), with `make_app()` verified to build all 4 tabs in the image + 15 green
+tab tests. Not redeployed (stack stopped). Decision below is unchanged.
 S16 (opus-4.8) shipped a full hf-space UX overhaul (verified live in-browser) + **graph-native
 breadth v1**: a concentration-gated outward hop (`graph.query.recurring_context_for_occurrences`)
 that, when retrieval anchors on few docs, surfaces *other* occurrences citing the same regulations
