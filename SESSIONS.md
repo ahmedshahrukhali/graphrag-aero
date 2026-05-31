@@ -14,7 +14,13 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 - **Deploy gotcha found** (wasted one cycle): Space Dockerfile `COPY hf_space /app/hf_space` + `python -m hf_space.app` → only the `hf_space/` SUBDIR is build-authoritative. Must upload `path_in_repo="hf_space"`, NOT `"."`. Saved as project memory.
 - **Undeployed** on request: Space PAUSED, tunnel killed; rebuilt local hf-space image + brought up at **http://localhost:7860** (4 tabs verified).
 - **PDF highlight Phase 1 shipped** (`1411efd`): two-tier multi-occurrence highlight. `search_page_terms` boxes every on-page query-term hit (title + all mentions, light wash) under the solid cited box; `_query_terms` (EN+FR stopword filter) feeds them. Render-only, no re-ingest. Live-verified on tsb/a13q0098 p.3 (8 boxes incl. all 4 title words; title solid, body washed — screenshot inspected). +13 tests, full hf_space suite green in-image.
-**Left:** **PDF highlight Phase 2** (OCR/scanned pages) — agreed but not started: needs per-line OCR bbox persisted through chunk→embed→backend→Space + re-ingest of OCR docs; START with measuring how many image-only pages are actually in the live index. Graph-native breadth **A/B/C** still open (S16). Stack left UP (local :7860, :8080). `image1.png` untracked. Stale root-level dupes on Space repo (harmless).
+- **PDF highlight Phase 2a shipped** (`9cf7748`): red-box figures on cited pages — `page_image_bboxes` reads pdfplumber `page.images`; `render_page_with_bbox(box_images=True)` draws red outline (no fill). No image *understanding* (no VLM in budget) — just marks figures. Render-only, no re-ingest. Live-verified tsb/a13q0098 p.60 (both aerial photos boxed red). +4 tests.
+**Left (user-directed roadmap, S17):**
+- **About tab** — What/Why/How of the project. Authoring pre-approved by user. Not started.
+- **3D embedding-space tab** — Plotly 3D scatter of BGE-M3 vectors (UMAP/PCA→3D), colored by source/lang, hover=doc/snippet. **Keep the existing Neo4j graph_tab too** (user: keep both). Data must come via a backend endpoint, NOT direct neo4j/qdrant — deployed Space has no DB route (only the tunnel to backend). Not started.
+- **PDF highlight Phase 2b** — scanned/image-only pages: persist per-line OCR bbox (ocr.py already computes it) through Chunk→chunk JSON→Qdrant payload→backend→`RetrievedChunk`, use in pdf_render when text-layer search is empty. Requires re-ingest (= `processing.run` picks up the ~670 image-heavy + new TC PDFs, idempotent, OCR runs anyway; +1 metadata field) then `embed.run`. User ready; land the chunk/ocr code BEFORE kicking off the hours-long run.
+- Graph-native breadth A/B/C (Neo4j recurrence) — **parked** (user doesn't want it now).
+- Stack UP (local :7860/:8080). Space PAUSED. `image1.png` untracked.
 
 ## Session 16 — 2026-05-29 — opus-4.8
 **Commits:** `e8eb8c0`, `885dcda`, `a7f006e`, `b931ec2`, `3b6bc64`

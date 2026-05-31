@@ -77,17 +77,20 @@ None. All resolved.
 MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, otel/otel-collector-config.yaml, per-dir README placeholders
 
 ## Resume pointer
-**NEXT (two open tracks):**
-**(1) PDF highlight Phase 2 — OCR/scanned pages.** Phase 1 shipped S17 (`1411efd`):
-two-tier multi-occurrence highlight (title + all query-term mentions washed, cited span
-solid), render-only, live-verified on tsb/a13q0098. Phase 2 = highlight scanned pages where
-the text layer is empty: the Space can't OCR, so per-line OCR bboxes (already captured in
-`ocr.py` but collapsed by the chunker) must be persisted through Chunk→chunk JSON→Qdrant
-payload→backend source→`RetrievedChunk`, then used in `pdf_render` when `page.search` finds
-nothing. **START by measuring** how many image-only pages are actually in the live index
-(~670 image-heavy PDFs were *skipped* at 74% during processing, so coverage may be near-zero
-— may not be worth the re-ingest until those docs are processed).
-**(2) Graph-native breadth — pick A / B / C (see S16 "Left").**
+**NEXT — user-directed S17 roadmap (do in order; per-phase HITL pause between each):**
+PDF highlight Phase 1 (`1411efd`, two-tier term/title highlight) + Phase 2a (`9cf7748`,
+red-box figures via `page.images`) are DONE, render-only, live-verified.
+1. **About tab** — What/Why/How (problem, architecture, pipeline, stack). Authoring pre-approved.
+2. **3D embedding-space tab** — Plotly 3D scatter of the 63,946 BGE-M3 vectors
+   (UMAP/PCA→3D), colored by source/lang, hover=doc+snippet. **Keep the Neo4j graph_tab too.**
+   Vectors via a NEW backend endpoint (deployed Space has no direct DB route — only the
+   backend tunnel). Likely precompute the projection (script → cached JSON served by backend).
+3. **PDF highlight Phase 2b (OCR scanned pages)** — persist per-line OCR bbox
+   (`ocr.py:70-87`, currently discarded) through Chunk→chunk JSON→Qdrant payload→backend
+   →`RetrievedChunk`; use in `pdf_render` when text-layer search is empty. Then **re-ingest**:
+   `processing.run` (idempotent — picks up the ~670 image-heavy + new TC PDFs, OCR runs anyway,
+   +1 metadata field) → `embed.run`. Land the code BEFORE the hours-long run.
+**Parked:** graph-native breadth A/B/C (Neo4j recurrence quality) — user deprioritized.
 S17 (opus-4.8) cleared the one outstanding loose end: an unlogged, uncommitted WIP from a
 token-limited session — the hf-space **Corpus / Graph / Eval tabs** — is now finished and
 committed (`e3974fd`), with `make_app()` verified to build all 4 tabs in the image + 15 green
