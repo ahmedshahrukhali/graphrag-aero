@@ -149,6 +149,36 @@ def _cited_keys(answer: str) -> set[tuple[str, int]]:
     return keys
 
 
+# Function words (EN + FR) dropped before highlighting query terms — boxing
+# "the"/"de" everywhere would be noise, not signal.
+_TERM_STOPWORDS = {
+    "the", "and", "for", "with", "from", "into", "after", "before", "that",
+    "this", "was", "were", "are", "has", "had", "not", "but", "its",
+    "les", "des", "une", "dans", "pour", "par", "sur", "avec", "que", "qui",
+    "aux", "est", "ont", "une", "lors", "apres", "avant",
+}
+
+
+def _query_terms(query: str, *, max_terms: int = 8) -> tuple[str, ...]:
+    """Significant terms from the user's query, for on-page highlighting.
+
+    Lowercased word tokens (EN + FR letters), minus stopwords and sub-3-char
+    tokens, deduped, capped. These light up the title + every mention — e.g.
+    "fuel exhaustion forced landing" → ("fuel","exhaustion","forced","landing"),
+    which hits the report title "Forced Landing Following Fuel Exhaustion".
+    """
+    out: list[str] = []
+    seen: set[str] = set()
+    for tok in re.findall(r"[A-Za-zÀ-ÿ]+", (query or "").lower()):
+        if len(tok) < 3 or tok in _TERM_STOPWORDS or tok in seen:
+            continue
+        seen.add(tok)
+        out.append(tok)
+        if len(out) >= max_terms:
+            break
+    return tuple(out)
+
+
 def _gallery_items(
     retrieve: RetrieveResponse,
     *,
@@ -158,6 +188,7 @@ def _gallery_items(
 ) -> list[tuple[Any, str]]:
     citations = citations or {}
     cited_keys = cited_keys or set()
+    terms = _query_terms(retrieve.query)
     items: list[tuple[Any, str]] = []
     for c in retrieve.results:
         key = (c.doc_id, c.page)
@@ -180,6 +211,7 @@ def _gallery_items(
                 c.source_url, c.page, c.bbox,
                 draw_bbox=do_box,
                 locate_text=locate if do_box else None,
+                terms=terms if do_box else (),
             )
             items.append((img, caption))
         except PdfRenderError as e:

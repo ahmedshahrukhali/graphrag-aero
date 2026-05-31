@@ -12,6 +12,7 @@ pytest.importorskip("gradio")
 from hf_space.app import (
     _cited_keys,
     _parse_citations,
+    _query_terms,
     _sources_to_retrieve,
     _thought_from_trace,
 )
@@ -72,6 +73,37 @@ def test_parse_citations_still_captures_quotes_when_present():
 def test_parse_citations_captures_quote_after_section_title_tag():
     answer = 'The report [tsb/a01 p.4 §SUMMARY] states that "the engine failed".'
     assert _parse_citations(answer) == {("tsb/a01", 4): "the engine failed"}
+
+
+def test_query_terms_drops_stopwords_and_short_tokens():
+    # "for" is a stopword; "of"/"in" are <3 chars → dropped.
+    assert _query_terms("fuel exhaustion forced landing") == (
+        "fuel", "exhaustion", "forced", "landing",
+    )
+
+
+def test_query_terms_dedupes_and_lowercases():
+    assert _query_terms("Engine ENGINE failure") == ("engine", "failure")
+
+
+def test_query_terms_handles_french_accents():
+    terms = _query_terms("décrochage et collision avec le relief")
+    assert "décrochage" in terms
+    assert "collision" in terms
+    assert "relief" in terms
+    assert "et" not in terms  # <3 chars
+    assert "avec" not in terms  # FR stopword
+
+
+def test_query_terms_caps_count():
+    words = ["alpha", "bravo", "charlie", "delta", "echo", "foxtrot",
+             "golf", "hotel", "india", "juliet", "kilo", "lima"]
+    assert len(_query_terms(" ".join(words), max_terms=8)) == 8
+
+
+def test_query_terms_empty():
+    assert _query_terms("") == ()
+    assert _query_terms("  the and of  ") == ()
 
 
 def test_thought_from_trace_renders_each_node():

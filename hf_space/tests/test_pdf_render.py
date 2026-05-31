@@ -18,6 +18,7 @@ from hf_space.pdf_render import (
     bbox_to_pixels,
     render_page_with_bbox,
     search_page_bbox,
+    search_page_terms,
 )
 
 
@@ -133,6 +134,60 @@ def test_search_page_bbox_swallows_search_errors():
     assert search_page_bbox(fake_page, "some text") is None
 
 
+def test_search_page_terms_collects_all_hits_across_terms():
+    """Every occurrence of every term is collected (not just the first)."""
+    fake_page = MagicMock()
+    fake_page.search.side_effect = [
+        # term "fuel" → two hits
+        [{"x0": 10.0, "top": 10.0, "x1": 40.0, "bottom": 22.0},
+         {"x0": 10.0, "top": 80.0, "x1": 40.0, "bottom": 92.0}],
+        # term "landing" → one hit (e.g. in the title)
+        [{"x0": 60.0, "top": 5.0, "x1": 120.0, "bottom": 18.0}],
+    ]
+    boxes = search_page_terms(fake_page, ("fuel", "landing"))
+    assert len(boxes) == 3
+    assert (60.0, 5.0, 120.0, 18.0) in boxes
+    assert fake_page.search.call_count == 2
+
+
+def test_search_page_terms_dedupes_identical_boxes():
+    fake_page = MagicMock()
+    fake_page.search.side_effect = [
+        [{"x0": 10.0, "top": 10.0, "x1": 40.0, "bottom": 22.0}],
+        # "fuels" matches the same span as "fuel" — should not double-count.
+        [{"x0": 10.0, "top": 10.0, "x1": 40.0, "bottom": 22.0}],
+    ]
+    boxes = search_page_terms(fake_page, ("fuel", "fuels"))
+    assert len(boxes) == 1
+
+
+def test_search_page_terms_caps_box_count():
+    fake_page = MagicMock()
+    fake_page.search.return_value = [
+        {"x0": float(i), "top": float(i), "x1": float(i) + 5, "bottom": float(i) + 5}
+        for i in range(100)
+    ]
+    boxes = search_page_terms(fake_page, ("fuel",), max_boxes=10)
+    assert len(boxes) == 10
+
+
+def test_search_page_terms_swallows_search_errors_per_term():
+    fake_page = MagicMock()
+    fake_page.search.side_effect = [
+        RuntimeError("boom"),
+        [{"x0": 1.0, "top": 1.0, "x1": 2.0, "bottom": 2.0}],
+    ]
+    # First term raises, second still contributes its hit.
+    boxes = search_page_terms(fake_page, ("bad", "good"))
+    assert len(boxes) == 1
+
+
+def test_search_page_terms_empty_terms_returns_empty():
+    fake_page = MagicMock()
+    assert search_page_terms(fake_page, ()) == []
+    fake_page.search.assert_not_called()
+
+
 def _fake_pdf_with_searchable_page(search_return):
     """A one-page fake pdf whose page.search returns ``search_return``."""
     fake_page_image = MagicMock()
@@ -181,6 +236,41 @@ def test_render_with_locate_text_miss_leaves_page_bare():
     fake_page.search.assert_called_once()
     # No match → no overlay → every pixel still white.
     assert all(px == (255, 255, 255) for px in out.getdata())
+
+
+def test_render_with_terms_draws_wash_even_when_cited_span_misses():
+    """Term mentions (incl. the title) light up independently of the cited box.
+
+    The cited-span probe (multi-word, joined by ``\\s+``) misses, but the
+    single-term searches hit — so washes still render.
+    """
+    pdf_render.render_page_with_bbox.cache_clear()
+    fake_page_image = MagicMock()
+    fake_page_image.original = _white_pil(800, 1000)
+    fake_page = MagicMock()
+    fake_page.to_image.return_value = fake_page_image
+
+    def search_side(pattern, regex=False, case=True):
+        if "\\s+" in pattern:          # the cited-span probe → not found
+            return []
+        return [{"x0": 100.0, "top": 100.0, "x1": 300.0, "bottom": 120.0}]
+
+    fake_page.search.side_effect = search_side
+    fake_pdf = MagicMock()
+    fake_pdf.pages = [fake_page]
+    fake_pdf.__enter__.return_value = fake_pdf
+    fake_pdf.__exit__.return_value = False
+
+    with patch.object(pdf_render, "_download_pdf", return_value=b"%PDF\n%%EOF"), \
+         patch("pdfplumber.open", return_value=fake_pdf):
+        out = render_page_with_bbox(
+            "https://example.test/terms.pdf", page=1,
+            bbox=(0.0, 0.0, 1.0, 1.0), dpi=72,
+            locate_text="cited span not present", terms=("fuel", "landing"),
+        )
+
+    # Cited span missed, but term washes were drawn → some non-white pixels.
+    assert any(px != (255, 255, 255) for px in out.getdata())
 
 
 def test_render_page_out_of_range_raises():

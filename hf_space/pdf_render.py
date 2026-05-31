@@ -62,12 +62,32 @@ def _download_pdf(url: str, *, timeout: float = 30.0) -> bytes:
     return r.content
 
 
-def _draw_bbox(img: Image.Image, pixel_bbox: tuple[int, int, int, int]) -> Image.Image:
-    """Draw a translucent rectangle + outline on a copy of ``img``."""
+# Two highlight tiers, drawn over the same amber hue:
+#   CITED — the exact passage the answer quoted: solid fill + bold outline.
+#   TERM  — every other on-page occurrence of a query term (incl. the title):
+#           a lighter wash + thin outline, so the page reads as "captured"
+#           without the cited span getting lost in the crowd.
+# Each style is (fill_rgba, outline_rgba, outline_width).
+_STYLE_CITED = ((245, 158, 11, 64), (245, 158, 11, 255), 3)
+_STYLE_TERM = ((245, 158, 11, 34), (245, 158, 11, 140), 1)
+
+Style = Tuple[Tuple[int, int, int, int], Tuple[int, int, int, int], int]
+
+
+def _draw_boxes(
+    img: Image.Image,
+    boxes: list[tuple[tuple[int, int, int, int], Style]],
+) -> Image.Image:
+    """Draw a list of ``(pixel_bbox, style)`` rectangles on a copy of ``img``.
+
+    Boxes are drawn in list order onto one overlay, so callers should pass the
+    lighter TERM washes first and the solid CITED box last (drawn on top).
+    """
     out = img.convert("RGBA")
     overlay = Image.new("RGBA", out.size, (0, 0, 0, 0))
     drw = ImageDraw.Draw(overlay)
-    drw.rectangle(pixel_bbox, fill=(245, 158, 11, 64), outline=(245, 158, 11, 255), width=3)
+    for pixel_bbox, (fill, outline, width) in boxes:
+        drw.rectangle(pixel_bbox, fill=fill, outline=outline, width=width)
     return Image.alpha_composite(out, overlay).convert("RGB")
 
 
@@ -100,6 +120,42 @@ def search_page_bbox(page, needle: str) -> BBox | None:
     return (float(h["x0"]), float(h["top"]), float(h["x1"]), float(h["bottom"]))
 
 
+# A page with 40× "fuel" shouldn't turn into confetti — cap the wash boxes.
+_MAX_TERM_BOXES = 25
+
+
+def search_page_terms(
+    page, terms: tuple[str, ...], *, max_boxes: int = _MAX_TERM_BOXES
+) -> list[BBox]:
+    """Return the bbox of every occurrence of each term in ``terms`` on
+    ``page`` (case-insensitive), deduped and capped at ``max_boxes``.
+
+    Unlike :func:`search_page_bbox` (which keeps only the first hit of one
+    span), this collects *all* hits — that's what lights up the title and the
+    repeated mentions, demonstrating retrieval coverage on the page.
+    """
+    boxes: list[BBox] = []
+    seen: set[tuple[int, int, int, int]] = set()
+    for term in terms:
+        t = term.strip()
+        if not t:
+            continue
+        try:
+            hits = page.search(re.escape(t), regex=True, case=False)
+        except Exception:  # noqa: BLE001 — pdfplumber search is best-effort
+            continue
+        for h in hits:
+            bb = (float(h["x0"]), float(h["top"]), float(h["x1"]), float(h["bottom"]))
+            key = (round(bb[0]), round(bb[1]), round(bb[2]), round(bb[3]))
+            if key in seen:
+                continue
+            seen.add(key)
+            boxes.append(bb)
+            if len(boxes) >= max_boxes:
+                return boxes
+    return boxes
+
+
 @lru_cache(maxsize=64)
 def render_page_with_bbox(
     pdf_url: str,
@@ -109,20 +165,24 @@ def render_page_with_bbox(
     dpi: int = DEFAULT_DPI,
     draw_bbox: bool = True,
     locate_text: str | None = None,
+    terms: tuple[str, ...] = (),
 ) -> Image.Image:
     """Return a PIL Image of ``page`` of the PDF at ``pdf_url``.
 
     ``page`` is 1-indexed (matches ``RetrievedChunk.page`` from the backend).
 
-    Highlight behaviour:
+    Highlight behaviour (two tiers, see ``_STYLE_CITED`` / ``_STYLE_TERM``):
     - ``draw_bbox=False`` → bare page, no overlay (the UI bbox toggle).
+    - ``terms`` given → every on-page occurrence of those query terms gets a
+      light wash (this is what lights up the document title and the repeated
+      mentions). Drawn under the cited box.
     - ``locate_text`` given → search the page for that text and box the
-      *matched span*. If the text isn't found, return the bare page (no
-      misleading box). This is the citation-anchored path the UI uses; the
-      coarse stored ``bbox`` is intentionally ignored here.
-    - ``locate_text=None`` (legacy) → draw the stored ``bbox``.
+      *matched span* solid on top. If the text isn't found, no solid box is
+      drawn (no misleading highlight); any term washes still render. The
+      coarse stored ``bbox`` is intentionally ignored on this path.
+    - ``locate_text=None`` and no ``terms`` (legacy) → draw the stored ``bbox``.
 
-    All args are part of the LRU cache key.
+    All args are part of the LRU cache key (``terms`` must be a tuple).
 
     Raises :class:`PdfRenderError` on download / parse / out-of-range failures.
     """
@@ -137,6 +197,7 @@ def render_page_with_bbox(
             page_image = p.to_image(resolution=dpi)
             pil = page_image.original.copy()
             located = search_page_bbox(p, locate_text) if (draw_bbox and locate_text) else None
+            term_boxes = search_page_terms(p, terms) if (draw_bbox and terms) else []
     except PdfRenderError:
         raise
     except Exception as e:  # noqa: BLE001
@@ -144,10 +205,20 @@ def render_page_with_bbox(
 
     if not draw_bbox:
         return pil
-    if locate_text is not None:
-        # Citation-anchored: draw only if we actually located the span.
-        if located is None:
-            return pil
-        return _draw_bbox(pil, bbox_to_pixels(located, dpi=dpi))
-    # Legacy path: draw the stored bbox.
-    return _draw_bbox(pil, bbox_to_pixels(bbox, dpi=dpi))
+
+    draw_list: list[tuple[tuple[int, int, int, int], Style]] = []
+    # Term washes first (drawn underneath the cited box).
+    for tb in term_boxes:
+        draw_list.append((bbox_to_pixels(tb, dpi=dpi), _STYLE_TERM))
+
+    if locate_text is not None or terms:
+        # Citation-anchored path: solid box only if the span was located.
+        if located is not None:
+            draw_list.append((bbox_to_pixels(located, dpi=dpi), _STYLE_CITED))
+    else:
+        # Legacy path: draw the stored bbox solid.
+        draw_list.append((bbox_to_pixels(bbox, dpi=dpi), _STYLE_CITED))
+
+    if not draw_list:
+        return pil
+    return _draw_boxes(pil, draw_list)
