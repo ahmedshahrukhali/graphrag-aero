@@ -9,11 +9,12 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 **Achieved:**
 - **Cross-check fix:** SESSIONS S17 commit list was 1 of 10 (entry written on first commit); S18 was `_(this commit)_` placeholder. Backfilled both. Fixed REINGEST §7 step-2 "word boxes" → `page_bboxes` (contradicted the §4.1 reset) + MANIFEST LLM row now flags the Qwen3-8B swap-under-eval.
 - **WS-0 schema freeze DONE** (code-of-record): `page_bboxes` (region-level, one rect per page the chunk touches), `corpus` tag, `kind` discriminator frozen through the whole chain (chunk.Chunk + new `_page_bboxes_for_range`/`_page_union_bbox` → DocRef.corpus → run._chunk_to_record → embed.jsonl.ChunkRecord → agent.state → backend.schemas → hf_space.api_client). All additive/optional → existing 63,946-pt index still hydrates (derive page_bboxes from legacy `(page,bbox)`, corpus from doc_id prefix). +8 tests, full suite **366 passed**.
-- **Haiku subagent dispatched** for the Qwen3-8B VRAM measurement → **stopped: Docker Desktop not running** (GPU confirmed: 3060 Ti, 8 GB, 404 MB used). Correctly did not start Docker itself.
-**Left (resume here):**
-- Qwen3-8B VRAM measure (start Docker → re-dispatch Haiku runbook).
-- WS-A (ZH scraper, fail-fast), then WS-B (region render — schema now frozen).
-- Curation admission criteria (§3) not yet frozen; About tab still pending.
+- **WS-0 VRAM measurement DONE** (resumed next day; Docker was down → senior started Docker Desktop, re-dispatched Haiku). qwen3:8b Q4_K_M = **6.2 GB / 8 GB, 100% GPU, ~1.8 GB free → FITS** (`docs/ws0_vram_measurement.md`). Swap is no longer VRAM-gated, only quality-gated. → **WS-0 fully closed.**
+- Wrote **`docs/NEXT_SESSION.md`** (self-contained WS-B + WS-A + Qwen bake-off brief); stack shut down + resources returned at session end.
+**Left (resume here → see docs/NEXT_SESSION.md):**
+- **WS-B** region render (draw `page_bboxes`, delete `page.search`) — recommended first, schema frozen.
+- **WS-A** ZH scraper (fail-fast); first place `corpus=caac`/`zh` lang enter.
+- Qwen3-8B bake-off (EN+ZH answer quality; qwen3:8b already pulled). Curation criteria (§3) + About tab still pending.
 
 ## Session 18 — 2026-05-31 — opus-4.8
 **Commits:** `201cc06`, `aaf41a1`

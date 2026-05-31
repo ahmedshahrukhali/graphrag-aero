@@ -96,13 +96,18 @@ full `chunk.Chunk → DocRef.corpus → run._chunk_to_record → embed.jsonl.Chu
 backend.schemas.RetrievedChunk → hf_space.api_client.RetrievedChunk` chain — all additive/optional,
 so the existing 63,946-pt index still hydrates (page_bboxes derived from legacy `(page,bbox)`,
 corpus from doc_id prefix, kind=text). +8 tests, full suite **366 passed**. See REINGEST_PLAN §6 WS-0.
-Immediate next actions (in order):
-1. **Qwen3-8B VRAM measurement** — BLOCKED: Docker Desktop not running (GPU confirmed: 3060 Ti, 8 GB).
-   Start Docker, then re-dispatch the Haiku runbook (REINGEST_PLAN §6 WS-0 / §10).
-2. **WS-A** — ZH source spike (caac.gov.cn ACs GREEN + ASN-as-index → primary PDFs). Fail-fast.
-3. **WS-B** — region-grounding render: carry `page_bboxes` into `hf_space/pdf_render.py`, draw the
-   stored rect(s), **delete the `page.search` path**. Schema is now frozen, so B is safe to start.
-Also still pending (pre-approved, independent): **About tab** — What/Why/How.
+**WS-0 is now FULLY CLOSED** (S19): schema freeze (`62b5fa3`) **+** Qwen3-8B VRAM measurement
+(`docs/ws0_vram_measurement.md` — 6.2 GB / 8 GB, 100% GPU, ~1.8 GB free → **FITS**; the swap is no
+longer VRAM-gated, only quality-gated). **Next session: read [docs/NEXT_SESSION.md](docs/NEXT_SESSION.md)**
+— self-contained briefs for the next steps (in order):
+1. **WS-B** — region-grounding render: draw the stored `page_bboxes` in `hf_space/pdf_render.py`,
+   **delete the `page.search` path**. Lowest risk, schema frozen — recommended first.
+2. **WS-A** — ZH source spike (caac.gov.cn ACs GREEN + ASN-as-index → primary PDFs only). Fail-fast;
+   this is where `corpus=caac` + `zh` lang first enter (extend doc_id/embed/backend filters).
+3. **Qwen3-8B bake-off** — VRAM settled; decide the swap on EN+ZH answer quality (qwen3:8b already
+   pulled in Ollama).
+Still pending (pre-approved, independent): **About tab** — What/Why/How. Still unfrozen: curation
+admission criteria (§3) — freeze before WS-F.
 **Parked:** graph-native breadth A/B/C (Neo4j recurrence quality) — user deprioritized.
 S17 (opus-4.8) cleared the one outstanding loose end: an unlogged, uncommitted WIP from a
 token-limited session — the hf-space **Corpus / Graph / Eval tabs** — is now finished and

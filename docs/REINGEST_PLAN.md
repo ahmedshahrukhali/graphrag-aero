@@ -165,9 +165,11 @@ ingest and rendered directly. No re-search, no word index.
 Two independent swaps, decide each by measurement on *our* docs (not benchmarks):
 - **Generation `gemma2:9b` → `Qwen3-8B`.** Better-justified now the corpus is bilingual: Qwen3 is
   markedly stronger on Chinese/CJK, and the agent will synthesize answers over ZH ACs.
-  **VRAM caveat:** Qwen3-8B Q4_K_M benches ~7–9 GB vs gemma2's ~5.5 GB — the §VRAM plan budgets a
-  6.5 GB peak on the 8 GB 3060Ti. **Measure the real quant footprint in WS-0**; may need Q4_K_S or
-  to confirm it's sole-resident at generation time (reranker/embed already unloaded).
+  **VRAM caveat RESOLVED (WS-0, haiku-4.5, 2026-05-31):** the suspected 7–9 GB was pessimistic —
+  qwen3:8b Q4_K_M measures **6.2 GB / 8 GB, 100% GPU, ~1.8 GB free** (`docs/ws0_vram_measurement.md`).
+  No Q4_K_S needed. Safe *only* as sole resident at generation time, which the existing
+  `ModelSession` + `synthesize_node.unload()` already enforce. **VRAM is no longer the gate** — the
+  swap now hinges purely on the answer-quality bake-off below.
 - **8B VL on the figure tier** (§4.2) — collapses Florence-2 + Moondream2 into one model.
   Candidates: **Qwen3-VL-8B** (rel. 2025-10-15, on Ollama `qwen3-vl:8b`; 32-lang OCR, robust to
   blur/tilt, normalized 2D grounding, **leads OCRBench** open-weight) vs **InternVL3-8B** (OpenGVLab,
@@ -223,8 +225,11 @@ changes what gets written to disk / Qdrant / Neo4j must be **frozen before it**.
     All new fields are **optional + backward-derived** so the existing 63,946-pt index still
     hydrates (page_bboxes derived from legacy `(page,bbox)`; corpus from doc_id prefix; kind=text).
     +8 tests; full suite **366 passed**. Chunking window left at fixed-512 (§4.5 deferred).
-  - **⏳ Qwen3-8B VRAM measurement PENDING — blocked on Docker Desktop not running.** GPU confirmed
-    (RTX 3060 Ti, 8 GB, 404 MB used). Haiku runbook ready; re-dispatch once Docker is up.
+  - **☑ Qwen3-8B VRAM measurement DONE (haiku-4.5, 2026-05-31)** — `docs/ws0_vram_measurement.md`.
+    qwen3:8b (8.2B, Q4_K_M) loads to **6.2 GB / 8 GB, 100% GPU, 0 CPU spill, ~1.8 GB free**. **FITS.**
+    +0.7 GB vs gemma2:9b's ~5.5 GB; safe only while reranker+embed are unloaded at generation time
+    (the existing `ModelSession`/`synthesize_node.unload()` discipline already guarantees this).
+    → The swap is VRAM-viable; gate the actual swap on the §4.6 answer-quality bake-off, not VRAM.
   - **TODO (not yet frozen): curation admission criteria (§3).** Deferred to before WS-F.
 - **WS-A — ZH source spike** *(early; fail-fast)*. Stand up the `data/corpus/zh/` scraper: Axis 1
   (caac.gov.cn ACs, GREEN) + Axis 2 via ASN-as-index → primary PDFs only (AMBER, §2). Goal: prove
