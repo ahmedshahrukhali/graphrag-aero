@@ -1,8 +1,15 @@
 # Re-ingest Program — Plan
 
-**Author:** opus-4.8 (S17, 2026-05-31) · **Status:** APPROVED scope, NOT STARTED
+**Author:** opus-4.8 (S17, 2026-05-31) · **Revised:** opus-4.8 (S18, 2026-05-31) · **Status:** APPROVED scope + ZH sources, NOT STARTED
 **Purpose:** a self-contained brief so a fresh session can execute the "big re-ingest"
 without re-deriving context. Read this + `MANIFEST.md` resume pointer, then start at §6.
+
+**S18 revision:** ZH sourcing RESOLVED (§2 — two verified axes, approved). Work re-sequenced
+around a write-shape freeze (§6 — new WS-0). **Bbox approach RESET (§4.1): word-level highlighting
+scrapped; grounding is now region-level from the chunk's own stored bbox — kills the S15 desync,
+the word-box payload, and per-word OCR.** Model swap under evaluation (§4.6): gemma2:9b → Qwen3-8B
+generation + Qwen3-VL-8B on the figure tier, both decided by bake-off. Overnight-run monitoring
+runbook for Haiku added (§10).
 
 ---
 
@@ -37,21 +44,38 @@ everything. Every doc admitted should be justifiable.
 
 ---
 
-## 2. The hard unknown — Chinese corpus sourcing (GATING; do first)
+## 2. Chinese corpus sourcing — RESOLVED (S18, approved 2026-05-31)
 
-Recon (S17) found **no clean public CAAC PDF index** like TSB's. This is the single biggest
-risk and **gates the ZH half of the program**. First deliverable of a fresh session:
+S17 feared no clean public CAAC index. S18 recon found **two clean, enumerable ZH sources**,
+each a topical twin of an existing corpus half. **Approved: ingest both, ACs as the spine.**
+The §2 gate is closed; the EN/TC word-bbox + figure work (§4.1–4.3) is still independent of ZH
+and can land first regardless.
 
-- **Recon** reachable, license-clear Chinese aviation-safety documents. Candidates to probe:
-  CAAC Chinese site (`caac.gov.cn` 中文), CAAC monthly/annual safety bulletins, Aviation
-  Safety Network (ASN) Chinese entries, ICAO accident report repository, HK CAD / Macau,
-  academic / Kaggle datasets, university aviation-safety archives.
-- **Output:** a target set + a scraper modeled on `ingestion/acquisition/` (rate-limited,
-  robots-respecting, idempotent), writing to `data/corpus/zh/<source>/`.
-- **Decision gate:** if no adequate aviation ZH corpus is reachable, surface fallback options
-  (an adjacent CJK-heavy safety/technical domain) and **ask** — do **not** silently substitute.
-  The whole "similar docs, different language" story depends on topical similarity to EN/TC.
-- The EN/TC word-bbox + figure work (§4.1–4.3) is **independent of ZH** and can land first.
+### Axis 1 (spine) — Advisory Circulars: CAAC 咨询通告 ↔ Transport Canada AC
+- Primary government PDFs: `https://www.caac.gov.cn/XXGK/XXGK/GFXWJ/{YYYYMM}/P{…}.pdf`.
+- Same *genre* + same `AC-xxx` numbering as TC ACs (airworthiness / maintenance / flight
+  standards) → the "same docs, different language" overlap is honest, not forced.
+- **Enumerable:** GFXWJ monthly folders + the self-describing catalog AC `AC-01-AA-2017-01R26`
+  ("发布的适航规章及规范性文件目录"). Live 2026 docs confirmed (`AC-21-AA-2026-44/45`).
+- Many older ACs are scanned typeset PDFs → exercises the OCR word-box path (§4.1) on a
+  non-Latin script (a feature, not a problem).
+- **License/robots: GREEN.** caac.gov.cn robots.txt disallows only `/CAAC/local/` and `/image/`;
+  `/XXGK/` and `/GFXWJ/` permitted, no crawl-delay. PRC public gov documents. Rate-limit anyway.
+
+### Axis 2 (second stratum) — Investigation reports: CAAC ↔ TSB
+- The twin of the TSB occurrence half. Chinese reports: 民用航空器事件调查报告 /
+  航空器严重征候调查报告 (e.g. Bell 407 CFIT; Sichuan 3U8633 windscreen).
+- **License/robots: AMBER → ASN is INDEX-ONLY.** aviation-safety.net signals `ai-train=no` and
+  disallows AI-training bots (ClaudeBot). So: use ASN's China profile
+  (`/database/country/country.php?id=b`) to *discover* occurrences, then pull the actual PDFs
+  from their **primary host** (caac.gov.cn TZTG announcements, regional CAAC bureaus, original
+  issuer). Reports that exist *only* on ASN → **skip or ask**; do not bulk-fetch PDFs from ASN.
+
+### Scraper
+Model on `ingestion/acquisition/` (rate-limited, robots-respecting, idempotent) →
+`data/corpus/zh/{ac,reports}/`. Note: asn.flightsafety.org's cert chain fails strict
+verification — the httpx scraper must handle that explicitly (don't disable verification
+globally; scope it to that host).
 
 ---
 
@@ -72,26 +96,33 @@ corpus/lang, born-digital vs OCR, figures captioned, rejects + reasons).
 
 ## 4. Architecture changes by stage (the spine)
 
-### 4.1 Word/pixel-grounded bboxes  *(fixes the S15 desync at root)*
-- `ingestion/processing/pdf.py` — `PageExtract` has per-char `Char`. **Add word extraction**
-  via pdfplumber `page.extract_words()` → per-word `(text, x0, top, x1, bottom, page)`.
-- `ingestion/processing/ocr.py` — `ocr_page` currently keeps one `Char` per **line**. Switch
-  to **`return_word_box=True`** (per-char/word boxes) — or Florence-2 `OCR_WITH_REGION` — and
-  emit word-level entries in the same PDF-point space (the `_PTS_PER_PIXEL` conversion stays).
-- `ingestion/processing/chunk.py` — `Chunk` dataclass gains a compact **word index**:
-  `word_boxes: tuple[(text, page, x0, top, x1, bottom), ...]` for the words in the chunk.
-  `_join_pages`/`_bbox_for_range` already map char→page→bbox; extend to carry word spans.
-  This replaces brittle char-alignment + the render-time `page.search` hack.
-- **Schema passthrough** (the chain confirmed this session):
-  `embed/jsonl.py` `ChunkRecord` + `.payload()` → Qdrant payload → retrieve `r.record` →
-  `backend/schemas.py:RetrievedChunk` (`bbox`, `section_title`, …) → `hf_space/api_client.py:RetrievedChunk`.
-  Add `word_boxes` at every hop.
-- `hf_space/pdf_render.py` — when highlighting, **map the cited span / query terms to the
-  stored word boxes directly** (no `page.search`). Keep render-time search as a fallback for
-  legacy points without `word_boxes`. Scanned pages become highlightable from stored OCR boxes.
-- **⚠ Payload size decision:** word boxes per chunk are bulky. Options: (a) store all in
-  payload (simplest, fattens Qdrant), (b) store a per-page word sidecar keyed by doc+page and
-  join at render, (c) store only the chunk's own words. Pick before WS-B; (c) is the lean default.
+### 4.1 Region-level grounding — RESET (S18; word-level highlighting scrapped)
+
+**Decision (opus-4.8, S18, user gave free rein):** stop chasing word-level pixel highlighting.
+Ground citations at the **region/block level** using the chunk's *own* stored bbox. Everything
+painful — the S15 `page.search` desync, the word-box payload, per-word OCR quads, render-time
+re-search, char-alignment — exists only to highlight an exact sentence. That feature is not worth
+its fragility for a demo. Region-level "here is the page, and the block we pulled this from" is
+what most production cited-RAG UIs actually do, it's deterministic, and it never desyncs.
+
+**The principle:** grounding is the rectangle the chunk *occupies on the page*, computed once at
+ingest and rendered directly. No re-search, no word index.
+
+- `ingestion/processing/chunk.py` — the chunk already gets its region via `_bbox_for_range`
+  (char-range → page → bbox). Keep exactly that. A chunk can span pages, so store a small
+  **per-page region list**: `page_bboxes: tuple[(page, x0, top, x1, bottom), ...]` (one rect per
+  page the chunk touches). That is the *entire* grounding payload — bounded, tiny, deterministic.
+- `ingestion/processing/ocr.py` — **no per-word boxes needed.** OCR (PaddleOCR / Florence /
+  Qwen-VL — see §4.2 bake-off) only has to produce *text* + enough layout to place the chunk's
+  region. Scanned and born-digital pages ground identically: a rect per page.
+- **Schema passthrough:** `embed/jsonl.py ChunkRecord → Qdrant payload → backend/schemas.py
+  RetrievedChunk → hf_space/api_client.py RetrievedChunk` already carries `bbox`. Generalize that
+  one field to `page_bboxes` at every hop. No `word_boxes` anywhere — the (c) payload debate is
+  **moot and removed**: there are no word boxes to store.
+- `hf_space/pdf_render.py` — render the page image and draw the stored region rectangle(s).
+  Delete the `page.search` path entirely (no fallback needed — every chunk has its region from
+  ingest). This collapses WS-B to roughly: carry `page_bboxes` through + draw a rect.
+- Figures (§4.2) keep their own coarse region box from detection — same tier, consistent UX.
 
 ### 4.2 Image understanding — Florence-2 + Moondream2
 - New `ingestion/processing/figures.py`: detect figures (`page.images`), and per figure run
@@ -101,6 +132,9 @@ corpus/lang, born-digital vs OCR, figures captioned, rejects + reasons).
   `trust_remote_code`/revision pinning needed — verify). Sequential load fits 8GB; offline.
 - Outputs: **(a)** Neo4j `Figure` nodes (§4.3); **(b)** the blurb **embedded as a chunk**
   (tag `kind=figure`) so figures become *retrievable*, not just graph decoration.
+- **Open bake-off (§4.6):** one `qwen3-vl:8b` may replace *both* Florence-2 + Moondream2 on the
+  **figure tier** (region detection + caption + figure-internal OCR, incl. Chinese). Coarse figure
+  boxes are fine for a VL model; decide by measurement, not specs. Word-tier OCR is gone (§4.1).
 
 ### 4.3 Graph (Neo4j)
 - `graph/schema.py` — add `:Figure` constraint + `(:Occurrence)-[:HAS_FIGURE]->(:Figure)`
@@ -120,35 +154,73 @@ corpus/lang, born-digital vs OCR, figures captioned, rejects + reasons).
 
 ### 4.5 Chunking strategy (it will change again)
 - Current: fixed 512 tok / 128 overlap + content-based section titles (S13).
-- Carrying the word index changes the chunk schema.
+- Schema change is now just `page_bboxes` (§4.1), not a word index.
 - **CJK token density:** BGE-M3's tokenizer handles Chinese, but 512 tokens of zh ≈ much more
   text than 512 of en — consider **language-aware windowing** or sentence/layout-aware
-  boundaries. Keep fixed-512 as baseline; **evaluate** before committing a change (don't
-  regress the EN eval).
+  boundaries. Keep fixed-512 as baseline; **evaluate** before committing a change. (Search-quality
+  tuning deferred to a later session — user, S18.)
+
+### 4.6 Model swap — under evaluation (S18; relitigates a CLAUDE.md locked decision)
+Two independent swaps, decide each by measurement on *our* docs (not benchmarks):
+- **Generation `gemma2:9b` → `Qwen3-8B`.** Better-justified now the corpus is bilingual: Qwen3 is
+  markedly stronger on Chinese/CJK, and the agent will synthesize answers over ZH ACs.
+  **VRAM caveat:** Qwen3-8B Q4_K_M benches ~7–9 GB vs gemma2's ~5.5 GB — the §VRAM plan budgets a
+  6.5 GB peak on the 8 GB 3060Ti. **Measure the real quant footprint in WS-0**; may need Q4_K_S or
+  to confirm it's sole-resident at generation time (reranker/embed already unloaded).
+- **`Qwen3-VL-8B` on the figure tier** (§4.2) — collapses Florence-2 + Moondream2 into one model.
+  Released 2025-10-15, on Ollama (`qwen3-vl:8b`); 32-lang OCR, robust to blur/tilt, normalized 2D
+  grounding. Good fit for *coarse* figure boxes; **not** for word-level (we scrapped that anyway).
+  Throughput: an 8B VL per *figure* is fine (sparse); never per page.
+- **Bake-offs:** (a) gemma2 vs Qwen3-8B answer quality on the same EN+ZH docs; (b) Qwen3-VL caption
+  vs Moondream on sample figures. Fold (a) into WS-0, (b) into WS-C.
+- **Possible future capability (not scoped):** a VL generator could *look at* the cited page/figure
+  at answer time — multimodal grounding right at the HITL gate.
 
 ---
 
 ## 5. Test strategy (CLAUDE.md: offline, mocked, no weight downloads)
 - Mock Florence-2 / Moondream2 / PaddleOCR / pdfplumber in all unit tests.
-- Pure-unit-test the new logic: word-box extraction/alignment, chunk word index, figure-record
-  shaping, payload passthrough, render-from-stored-boxes, cross-corpus metric.
+- Pure-unit-test the new logic: `page_bboxes` capture (§4.1), figure-record shaping, payload
+  passthrough, region-rect render, cross-corpus metric.
 - **Live verification on a small curated sample** (a handful of EN + scanned + ZH docs) BEFORE
-  the full overnight run — render a page from stored boxes, check a figure caption, eyeball the
+  the full overnight run — render a page with its region rect, check a figure caption, eyeball the
   3D overlap on the sample.
 
 ---
 
-## 6. Work breakdown (each WS lands its own commit; ALL code lands & tests pass BEFORE §7 run)
+## 6. Work breakdown — re-sequenced (S18; each WS lands its own commit; ALL code lands & tests pass BEFORE §7 run)
 
-- **WS-A — ZH corpus recon + scraper** *(gating for ZH; start immediately, parallel)*.
-- **WS-B — word-bbox capture + passthrough + render** *(independent of ZH; land on EN/TC first)*.
-- **WS-C — figure VLM module + Figure nodes + figure-chunk embedding**.
-- **WS-D — curation: admission filters, dedup tuning, curation manifest**.
-- **WS-E — dual-corpus tagging + cross-corpus eval metric + 3D viz refresh hooks**.
-- **WS-F — the re-ingest run** (§7).
+**Ordering principle:** WS-F (the re-ingest) runs **once, overnight**, so every decision that
+changes what gets written to disk / Qdrant / Neo4j must be **frozen before it**. Sequence by
+"freeze the write-shape first," not by feature. This repo is single-model and session-budgeted
+(CLAUDE.md) — there is no real parallelism, so the only genuinely riskable item (ZH source) is a
+**fail-fast spike**, not a co-equal parallel track.
 
-Recommended start: **WS-A (recon) + WS-B (word-bbox on EN/TC)** in parallel — WS-B proves the
-grounded-bbox architecture without waiting on the ZH source.
+- **WS-0 — Freeze the write-shape** *(FIRST; design lock; cheap)*. One migration covering every
+  field that touches the `embed/jsonl.py ChunkRecord → Qdrant payload → backend/schemas.py
+  RetrievedChunk → hf_space/api_client.py RetrievedChunk` chain — done **once** so the chain isn't
+  re-edited 3–4 times: `page_bboxes` (region-level grounding, §4.1 — **not** word boxes),
+  `corpus` tag (`tsb`/`tc`/`caac`), figure-chunk fields + a `kind` discriminator (§4.2), and
+  whether the chunking window changes (§4.5). Also **lock the curation admission criteria** (§3)
+  here — they decide what's *in* the
+  corpus, so they are a write-shape decision, not trailing cleanup. Output: one frozen
+  `ChunkRecord` dataclass + the decisions written down. Nothing in B/C/E touches code until set.
+- **WS-A — ZH source spike** *(early; fail-fast)*. Stand up the `data/corpus/zh/` scraper: Axis 1
+  (caac.gov.cn ACs, GREEN) + Axis 2 via ASN-as-index → primary PDFs only (AMBER, §2). Goal: prove
+  the feeds return real documents and surface any blocker to the §2 ask-gate *early*. Once the
+  feeds are proven, the bulk pull is Haiku-grunt.
+- **WS-B — region-grounding render** *(against the frozen schema; EN/TC first)*. Per the §4.1
+  reset: carry `page_bboxes` through the passthrough chain and draw the chunk's region rect on the
+  page in `hf_space/pdf_render.py`; **delete the `page.search` path**. Much smaller than the old
+  word-box plan. Proves the grounding UX without waiting on ZH.
+- **WS-C — figures** *(depends on WS-B)*. Florence-2 + Moondream2 module; `:Figure` nodes;
+  figure-blurb-as-chunk. Reuses B's stored-box render path for red-boxing — **that dependency is
+  why C follows B**, not the reverse.
+- **WS-E — dual-corpus + cross-corpus eval** *(after ZH lands)*. `corpus` tagging already frozen
+  in WS-0; add the cross-corpus NN-similarity + cross-lingual recall metric; wire the 3D-viz refresh.
+- **WS-D — curation manifest emission** *(criteria already locked in WS-0)*. The manifest itself
+  is emitted during the run (§7).
+- **WS-F — the single re-ingest run** (§7; last). Haiku monitors overnight — see **§10**.
 
 ---
 
@@ -173,10 +245,41 @@ Cost: OCR + Florence + Moondream per image + full re-embed = hours. Background r
 
 ---
 
-## 9. Risks / open decisions (resolve early)
-1. **ZH corpus reachability** (§2) — biggest; gates half the program.
-2. **Qdrant payload size** from word boxes (§4.1) — pick storage strategy (lean default: chunk's own words).
-3. **Florence-2 `trust_remote_code` / revision pinning**; Moondream revision pinning.
-4. **Chunking change vs EN eval regression** — measure before changing windowing.
-5. **License/robots** for the ZH source.
-6. **Re-ingest idempotency** for figures (key by doc+page+bbox) so re-runs don't duplicate.
+## 9. Risks / open decisions
+1. ~~**ZH corpus reachability**~~ — **RESOLVED** (§2): two verified axes; AC axis GREEN, report
+   axis via ASN-as-index → primary PDFs.
+2. ~~**Qdrant payload size from word boxes**~~ — **MOOT** (§4.1 reset): no word boxes; grounding
+   is one region rect per page the chunk touches.
+3. **ASN `ai-train=no`** (§2) — report axis must be index-only, primary PDFs; never bulk-fetch
+   PDFs from asn.flightsafety.org.
+4. **Qwen3-8B VRAM** (§4.6) — ~7–9 GB Q4_K_M may exceed the 6.5 GB peak budget on the 8 GB card;
+   measure in WS-0 before committing the generation swap. *(open)*
+5. **Florence-2 vs Qwen3-VL on the figure tier** (§4.2/§4.6) — decide by bake-off;
+   `trust_remote_code` / revision pinning for whichever wins. *(open)*
+6. **Chunking change vs EN eval** — measure before changing windowing (§4.5); tuning deferred
+   (user, S18). *(open, low priority)*
+7. **Re-ingest idempotency** for figures (key by doc+page+bbox) so re-runs don't duplicate. *(open)*
+
+---
+
+## 10. Overnight run — Haiku monitoring runbook (WS-F)
+
+The §7 run is launched by a senior model **only after all WS code is in & tested**. Haiku does
+**not** author or fix logic — it monitors, retries mechanically, and reports. During the run:
+
+- **Watch stage transitions** in the run log: acquire → process (chunks + word boxes) → figures
+  (Florence + Moondream) → embed → graph upsert → 3D-viz rebuild → cross-corpus eval. Confirm each
+  stage starts and the process stays alive.
+- **Heartbeat** every ~20–30 min: record progress (docs processed, chunks embedded, figures
+  captioned, current corpus/lang) to the run log / a SESSIONS.md scratch line.
+- **Resource guard:** confirm **sequential** VRAM — only one of OCR / Florence / Moondream / embed
+  loaded at a time (CLAUDE.md VRAM plan). Flag if peak risks the 8 GB budget.
+- **Idempotency = safe restart:** the run is resumable (chunk_hash dedup; figures keyed by
+  doc+page+bbox). If a stage dies, **re-run that stage** — do not edit code.
+- **Mechanical retries are fine:** network blips, failed downloads, disk, container restarts.
+- **Stop & QUEUE (do NOT fix):** any exception in `.py` logic, a schema mismatch, OCR producing
+  no word boxes, or a garbage figure-caption pattern → capture the traceback, stop the affected
+  stage, and queue with the `⛔ NEEDS SONNET 4.6+` banner (CLAUDE.md degraded mode).
+- **On completion:** verify the **curation manifest** emitted, `hf_space/embedding_space.json`
+  rebuilt with `caac` present, and the cross-corpus metric printed. Log a SESSIONS.md entry.
+  Do **not** redeploy the Space or mark MANIFEST ☑ — leave those for senior review.

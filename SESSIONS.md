@@ -4,6 +4,19 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 
 ---
 
+## Session 18 — 2026-05-31 — opus-4.8
+**Commits:** _(this commit)_
+**Achieved (planning/recon only — no phase code):**
+- **ZH sourcing RESOLVED** (closes the §2 gate): two verified, enumerable, license-checked axes — CAAC 咨询通告 ACs ↔ TC ACs (caac.gov.cn, robots GREEN, the spine) + CAAC↔TSB investigation reports (ASN **index-only** → primary PDFs; ASN signals `ai-train=no`, so never bulk-fetch its PDFs). User approved both.
+- **Re-sequenced §6** around a write-shape freeze: new **WS-0** (freeze ChunkRecord schema + curation criteria once), ZH demoted from "parallel track" to a fail-fast spike, B→C dependency made explicit.
+- **Bbox RESET (§4.1)** — scrapped word-level highlighting (source of the S15 desync + word-box payload + per-word OCR). Grounding is now **region-level** from the chunk's own stored bbox (`page_bboxes`); WS-B collapses to "carry rect + draw rect," delete `page.search`.
+- **Model swap under eval (§4.6)** — gemma2:9b → Qwen3-8B generation (VRAM-gated: ~7–9 GB vs 6.5 GB budget, measure in WS-0) + Qwen3-VL-8B on the figure tier (collapses Florence-2+Moondream2); both decided by bake-off on our own docs, not benchmarks.
+- Added **§10 Haiku overnight-run monitoring runbook**. Deleted stray `image1.png`.
+**Left (resume here):**
+- Implement **WS-0** (freeze schema incl. `page_bboxes`/`corpus`/figure `kind`; measure Qwen3-8B VRAM) — plan-mode + HITL per CLAUDE.md. Then WS-A (ZH scraper), WS-B (region render).
+- Run the bake-offs: gemma2 vs Qwen3-8B (EN+ZH answer quality); Qwen3-VL vs Moondream (figure captions).
+- Big re-ingest (WS-F) is LAST, after all WS code lands & tests pass; Haiku monitors per §10.
+
 ## Session 17 — 2026-05-30 — opus-4.8
 **Commits:** `e3974fd`
 **Achieved:**

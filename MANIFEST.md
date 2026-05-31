@@ -77,28 +77,21 @@ None. All resolved.
 MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, otel/otel-collector-config.yaml, per-dir README placeholders
 
 ## Resume pointer
-**NEXT — user-directed S17 roadmap (do in order; per-phase HITL pause between each):**
-DONE: PDF highlight Phase 1 (`1411efd`, two-tier term/title) + Phase 2a (`9cf7748`, red-box
-figures) + 3D embedding-space tab (`74e98dc`, UMAP, baked JSON, keeps Neo4j tab).
-1. **About tab** — What/Why/How (problem, architecture, pipeline, stack). Authoring pre-approved.
-2. **The big program — full re-ingest with grounded bboxes + VLM + dual corpus** (decided S17,
-   user-directed; this supersedes the old "Phase 2b"). **→ Full plan: [docs/REINGEST_PLAN.md](docs/REINGEST_PLAN.md)**
-   (start a fresh session there; begin with WS-A recon + WS-B word-bbox). Pieces:
-   - **Word/pixel-grounded bboxes from ingestion** (fixes S15 desync at root): born-digital via
-     pdfplumber `extract_words()`; scanned via PaddleOCR `return_word_box=True` (per-char/word
-     boxes — confirmed) or Florence-2 `<OCR_WITH_REGION>`. Persist a per-chunk word index
-     (word→bbox+page) through Chunk→chunk JSON→Qdrant payload→backend→`RetrievedChunk`→render.
-   - **Image understanding** (decided: **Florence-2 + Moondream**): Florence-2 (230M/770M) for
-     OCR+region boxes; Moondream2 (~1.9B, 4-bit ~2.4GB) for a prose blurb per figure. Blurb →
-     Neo4j `Figure` node AND embedded as a chunk (figures become retrievable). Runs in the
-     isolated **ingestion** image, offline — no query-time VRAM contention with gemma.
-   - **Chinese corpus** (drop FR emphasis; BGE-M3 is cross-lingual out of the box). HARD UNKNOWN:
-     no clean public CAAC PDF index found — recon needed (CAAC zh site, ASN, datasets) before pull.
-   - **Dual corpus, one collection, `corpus` tag** (decided): EN/TC vs ZH separable by tag,
-     overlap shown in the 3D tab + a cross-corpus NN-similarity / cross-lingual-recall metric.
-   - **Full re-ingest** (`processing.run` → `embed.run`) — multi-hour/overnight (OCR + Florence +
-     Moondream per image + re-embed). Land ALL code before the run. **Chunking will change**:
-     schema carries word index; CJK token-density → maybe language-aware windowing.
+**NEXT — re-ingest program, REVISED S18 (do in order; per-phase HITL pause between each):**
+DONE: PDF highlight Phase 1 (`1411efd`) + Phase 2a (`9cf7748`, red-box figures) + 3D embedding tab
+(`74e98dc`). **Plan fully revised S18 → authoritative: [docs/REINGEST_PLAN.md](docs/REINGEST_PLAN.md)** — read it, start at §6.
+Key S18 changes baked into the plan (do NOT re-derive from the old bullets):
+- **ZH sourcing RESOLVED** (§2): CAAC 咨询通告 ACs (caac.gov.cn, robots GREEN — the spine) + CAAC↔TSB
+  reports (ASN index-only → primary PDFs; never bulk-fetch ASN PDFs, it signals `ai-train=no`).
+- **Bbox RESET** (§4.1): word-level highlighting **scrapped**. Grounding = region-level from the
+  chunk's own stored bbox (`page_bboxes`, one rect per page). Kills the S15 desync at root.
+- **Model swap under eval** (§4.6): gemma2:9b → Qwen3-8B generation (VRAM-gated, measure in WS-0)
+  + Qwen3-VL-8B on the figure tier (may collapse Florence-2+Moondream2). Decide by bake-off.
+- **Re-sequenced** (§6): **WS-0 freeze write-shape FIRST**, then WS-A (ZH scraper, fail-fast spike),
+  WS-B (region render), WS-C (figures, depends on B), WS-E (dual-corpus eval), WS-F (run, LAST).
+Immediate next action: **implement WS-0** — freeze the `ChunkRecord` schema (`page_bboxes`,
+`corpus` tag, figure `kind`) + measure Qwen3-8B Q4_K_M VRAM. Plan-mode + HITL before coding.
+Also still pending (pre-approved, independent): **About tab** — What/Why/How.
 **Parked:** graph-native breadth A/B/C (Neo4j recurrence quality) — user deprioritized.
 S17 (opus-4.8) cleared the one outstanding loose end: an unlogged, uncommitted WIP from a
 token-limited session — the hf-space **Corpus / Graph / Eval tabs** — is now finished and
