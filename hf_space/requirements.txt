@@ -7,3 +7,5 @@ huggingface_hub>=0.27
 httpx>=0.27,<0.29
 pdfplumber>=0.10,<0.12
 Pillow>=10.0,<12
+# Embedding Space tab — 3D scatter of the precomputed projection.
+plotly>=5.20,<6

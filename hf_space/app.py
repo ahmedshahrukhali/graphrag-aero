@@ -27,7 +27,7 @@ import gradio as gr
 
 from hf_space.api_client import ApiClient, ApiError, RetrievedChunk, RetrieveResponse, make_client
 from hf_space.pdf_render import PdfRenderError, render_page_with_bbox
-from hf_space import corpus_tab, graph_tab, eval_tab
+from hf_space import corpus_tab, graph_tab, eval_tab, embedding_tab
 
 
 logger = logging.getLogger(__name__)
@@ -663,6 +663,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                     )
             corpus_tab.build(client)
             graph_tab.build(client)
+            embedding_tab.build(client)
             eval_tab.build(client)
 
         # ── wiring ────────────────────────────────────────────────────────
