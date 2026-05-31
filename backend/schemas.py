@@ -28,6 +28,11 @@ class RetrievedChunk(BaseModel):
     section_title: str
     page: int
     bbox: list[float]
+    # WS-0 region grounding + corpus tag + figure discriminator. Defaulted so
+    # responses from the pre-re-ingest index (no page_bboxes/corpus) still validate.
+    page_bboxes: list[list[float]] = Field(default_factory=list)
+    corpus: str | None = None
+    kind: str = "text"
     lang: str
     text: str
     ann_score: float

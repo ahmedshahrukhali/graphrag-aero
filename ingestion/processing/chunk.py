@@ -80,6 +80,14 @@ class Chunk:
     bbox: tuple[float, float, float, float]
     section_title: str
     chunk_hash: str
+    # Region-level grounding (WS-0): one rect per page the chunk touches, as
+    # (page, x0, top, x1, bottom). ``page``/``bbox`` above stay as the dominant
+    # page + its rect for backward compatibility; ``page_bboxes`` is the full,
+    # deterministic grounding payload rendered directly at the UI (no re-search).
+    page_bboxes: tuple[tuple[int, float, float, float, float], ...] = ()
+    # Discriminator for the figure tier (§4.2). Text chunks are "text"; a
+    # figure-blurb chunk minted by figures.py will carry "figure".
+    kind: str = "text"
 
 
 # ─── joining pages ───────────────────────────────────────────────────────────
@@ -176,26 +184,22 @@ def _section_at(joined: _Joined, offset: int) -> str:
     return joined.header_titles[i]
 
 
-def _bbox_for_range(joined: _Joined, start: int, end: int) -> tuple[int, tuple[float, float, float, float]]:
-    """Pick the dominant page in [start, end) and the union bbox on that page.
+def _page_union_bbox(
+    joined: _Joined, page: int, start: int, end: int
+) -> tuple[float, float, float, float] | None:
+    """Union bbox of ``page``'s chars within [start, end), with full-page fallback.
 
-    Returns ``(page, bbox)`` with ``bbox = (x0, y0, x1, y1)``. If no chars in
-    the range had positional info, returns ``(page, (0, 0, 0, 0))``.
+    Returns ``(x0, y0, x1, y1)`` in PDF points, or ``None`` if ``page`` has no
+    positioned chars at all. If the windowed union is below
+    ``MIN_USABLE_BBOX_AREA`` (e.g. a cross-page chunk that landed only a
+    page-number line here), falls back to the extent of ALL chars on the page so
+    the rendered region rect is never microscopic.
     """
-    page_counts: dict[int, int] = {}
-    for i in range(start, min(end, len(joined.char_pages))):
-        p = joined.char_pages[i]
-        if p:
-            page_counts[p] = page_counts.get(p, 0) + 1
-    if not page_counts:
-        return 0, (0.0, 0.0, 0.0, 0.0)
-    dominant_page = max(page_counts.items(), key=lambda kv: kv[1])[0]
-
     x0 = float("inf"); y0 = float("inf")
     x1 = float("-inf"); y1 = float("-inf")
     have = False
     for i in range(start, min(end, len(joined.char_pages))):
-        if joined.char_pages[i] != dominant_page:
+        if joined.char_pages[i] != page:
             continue
         bb = joined.char_bbox[i]
         if bb is None:
@@ -205,18 +209,15 @@ def _bbox_for_range(joined: _Joined, start: int, end: int) -> tuple[int, tuple[f
         if bb[1] < y0: y0 = bb[1]
         if bb[2] > x1: x1 = bb[2]
         if bb[3] > y1: y1 = bb[3]
-    if have:
-        area = (x1 - x0) * (y1 - y0)
-        if area >= MIN_USABLE_BBOX_AREA:
-            return dominant_page, (x0, y0, x1, y1)
+    if have and (x1 - x0) * (y1 - y0) >= MIN_USABLE_BBOX_AREA:
+        return (x0, y0, x1, y1)
 
-    # Degenerate bbox (no chars with positional data, or area too small — e.g.
-    # cross-page chunk where only a page-number line landed on the dominant page).
-    # Fall back to the extent of ALL chars on the dominant page.
+    # Degenerate (no positioned chars in window, or area too small): fall back to
+    # the extent of ALL chars on this page.
     fx0 = float("inf"); fy0 = float("inf")
     fx1 = float("-inf"); fy1 = float("-inf")
     for i in range(len(joined.char_pages)):
-        if joined.char_pages[i] != dominant_page:
+        if joined.char_pages[i] != page:
             continue
         bb = joined.char_bbox[i]
         if bb is None:
@@ -226,8 +227,52 @@ def _bbox_for_range(joined: _Joined, start: int, end: int) -> tuple[int, tuple[f
         if bb[2] > fx1: fx1 = bb[2]
         if bb[3] > fy1: fy1 = bb[3]
     if fx0 < float("inf"):
-        return dominant_page, (fx0, fy0, fx1, fy1)
-    return dominant_page, (x0, y0, x1, y1) if have else (0.0, 0.0, 0.0, 0.0)
+        return (fx0, fy0, fx1, fy1)
+    return (x0, y0, x1, y1) if have else None
+
+
+def _pages_in_range(joined: _Joined, start: int, end: int) -> list[int]:
+    """Pages touched by [start, end), in reading order (ascending page number)."""
+    pages: set[int] = set()
+    for i in range(start, min(end, len(joined.char_pages))):
+        p = joined.char_pages[i]
+        if p:
+            pages.add(p)
+    return sorted(pages)
+
+
+def _page_bboxes_for_range(
+    joined: _Joined, start: int, end: int
+) -> tuple[tuple[int, float, float, float, float], ...]:
+    """Region-level grounding (WS-0): one ``(page, x0, y0, x1, y1)`` per page the
+    chunk touches, in reading order. This is the entire grounding payload —
+    bounded, deterministic, computed once at ingest, rendered directly."""
+    out: list[tuple[int, float, float, float, float]] = []
+    for page in _pages_in_range(joined, start, end):
+        bb = _page_union_bbox(joined, page, start, end)
+        if bb is not None:
+            out.append((page, bb[0], bb[1], bb[2], bb[3]))
+    return tuple(out)
+
+
+def _bbox_for_range(joined: _Joined, start: int, end: int) -> tuple[int, tuple[float, float, float, float]]:
+    """Pick the dominant page in [start, end) and the union bbox on that page.
+
+    Returns ``(page, bbox)`` with ``bbox = (x0, y0, x1, y1)``. If no chars in
+    the range had positional info, returns ``(page, (0, 0, 0, 0))``. Kept for
+    backward compatibility — ``page``/``bbox`` are the dominant-page fields;
+    full region grounding lives in :func:`_page_bboxes_for_range`.
+    """
+    page_counts: dict[int, int] = {}
+    for i in range(start, min(end, len(joined.char_pages))):
+        p = joined.char_pages[i]
+        if p:
+            page_counts[p] = page_counts.get(p, 0) + 1
+    if not page_counts:
+        return 0, (0.0, 0.0, 0.0, 0.0)
+    dominant_page = max(page_counts.items(), key=lambda kv: kv[1])[0]
+    bb = _page_union_bbox(joined, dominant_page, start, end)
+    return dominant_page, bb if bb is not None else (0.0, 0.0, 0.0, 0.0)
 
 
 # ─── public API ──────────────────────────────────────────────────────────────
@@ -267,6 +312,7 @@ def chunk_pages(
         text = joined.text[char_start:char_end]
         if text.strip():
             page, bbox = _bbox_for_range(joined, char_start, char_end)
+            page_bboxes = _page_bboxes_for_range(joined, char_start, char_end)
             section = _section_at(joined, char_start)
             chunks.append(Chunk(
                 text=text,
@@ -274,6 +320,7 @@ def chunk_pages(
                 bbox=bbox,
                 section_title=section,
                 chunk_hash=chunk_hash(text),
+                page_bboxes=page_bboxes,
             ))
         if end_tok == n:
             break

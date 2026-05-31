@@ -40,6 +40,12 @@ class RetrievedChunk:
     text: str
     ann_score: float
     rerank_score: float | None
+    # WS-0: region-level grounding (one (page, x0, top, x1, bottom) per page the
+    # chunk touches), corpus tag, and figure discriminator. Defaulted so a
+    # response from the pre-re-ingest index still parses.
+    page_bboxes: tuple[tuple[float, ...], ...] = ()
+    corpus: str | None = None
+    kind: str = "text"
 
     @classmethod
     def from_dict(cls, d: dict) -> "RetrievedChunk":
@@ -54,6 +60,9 @@ class RetrievedChunk:
             text=d["text"],
             ann_score=float(d["ann_score"]),
             rerank_score=None if d.get("rerank_score") is None else float(d["rerank_score"]),
+            page_bboxes=tuple(tuple(float(v) for v in pb) for pb in d.get("page_bboxes", ())),
+            corpus=d.get("corpus"),
+            kind=d.get("kind", "text"),
         )
 
 

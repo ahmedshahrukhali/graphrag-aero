@@ -17,6 +17,9 @@ class ScoredChunkDict(TypedDict):
     section_title: str
     page: int
     bbox: list[float]
+    page_bboxes: list[list[float]]
+    corpus: str
+    kind: str
     chunk_hash: str
     lang: str
     text: str
@@ -31,6 +34,9 @@ def scored_chunk_to_dict(sc: ScoredChunk) -> ScoredChunkDict:
         section_title=sc.record.section_title,
         page=sc.record.page,
         bbox=list(sc.record.bbox),
+        page_bboxes=[list(pb) for pb in sc.record.page_bboxes],
+        corpus=sc.record.corpus,
+        kind=sc.record.kind,
         chunk_hash=sc.record.chunk_hash,
         lang=sc.record.lang,
         text=sc.record.text,

@@ -36,6 +36,7 @@ class DocRef:
     lang: Lang
     source_url: str | None
     path: Path
+    corpus: str         # "tsb" | "tc" | "caac" — first-class corpus tag (WS-0)
 
 
 _KNOWN_SOURCES = ("tsb", "tc")
@@ -70,6 +71,10 @@ def doc_ref_for_path(path: Path) -> DocRef:
         lang=lang,
         source_url=source_url,
         path=p,
+        # corpus == source for the EN/FR TSB+TC corpus; the ZH axis (WS-A) will
+        # mint "caac" here. Kept distinct from ``source`` so the overlap demo can
+        # group/filter by corpus without overloading the URL-reconstruction key.
+        corpus=source,
     )
 
 

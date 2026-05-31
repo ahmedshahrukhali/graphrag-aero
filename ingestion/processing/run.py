@@ -61,6 +61,10 @@ def _chunk_to_record(ref: DocRef, c: Chunk) -> dict:
         "section_title": c.section_title,
         "page": c.page,
         "bbox": list(c.bbox),
+        # WS-0 region-level grounding: one [page, x0, top, x1, bottom] per page.
+        "page_bboxes": [list(pb) for pb in c.page_bboxes],
+        "corpus": ref.corpus,
+        "kind": c.kind,
         "chunk_hash": c.chunk_hash,
         "lang": ref.lang,
         "text": c.text,

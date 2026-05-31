@@ -214,6 +214,18 @@ changes what gets written to disk / Qdrant / Neo4j must be **frozen before it**.
   here — they decide what's *in* the
   corpus, so they are a write-shape decision, not trailing cleanup. Output: one frozen
   `ChunkRecord` dataclass + the decisions written down. Nothing in B/C/E touches code until set.
+  - **☑ Schema freeze DONE (sonnet-4.6, 2026-05-31).** `page_bboxes` (region-level, one
+    `(page,x0,top,x1,bottom)` per page the chunk touches), `corpus` tag, and `kind` discriminator
+    are threaded through the full chain: `ingestion.processing.chunk.Chunk` (new
+    `_page_bboxes_for_range` / `_page_union_bbox`) → `doc_id.DocRef.corpus` →
+    `processing.run._chunk_to_record` → `embed.jsonl.ChunkRecord` (+payload) → `agent.state`
+    ScoredChunkDict → `backend.schemas.RetrievedChunk` → `hf_space.api_client.RetrievedChunk`.
+    All new fields are **optional + backward-derived** so the existing 63,946-pt index still
+    hydrates (page_bboxes derived from legacy `(page,bbox)`; corpus from doc_id prefix; kind=text).
+    +8 tests; full suite **366 passed**. Chunking window left at fixed-512 (§4.5 deferred).
+  - **⏳ Qwen3-8B VRAM measurement PENDING — blocked on Docker Desktop not running.** GPU confirmed
+    (RTX 3060 Ti, 8 GB, 404 MB used). Haiku runbook ready; re-dispatch once Docker is up.
+  - **TODO (not yet frozen): curation admission criteria (§3).** Deferred to before WS-F.
 - **WS-A — ZH source spike** *(early; fail-fast)*. Stand up the `data/corpus/zh/` scraper: Axis 1
   (caac.gov.cn ACs, GREEN) + Axis 2 via ASN-as-index → primary PDFs only (AMBER, §2). Goal: prove
   the feeds return real documents and surface any blocker to the §2 ask-gate *early*. Once the
@@ -236,8 +248,9 @@ changes what gets written to disk / Qdrant / Neo4j must be **frozen before it**.
 ## 7. The re-ingest run (LAST; only after all code is in & tested)
 Sequence, idempotent, curated, ~overnight:
 1. `ingestion.acquisition.run` for ZH (+ finish any TC gaps) → `data/corpus/`.
-2. `ingestion.processing.run` — chunks **with** word boxes; figures captioned (Florence+Moondream).
-   Idempotent via `chunk_hash`; figures keyed by `(doc_id, page, bbox)`.
+2. `ingestion.processing.run` — chunks **with** `page_bboxes` (region-level, §4.1 — not word
+   boxes); figures captioned (Florence+Moondream **or** the §4.6 VL winner). Idempotent via
+   `chunk_hash`; figures keyed by `(doc_id, page, bbox)`.
 3. `embed.run` — embed chunks (incl. figure-blurb chunks) into the **tagged** collection.
 4. `agent.run upsert-graph` — Finding/Rec/Reg/AC **+ Figure** nodes.
 5. Rebuild `hf_space/embedding_space.json`; run cross-corpus eval; redeploy Space.

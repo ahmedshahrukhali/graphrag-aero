@@ -20,7 +20,7 @@
 | Graph | Neo4j (knowledge graph: Occurrence→Aircraft→Finding→Recommendation→Regulation→AC) |
 | Agents | LangGraph; HITL interrupt before final answer; full trace surfaced |
 | Eval | Recall@k / nDCG / MRR |
-| LLM | gemma2:9b via Ollama (fits 3060Ti with sequential model loading) |
+| LLM | gemma2:9b via Ollama (fits 3060Ti with sequential model loading). **Swap under eval (S18):** → Qwen3-8B generation, VRAM-gated, decided by bake-off in WS-0 — see [docs/REINGEST_PLAN.md](docs/REINGEST_PLAN.md) §4.6. |
 | Languages | EN + FR |
 | Tracing | OpenTelemetry |
 | Backend | FastAPI |
@@ -90,8 +90,18 @@ Key S18 changes baked into the plan (do NOT re-derive from the old bullets):
   Moondream2). Decide by bake-off on our own EN+ZH docs.
 - **Re-sequenced** (§6): **WS-0 freeze write-shape FIRST**, then WS-A (ZH scraper, fail-fast spike),
   WS-B (region render), WS-C (figures, depends on B), WS-E (dual-corpus eval), WS-F (run, LAST).
-Immediate next action: **implement WS-0** — freeze the `ChunkRecord` schema (`page_bboxes`,
-`corpus` tag, figure `kind`) + measure Qwen3-8B Q4_K_M VRAM. Plan-mode + HITL before coding.
+**S19 (sonnet-4.6, 2026-05-31): WS-0 schema freeze DONE.** `page_bboxes` (region-level grounding,
+one rect per page the chunk touches), `corpus` tag, and `kind` discriminator are frozen through the
+full `chunk.Chunk → DocRef.corpus → run._chunk_to_record → embed.jsonl.ChunkRecord → agent.state →
+backend.schemas.RetrievedChunk → hf_space.api_client.RetrievedChunk` chain — all additive/optional,
+so the existing 63,946-pt index still hydrates (page_bboxes derived from legacy `(page,bbox)`,
+corpus from doc_id prefix, kind=text). +8 tests, full suite **366 passed**. See REINGEST_PLAN §6 WS-0.
+Immediate next actions (in order):
+1. **Qwen3-8B VRAM measurement** — BLOCKED: Docker Desktop not running (GPU confirmed: 3060 Ti, 8 GB).
+   Start Docker, then re-dispatch the Haiku runbook (REINGEST_PLAN §6 WS-0 / §10).
+2. **WS-A** — ZH source spike (caac.gov.cn ACs GREEN + ASN-as-index → primary PDFs). Fail-fast.
+3. **WS-B** — region-grounding render: carry `page_bboxes` into `hf_space/pdf_render.py`, draw the
+   stored rect(s), **delete the `page.search` path**. Schema is now frozen, so B is safe to start.
 Also still pending (pre-approved, independent): **About tab** — What/Why/How.
 **Parked:** graph-native breadth A/B/C (Neo4j recurrence quality) — user deprioritized.
 S17 (opus-4.8) cleared the one outstanding loose end: an unlogged, uncommitted WIP from a

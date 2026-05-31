@@ -32,6 +32,13 @@ def test_tc_doc_ref_has_no_source_url():
     assert ref.source_url is None
 
 
+def test_corpus_tag_mirrors_source_for_tsb_tc():
+    """WS-0: corpus is a first-class tag; == source for the EN/FR TSB+TC corpus
+    (the ZH axis will mint 'caac')."""
+    assert doc_ref_for_path(Path("data/corpus/en/tsb/a00a0110.pdf")).corpus == "tsb"
+    assert doc_ref_for_path(Path("data/corpus/en/tc/AC_100-001_e08.pdf")).corpus == "tc"
+
+
 def test_rejects_non_pdf():
     with pytest.raises(ValueError):
         doc_ref_for_path(Path("data/corpus/en/tsb/a00a0110.txt"))

@@ -11,7 +11,7 @@ reproducible.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterator
 
@@ -30,18 +30,39 @@ class ChunkRecord:
     chunk_hash: str
     lang: str
     text: str
+    # WS-0 frozen fields. Optional with derivation so the existing index (whose
+    # payloads predate them) still hydrates — the re-ingest (WS-F) populates them.
+    page_bboxes: list[list[float]] = field(default_factory=list)  # [[page,x0,top,x1,bottom], ...]
+    corpus: str = ""                                              # "tsb" | "tc" | "caac"
+    kind: str = "text"                                            # "text" | "figure"
 
     @classmethod
     def from_dict(cls, d: dict) -> "ChunkRecord":
+        doc_id = d["doc_id"]
+        page = d.get("page", 0)
+        bbox = list(d.get("bbox", [0.0, 0.0, 0.0, 0.0]))
+        # Region grounding: prefer stored page_bboxes; else derive a single rect
+        # from the legacy (page, bbox) so old payloads ground at region level too.
+        page_bboxes = d.get("page_bboxes")
+        if page_bboxes:
+            page_bboxes = [list(pb) for pb in page_bboxes]
+        elif any(v != 0.0 for v in bbox):
+            page_bboxes = [[float(page), *bbox]]
+        else:
+            page_bboxes = []
         return cls(
-            doc_id=d["doc_id"],
+            doc_id=doc_id,
             source_url=d.get("source_url"),
             section_title=d.get("section_title", ""),
-            page=d.get("page", 0),
-            bbox=list(d.get("bbox", [0.0, 0.0, 0.0, 0.0])),
+            page=page,
+            bbox=bbox,
             chunk_hash=d["chunk_hash"],
             lang=d["lang"],
             text=d["text"],
+            page_bboxes=page_bboxes,
+            # corpus: stored tag, else the doc_id prefix ("tsb/abc" → "tsb").
+            corpus=d.get("corpus") or doc_id.split("/", 1)[0],
+            kind=d.get("kind", "text"),
         )
 
     def payload(self) -> dict:
@@ -52,6 +73,9 @@ class ChunkRecord:
             "section_title": self.section_title,
             "page": self.page,
             "bbox": self.bbox,
+            "page_bboxes": self.page_bboxes,
+            "corpus": self.corpus,
+            "kind": self.kind,
             "chunk_hash": self.chunk_hash,
             "lang": self.lang,
             "text": self.text,

@@ -4,8 +4,19 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 
 ---
 
+## Session 19 — 2026-05-31 — sonnet-4.6
+**Commits:** _(this session)_
+**Achieved:**
+- **Cross-check fix:** SESSIONS S17 commit list was 1 of 10 (entry written on first commit); S18 was `_(this commit)_` placeholder. Backfilled both. Fixed REINGEST §7 step-2 "word boxes" → `page_bboxes` (contradicted the §4.1 reset) + MANIFEST LLM row now flags the Qwen3-8B swap-under-eval.
+- **WS-0 schema freeze DONE** (code-of-record): `page_bboxes` (region-level, one rect per page the chunk touches), `corpus` tag, `kind` discriminator frozen through the whole chain (chunk.Chunk + new `_page_bboxes_for_range`/`_page_union_bbox` → DocRef.corpus → run._chunk_to_record → embed.jsonl.ChunkRecord → agent.state → backend.schemas → hf_space.api_client). All additive/optional → existing 63,946-pt index still hydrates (derive page_bboxes from legacy `(page,bbox)`, corpus from doc_id prefix). +8 tests, full suite **366 passed**.
+- **Haiku subagent dispatched** for the Qwen3-8B VRAM measurement → **stopped: Docker Desktop not running** (GPU confirmed: 3060 Ti, 8 GB, 404 MB used). Correctly did not start Docker itself.
+**Left (resume here):**
+- Qwen3-8B VRAM measure (start Docker → re-dispatch Haiku runbook).
+- WS-A (ZH scraper, fail-fast), then WS-B (region render — schema now frozen).
+- Curation admission criteria (§3) not yet frozen; About tab still pending.
+
 ## Session 18 — 2026-05-31 — opus-4.8
-**Commits:** _(this commit)_
+**Commits:** `201cc06`, `aaf41a1`
 **Achieved (planning/recon only — no phase code):**
 - **ZH sourcing RESOLVED** (closes the §2 gate): two verified, enumerable, license-checked axes — CAAC 咨询通告 ACs ↔ TC ACs (caac.gov.cn, robots GREEN, the spine) + CAAC↔TSB investigation reports (ASN **index-only** → primary PDFs; ASN signals `ai-train=no`, so never bulk-fetch its PDFs). User approved both.
 - **Re-sequenced §6** around a write-shape freeze: new **WS-0** (freeze ChunkRecord schema + curation criteria once), ZH demoted from "parallel track" to a fail-fast spike, B→C dependency made explicit.
@@ -18,7 +29,7 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 - Big re-ingest (WS-F) is LAST, after all WS code lands & tests pass; Haiku monitors per §10.
 
 ## Session 17 — 2026-05-30 — opus-4.8
-**Commits:** `e3974fd`
+**Commits:** `e3974fd`, `f17c169`, `af8ad50`, `1411efd`, `b5dec42`, `9cf7748`, `f9271da`, `74e98dc`, `b80757c`, `049b976`
 **Achieved:**
 - Finished + committed unlogged WIP from a token-limited session: hf-space **Corpus / Graph / Eval tabs** alongside Chat (`gr.Tabs()` in center pane), all over the existing FastAPI backend — no new ML in the Space.
 - corpus_tab = retrieve+rerank search w/ PDF bbox preview; graph_tab = per-doc KG lookup via new `ApiClient.graph_lookup` → `GET /graph/{doc_id}`; eval_tab = live Recall@k/MRR/nDCG bench w/ embedded 4-query dataset (metrics inlined, no eval/ dep).

@@ -162,6 +162,34 @@ def test_numbered_ac_section_title_detected():
     assert "1.2 Applicability" in chunks[0].section_title
 
 
+def test_page_bboxes_single_page():
+    """A single-page chunk gets exactly one region rect, tagged with its page."""
+    text = "Findings the engine failed at altitude"
+    page = PageExtract(page=1, text=text, chars=_chars_for(text, page=1))
+    c = chunk_pages([page], _WhitespaceTokenizer())[0]
+    assert len(c.page_bboxes) == 1
+    pg, x0, top, x1, bottom = c.page_bboxes[0]
+    assert pg == 1
+    # Region rect agrees with the dominant-page bbox for a single-page chunk.
+    assert (x0, top, x1, bottom) == tuple(c.bbox)
+    # Default discriminator.
+    assert c.kind == "text"
+
+
+def test_page_bboxes_multi_page_has_rect_per_page():
+    """A chunk spanning two pages carries one region rect per page, in order."""
+    p1_text = "alpha"
+    p2_text = "beta gamma delta"
+    p1 = PageExtract(page=1, text=p1_text, chars=_chars_for(p1_text, page=1))
+    p2 = PageExtract(page=2, text=p2_text, chars=_chars_for(p2_text, page=2, y0=100))
+    c = chunk_pages([p1, p2], _WhitespaceTokenizer(), window=8, overlap=0)[0]
+    pages = [pb[0] for pb in c.page_bboxes]
+    assert pages == [1, 2]  # reading order
+    # Page-2 rect sits lower on the page (y0 ~ 100) than page-1 (y0 ~ 0).
+    p2_rect = next(pb for pb in c.page_bboxes if pb[0] == 2)
+    assert p2_rect[2] >= 100.0  # top coordinate
+
+
 def test_bbox_fallback_expands_tiny_chunk_bbox():
     """Cross-page chunk: dominant page has only a few chars in the window (tiny bbox).
     The fallback must expand to the full page extent so highlights aren't microscopic.

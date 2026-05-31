@@ -84,6 +84,38 @@ def test_record_payload_roundtrip():
     assert payload["bbox"] == src["bbox"]
 
 
+def test_ws0_fields_roundtrip():
+    """page_bboxes / corpus / kind survive from_dict → payload unchanged."""
+    src = _make_record("caac/ac21-44", 3, "zh")
+    src["page_bboxes"] = [[3.0, 10.0, 20.0, 110.0, 70.0], [4.0, 5.0, 5.0, 200.0, 90.0]]
+    src["corpus"] = "caac"
+    src["kind"] = "figure"
+    payload = ChunkRecord.from_dict(src).payload()
+    assert payload["page_bboxes"] == src["page_bboxes"]
+    assert payload["corpus"] == "caac"
+    assert payload["kind"] == "figure"
+
+
+def test_ws0_backward_compat_derives_from_legacy_payload():
+    """A pre-re-ingest payload (no page_bboxes/corpus/kind) still hydrates:
+    page_bboxes is derived from (page, bbox), corpus from the doc_id prefix,
+    kind defaults to text."""
+    src = _make_record("tsb/a01", 5, "en")  # no WS-0 keys
+    rec = ChunkRecord.from_dict(src)
+    assert rec.corpus == "tsb"
+    assert rec.kind == "text"
+    # Single derived rect: [page, *bbox].
+    assert rec.page_bboxes == [[5.0, 0.0, 0.0, 100.0, 50.0]]
+
+
+def test_ws0_backward_compat_empty_bbox_yields_no_region():
+    """A legacy payload with a degenerate zero bbox derives no region rect."""
+    src = _make_record("tsb/a01", 5, "en")
+    src["bbox"] = [0.0, 0.0, 0.0, 0.0]
+    rec = ChunkRecord.from_dict(src)
+    assert rec.page_bboxes == []
+
+
 def test_unknown_source_raises(chunks_root: Path):
     with pytest.raises(ValueError):
         iter_chunk_files(chunks_root, source="nope")
