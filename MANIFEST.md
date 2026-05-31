@@ -78,18 +78,26 @@ MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, o
 
 ## Resume pointer
 **NEXT — user-directed S17 roadmap (do in order; per-phase HITL pause between each):**
-PDF highlight Phase 1 (`1411efd`, two-tier term/title highlight) + Phase 2a (`9cf7748`,
-red-box figures via `page.images`) are DONE, render-only, live-verified.
+DONE: PDF highlight Phase 1 (`1411efd`, two-tier term/title) + Phase 2a (`9cf7748`, red-box
+figures) + 3D embedding-space tab (`74e98dc`, UMAP, baked JSON, keeps Neo4j tab).
 1. **About tab** — What/Why/How (problem, architecture, pipeline, stack). Authoring pre-approved.
-2. **3D embedding-space tab** — Plotly 3D scatter of the 63,946 BGE-M3 vectors
-   (UMAP/PCA→3D), colored by source/lang, hover=doc+snippet. **Keep the Neo4j graph_tab too.**
-   Vectors via a NEW backend endpoint (deployed Space has no direct DB route — only the
-   backend tunnel). Likely precompute the projection (script → cached JSON served by backend).
-3. **PDF highlight Phase 2b (OCR scanned pages)** — persist per-line OCR bbox
-   (`ocr.py:70-87`, currently discarded) through Chunk→chunk JSON→Qdrant payload→backend
-   →`RetrievedChunk`; use in `pdf_render` when text-layer search is empty. Then **re-ingest**:
-   `processing.run` (idempotent — picks up the ~670 image-heavy + new TC PDFs, OCR runs anyway,
-   +1 metadata field) → `embed.run`. Land the code BEFORE the hours-long run.
+2. **The big program — full re-ingest with grounded bboxes + VLM + dual corpus** (decided S17,
+   user-directed; this supersedes the old "Phase 2b"). Pieces:
+   - **Word/pixel-grounded bboxes from ingestion** (fixes S15 desync at root): born-digital via
+     pdfplumber `extract_words()`; scanned via PaddleOCR `return_word_box=True` (per-char/word
+     boxes — confirmed) or Florence-2 `<OCR_WITH_REGION>`. Persist a per-chunk word index
+     (word→bbox+page) through Chunk→chunk JSON→Qdrant payload→backend→`RetrievedChunk`→render.
+   - **Image understanding** (decided: **Florence-2 + Moondream**): Florence-2 (230M/770M) for
+     OCR+region boxes; Moondream2 (~1.9B, 4-bit ~2.4GB) for a prose blurb per figure. Blurb →
+     Neo4j `Figure` node AND embedded as a chunk (figures become retrievable). Runs in the
+     isolated **ingestion** image, offline — no query-time VRAM contention with gemma.
+   - **Chinese corpus** (drop FR emphasis; BGE-M3 is cross-lingual out of the box). HARD UNKNOWN:
+     no clean public CAAC PDF index found — recon needed (CAAC zh site, ASN, datasets) before pull.
+   - **Dual corpus, one collection, `corpus` tag** (decided): EN/TC vs ZH separable by tag,
+     overlap shown in the 3D tab + a cross-corpus NN-similarity / cross-lingual-recall metric.
+   - **Full re-ingest** (`processing.run` → `embed.run`) — multi-hour/overnight (OCR + Florence +
+     Moondream per image + re-embed). Land ALL code before the run. **Chunking will change**:
+     schema carries word index; CJK token-density → maybe language-aware windowing.
 **Parked:** graph-native breadth A/B/C (Neo4j recurrence quality) — user deprioritized.
 S17 (opus-4.8) cleared the one outstanding loose end: an unlogged, uncommitted WIP from a
 token-limited session — the hf-space **Corpus / Graph / Eval tabs** — is now finished and
