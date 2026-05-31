@@ -12,7 +12,9 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 - Verified: 15 new tab tests green on host; `make_app()` builds all 4 tabs in the hf-space image (gradio 5.50.0, offline stub client).
 - **Deployed live** to HF Space `ahmedsali/graphaero-rag`: stack up (backend healthz all-green), cloudflared tunnel → `BACKEND_URL` secret, uploaded hf_space/. Config now = 64 comps / 4 tabs (Chat·Corpus·Graph·Eval); `/graph/tsb/a13q0098` returns 23 findings / 5 regs.
 - **Deploy gotcha found** (wasted one cycle): Space Dockerfile `COPY hf_space /app/hf_space` + `python -m hf_space.app` → only the `hf_space/` SUBDIR is build-authoritative. Must upload `path_in_repo="hf_space"`, NOT `"."`. Saved as project memory.
-**Left:** Graph-native breadth **A/B/C decision still open** (see S16). Stack + tunnel left UP (tunnel URL ephemeral — kill when not demoing). `image1.png` at repo root untracked. Stale duplicate root-level files on the Space repo (harmless, build ignores them) — could clean up later.
+- **Undeployed** on request: Space PAUSED, tunnel killed; rebuilt local hf-space image + brought up at **http://localhost:7860** (4 tabs verified).
+- **PDF highlight Phase 1 shipped** (`1411efd`): two-tier multi-occurrence highlight. `search_page_terms` boxes every on-page query-term hit (title + all mentions, light wash) under the solid cited box; `_query_terms` (EN+FR stopword filter) feeds them. Render-only, no re-ingest. Live-verified on tsb/a13q0098 p.3 (8 boxes incl. all 4 title words; title solid, body washed — screenshot inspected). +13 tests, full hf_space suite green in-image.
+**Left:** **PDF highlight Phase 2** (OCR/scanned pages) — agreed but not started: needs per-line OCR bbox persisted through chunk→embed→backend→Space + re-ingest of OCR docs; START with measuring how many image-only pages are actually in the live index. Graph-native breadth **A/B/C** still open (S16). Stack left UP (local :7860, :8080). `image1.png` untracked. Stale root-level dupes on Space repo (harmless).
 
 ## Session 16 — 2026-05-29 — opus-4.8
 **Commits:** `e8eb8c0`, `885dcda`, `a7f006e`, `b931ec2`, `3b6bc64`

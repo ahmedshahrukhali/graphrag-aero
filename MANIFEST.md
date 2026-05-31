@@ -77,7 +77,17 @@ None. All resolved.
 MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, otel/otel-collector-config.yaml, per-dir README placeholders
 
 ## Resume pointer
-**NEXT: open — pick A / B / C on the graph-native breadth direction (see S16 "Left").**
+**NEXT (two open tracks):**
+**(1) PDF highlight Phase 2 — OCR/scanned pages.** Phase 1 shipped S17 (`1411efd`):
+two-tier multi-occurrence highlight (title + all query-term mentions washed, cited span
+solid), render-only, live-verified on tsb/a13q0098. Phase 2 = highlight scanned pages where
+the text layer is empty: the Space can't OCR, so per-line OCR bboxes (already captured in
+`ocr.py` but collapsed by the chunker) must be persisted through Chunk→chunk JSON→Qdrant
+payload→backend source→`RetrievedChunk`, then used in `pdf_render` when `page.search` finds
+nothing. **START by measuring** how many image-only pages are actually in the live index
+(~670 image-heavy PDFs were *skipped* at 74% during processing, so coverage may be near-zero
+— may not be worth the re-ingest until those docs are processed).
+**(2) Graph-native breadth — pick A / B / C (see S16 "Left").**
 S17 (opus-4.8) cleared the one outstanding loose end: an unlogged, uncommitted WIP from a
 token-limited session — the hf-space **Corpus / Graph / Eval tabs** — is now finished and
 committed (`e3974fd`), with `make_app()` verified to build all 4 tabs in the image + 15 green
