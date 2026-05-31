@@ -10,7 +10,9 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 - Finished + committed unlogged WIP from a token-limited session: hf-space **Corpus / Graph / Eval tabs** alongside Chat (`gr.Tabs()` in center pane), all over the existing FastAPI backend — no new ML in the Space.
 - corpus_tab = retrieve+rerank search w/ PDF bbox preview; graph_tab = per-doc KG lookup via new `ApiClient.graph_lookup` → `GET /graph/{doc_id}`; eval_tab = live Recall@k/MRR/nDCG bench w/ embedded 4-query dataset (metrics inlined, no eval/ dep).
 - Verified: 15 new tab tests green on host; `make_app()` builds all 4 tabs in the hf-space image (gradio 5.50.0, offline stub client).
-**Left:** WIP only *committed*, not deployed — HF Space not redeployed (stack stopped, no tunnel). Graph-native breadth **A/B/C decision still open** (see S16). `image1.png` at repo root left untracked (unrelated screenshot).
+- **Deployed live** to HF Space `ahmedsali/graphaero-rag`: stack up (backend healthz all-green), cloudflared tunnel → `BACKEND_URL` secret, uploaded hf_space/. Config now = 64 comps / 4 tabs (Chat·Corpus·Graph·Eval); `/graph/tsb/a13q0098` returns 23 findings / 5 regs.
+- **Deploy gotcha found** (wasted one cycle): Space Dockerfile `COPY hf_space /app/hf_space` + `python -m hf_space.app` → only the `hf_space/` SUBDIR is build-authoritative. Must upload `path_in_repo="hf_space"`, NOT `"."`. Saved as project memory.
+**Left:** Graph-native breadth **A/B/C decision still open** (see S16). Stack + tunnel left UP (tunnel URL ephemeral — kill when not demoing). `image1.png` at repo root untracked. Stale duplicate root-level files on the Space repo (harmless, build ignores them) — could clean up later.
 
 ## Session 16 — 2026-05-29 — opus-4.8
 **Commits:** `e8eb8c0`, `885dcda`, `a7f006e`, `b931ec2`, `3b6bc64`
