@@ -8,8 +8,8 @@ without re-deriving context. Read this + `MANIFEST.md` resume pointer, then star
 around a write-shape freeze (§6 — new WS-0). **Bbox approach RESET (§4.1): word-level highlighting
 scrapped; grounding is now region-level from the chunk's own stored bbox — kills the S15 desync,
 the word-box payload, and per-word OCR.** Model swap under evaluation (§4.6): gemma2:9b → Qwen3-8B
-generation + Qwen3-VL-8B on the figure tier, both decided by bake-off. Overnight-run monitoring
-runbook for Haiku added (§10).
+generation + an 8B VL (Qwen3-VL-8B **or** InternVL3-8B) on the figure tier, both decided by
+bake-off. Overnight-run monitoring runbook for Haiku added (§10).
 
 ---
 
@@ -132,9 +132,10 @@ ingest and rendered directly. No re-search, no word index.
   `trust_remote_code`/revision pinning needed — verify). Sequential load fits 8GB; offline.
 - Outputs: **(a)** Neo4j `Figure` nodes (§4.3); **(b)** the blurb **embedded as a chunk**
   (tag `kind=figure`) so figures become *retrievable*, not just graph decoration.
-- **Open bake-off (§4.6):** one `qwen3-vl:8b` may replace *both* Florence-2 + Moondream2 on the
-  **figure tier** (region detection + caption + figure-internal OCR, incl. Chinese). Coarse figure
-  boxes are fine for a VL model; decide by measurement, not specs. Word-tier OCR is gone (§4.1).
+- **Open bake-off (§4.6):** one 8B VL model (`qwen3-vl:8b` **or** `InternVL3-8B`) may replace
+  *both* Florence-2 + Moondream2 on the **figure tier** (region detection + caption +
+  figure-internal OCR, incl. Chinese). Coarse figure boxes are fine for a VL model; decide by
+  measurement on our own scanned EN+ZH docs, not specs. Word-tier OCR is gone (§4.1).
 
 ### 4.3 Graph (Neo4j)
 - `graph/schema.py` — add `:Figure` constraint + `(:Occurrence)-[:HAS_FIGURE]->(:Figure)`
@@ -167,12 +168,20 @@ Two independent swaps, decide each by measurement on *our* docs (not benchmarks)
   **VRAM caveat:** Qwen3-8B Q4_K_M benches ~7–9 GB vs gemma2's ~5.5 GB — the §VRAM plan budgets a
   6.5 GB peak on the 8 GB 3060Ti. **Measure the real quant footprint in WS-0**; may need Q4_K_S or
   to confirm it's sole-resident at generation time (reranker/embed already unloaded).
-- **`Qwen3-VL-8B` on the figure tier** (§4.2) — collapses Florence-2 + Moondream2 into one model.
-  Released 2025-10-15, on Ollama (`qwen3-vl:8b`); 32-lang OCR, robust to blur/tilt, normalized 2D
-  grounding. Good fit for *coarse* figure boxes; **not** for word-level (we scrapped that anyway).
-  Throughput: an 8B VL per *figure* is fine (sparse); never per page.
-- **Bake-offs:** (a) gemma2 vs Qwen3-8B answer quality on the same EN+ZH docs; (b) Qwen3-VL caption
-  vs Moondream on sample figures. Fold (a) into WS-0, (b) into WS-C.
+- **8B VL on the figure tier** (§4.2) — collapses Florence-2 + Moondream2 into one model.
+  Candidates: **Qwen3-VL-8B** (rel. 2025-10-15, on Ollama `qwen3-vl:8b`; 32-lang OCR, robust to
+  blur/tilt, normalized 2D grounding, **leads OCRBench** open-weight) vs **InternVL3-8B** (OpenGVLab,
+  Apr 2025; **92.7 DocVQA**, bbox-coordinate grounding, strong Chinese — headline strength is
+  structured-doc parsing). They split the benchmarks → decide by bake-off, not reputation. Good fit
+  for *coarse* figure boxes; **not** for word-level (scrapped, §4.1). Throughput: an 8B VL per
+  *figure* is fine (sparse); never per page. Runs in the **ingestion** image via HF transformers,
+  so InternVL3's unclear Ollama support is a non-issue here.
+  - Caveats: InternVL3's LLM component inherits the **Qwen license** (Qwen2.5 backbone) — fine for
+    a research demo, note before redistribution. Ollama support only matters if a VL model ever
+    becomes the *generator* (then Qwen3-VL has the edge).
+- **Bake-offs:** (a) gemma2 vs Qwen3-8B answer quality on the same EN+ZH docs; (b) figure caption +
+  region OCR: Moondream/Florence baseline vs Qwen3-VL-8B vs InternVL3-8B on sample EN+ZH figures.
+  Fold (a) into WS-0, (b) into WS-C.
 - **Possible future capability (not scoped):** a VL generator could *look at* the cited page/figure
   at answer time — multimodal grounding right at the HITL gate.
 

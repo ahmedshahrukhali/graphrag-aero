@@ -86,7 +86,8 @@ Key S18 changes baked into the plan (do NOT re-derive from the old bullets):
 - **Bbox RESET** (§4.1): word-level highlighting **scrapped**. Grounding = region-level from the
   chunk's own stored bbox (`page_bboxes`, one rect per page). Kills the S15 desync at root.
 - **Model swap under eval** (§4.6): gemma2:9b → Qwen3-8B generation (VRAM-gated, measure in WS-0)
-  + Qwen3-VL-8B on the figure tier (may collapse Florence-2+Moondream2). Decide by bake-off.
+  + an 8B VL on the figure tier — **Qwen3-VL-8B vs InternVL3-8B** (may collapse Florence-2+
+  Moondream2). Decide by bake-off on our own EN+ZH docs.
 - **Re-sequenced** (§6): **WS-0 freeze write-shape FIRST**, then WS-A (ZH scraper, fail-fast spike),
   WS-B (region render), WS-C (figures, depends on B), WS-E (dual-corpus eval), WS-F (run, LAST).
 Immediate next action: **implement WS-0** — freeze the `ChunkRecord` schema (`page_bboxes`,
