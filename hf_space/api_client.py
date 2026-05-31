@@ -226,6 +226,10 @@ class ApiClient:
         path = f"/resume/{quote(thread_id, safe='')}"
         return ResumeResponse.from_dict(self._request("POST", path, json=body))
 
+    def graph_lookup(self, doc_id: str) -> dict:
+        """GET /graph/{doc_id} — knowledge-graph context for a document."""
+        return self._request("GET", f"/graph/{doc_id}")
+
     def healthz(self) -> HealthResponse:
         return HealthResponse.from_dict(self._request("GET", "/healthz"))
 

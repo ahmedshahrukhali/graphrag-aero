@@ -27,6 +27,7 @@ import gradio as gr
 
 from hf_space.api_client import ApiClient, ApiError, RetrievedChunk, RetrieveResponse, make_client
 from hf_space.pdf_render import PdfRenderError, render_page_with_bbox
+from hf_space import corpus_tab, graph_tab, eval_tab
 
 
 logger = logging.getLogger(__name__)
@@ -596,40 +597,40 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
 
         # ── CENTER ────────────────────────────────────────────────────────
         with gr.Column(scale=1):
-            chat = gr.Chatbot(
-                type="messages",
-                show_copy_button=True,
-                label=None,
-                show_label=False,
-                elem_classes=["chat-pane"],
-            )
-            with gr.Row():
-                query = gr.Textbox(
-                    placeholder="Ask in English or French…",
-                    lines=1,
-                    max_lines=4,
-                    scale=8,
+          with gr.Tabs():
+            with gr.Tab("Chat"):
+                chat = gr.Chatbot(
+                    type="messages",
+                    show_copy_button=True,
+                    label=None,
                     show_label=False,
-                    autofocus=True,
-                    container=False,
+                    elem_classes=["chat-pane"],
                 )
-                ask_btn  = gr.Button("Send ↑", variant="primary",   scale=0)
-                stop_btn = gr.Button("⏹ Stop",  variant="secondary", scale=0)
-            # Source PDF pages — standalone gallery in preview mode (one full-
-            # width page + thumbnail reel), in a collapsible accordion *below*
-            # the composer. Tall enough (1000px) that the full page renders. A
-            # gallery embedded in a chat message can't enter preview mode, so it
-            # lives here. Populated via render_pages (.then) per turn.
-            with gr.Accordion("📄 Source pages", open=False) as pages_acc:
-                pages_gallery = gr.Gallery(
-                    value=[],
-                    preview=True,
-                    object_fit="contain",
-                    allow_preview=True,
-                    show_label=False,
-                    height=1000,
-                    elem_classes="pdf-inline",
-                )
+                with gr.Row():
+                    query = gr.Textbox(
+                        placeholder="Ask in English or French…",
+                        lines=1,
+                        max_lines=4,
+                        scale=8,
+                        show_label=False,
+                        autofocus=True,
+                        container=False,
+                    )
+                    ask_btn  = gr.Button("Send ↑", variant="primary",   scale=0)
+                    stop_btn = gr.Button("⏹ Stop",  variant="secondary", scale=0)
+                with gr.Accordion("📄 Source pages", open=False) as pages_acc:
+                    pages_gallery = gr.Gallery(
+                        value=[],
+                        preview=True,
+                        object_fit="contain",
+                        allow_preview=True,
+                        show_label=False,
+                        height=1000,
+                        elem_classes="pdf-inline",
+                    )
+            corpus_tab.build(client)
+            graph_tab.build(client)
+            eval_tab.build(client)
 
         # ── wiring ────────────────────────────────────────────────────────
         ask_outputs = [chat, sess, artifacts, history, recent]
