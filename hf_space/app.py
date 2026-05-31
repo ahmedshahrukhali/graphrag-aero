@@ -212,6 +212,7 @@ def _gallery_items(
                 draw_bbox=do_box,
                 locate_text=locate if do_box else None,
                 terms=terms if do_box else (),
+                box_images=do_box,
             )
             items.append((img, caption))
         except PdfRenderError as e:

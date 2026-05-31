@@ -16,6 +16,7 @@ from hf_space import pdf_render
 from hf_space.pdf_render import (
     PdfRenderError,
     bbox_to_pixels,
+    page_image_bboxes,
     render_page_with_bbox,
     search_page_bbox,
     search_page_terms,
@@ -186,6 +187,56 @@ def test_search_page_terms_empty_terms_returns_empty():
     fake_page = MagicMock()
     assert search_page_terms(fake_page, ()) == []
     fake_page.search.assert_not_called()
+
+
+def test_page_image_bboxes_extracts_image_rects():
+    fake_page = MagicMock()
+    fake_page.images = [
+        {"x0": 50.0, "top": 60.0, "x1": 250.0, "bottom": 300.0},
+        {"x0": 5.0, "top": 5.0, "x1": 6.0, "bottom": 6.0, "extra": "ignored"},
+    ]
+    boxes = page_image_bboxes(fake_page)
+    assert boxes == [(50.0, 60.0, 250.0, 300.0), (5.0, 5.0, 6.0, 6.0)]
+
+
+def test_page_image_bboxes_no_images_returns_empty():
+    fake_page = MagicMock()
+    fake_page.images = []
+    assert page_image_bboxes(fake_page) == []
+
+
+def test_page_image_bboxes_skips_malformed_entries():
+    fake_page = MagicMock()
+    fake_page.images = [
+        {"x0": 1.0, "top": 2.0},  # missing x1/bottom → skipped
+        {"x0": 10.0, "top": 20.0, "x1": 30.0, "bottom": 40.0},
+    ]
+    assert page_image_bboxes(fake_page) == [(10.0, 20.0, 30.0, 40.0)]
+
+
+def test_render_with_box_images_draws_red_outline():
+    """box_images=True → a red rectangle is drawn around the figure."""
+    pdf_render.render_page_with_bbox.cache_clear()
+    fake_page_image = MagicMock()
+    fake_page_image.original = _white_pil(800, 1000)
+    fake_page = MagicMock()
+    fake_page.to_image.return_value = fake_page_image
+    fake_page.search.return_value = []
+    fake_page.images = [{"x0": 100.0, "top": 100.0, "x1": 400.0, "bottom": 500.0}]
+    fake_pdf = MagicMock()
+    fake_pdf.pages = [fake_page]
+    fake_pdf.__enter__.return_value = fake_pdf
+    fake_pdf.__exit__.return_value = False
+
+    with patch.object(pdf_render, "_download_pdf", return_value=b"%PDF\n%%EOF"), \
+         patch("pdfplumber.open", return_value=fake_pdf):
+        out = render_page_with_bbox(
+            "https://example.test/img.pdf", page=1,
+            bbox=(0.0, 0.0, 1.0, 1.0), dpi=72, box_images=True,
+        )
+
+    # A red outline was drawn → some reddish pixels present.
+    assert any(r > 180 and g < 90 and b < 90 for (r, g, b) in out.getdata())
 
 
 def _fake_pdf_with_searchable_page(search_return):

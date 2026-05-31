@@ -70,6 +70,10 @@ def _download_pdf(url: str, *, timeout: float = 30.0) -> bytes:
 # Each style is (fill_rgba, outline_rgba, outline_width).
 _STYLE_CITED = ((245, 158, 11, 64), (245, 158, 11, 255), 3)
 _STYLE_TERM = ((245, 158, 11, 34), (245, 158, 11, 140), 1)
+# IMAGE — a figure/raster embedded on the page. We have no image *understanding*
+# (no VLM in the 8GB budget), so we just mark it: red outline, no fill (don't
+# obscure the figure). Signals "this page carries a captured image here".
+_STYLE_IMAGE = ((220, 38, 38, 0), (220, 38, 38, 255), 3)
 
 Style = Tuple[Tuple[int, int, int, int], Tuple[int, int, int, int], int]
 
@@ -156,6 +160,24 @@ def search_page_terms(
     return boxes
 
 
+def page_image_bboxes(page, *, max_boxes: int = _MAX_TERM_BOXES) -> list[BBox]:
+    """Bounding boxes (PDF points, top-origin) of raster images on ``page``.
+
+    pdfplumber exposes ``page.images`` with ``x0/top/x1/bottom`` in the same
+    coordinate space ``bbox_to_pixels`` expects. Used to red-box figures so the
+    demo shows the image was captured even though we don't interpret it.
+    """
+    out: list[BBox] = []
+    for im in (getattr(page, "images", None) or []):
+        try:
+            out.append((float(im["x0"]), float(im["top"]), float(im["x1"]), float(im["bottom"])))
+        except (KeyError, TypeError, ValueError):
+            continue
+        if len(out) >= max_boxes:
+            break
+    return out
+
+
 @lru_cache(maxsize=64)
 def render_page_with_bbox(
     pdf_url: str,
@@ -166,6 +188,7 @@ def render_page_with_bbox(
     draw_bbox: bool = True,
     locate_text: str | None = None,
     terms: tuple[str, ...] = (),
+    box_images: bool = False,
 ) -> Image.Image:
     """Return a PIL Image of ``page`` of the PDF at ``pdf_url``.
 
@@ -176,6 +199,8 @@ def render_page_with_bbox(
     - ``terms`` given → every on-page occurrence of those query terms gets a
       light wash (this is what lights up the document title and the repeated
       mentions). Drawn under the cited box.
+    - ``box_images=True`` → red outline around every raster image (figure) on
+      the page. We don't interpret the image; this just marks it as captured.
     - ``locate_text`` given → search the page for that text and box the
       *matched span* solid on top. If the text isn't found, no solid box is
       drawn (no misleading highlight); any term washes still render. The
@@ -198,6 +223,7 @@ def render_page_with_bbox(
             pil = page_image.original.copy()
             located = search_page_bbox(p, locate_text) if (draw_bbox and locate_text) else None
             term_boxes = search_page_terms(p, terms) if (draw_bbox and terms) else []
+            img_boxes = page_image_bboxes(p) if (draw_bbox and box_images) else []
     except PdfRenderError:
         raise
     except Exception as e:  # noqa: BLE001
@@ -210,13 +236,16 @@ def render_page_with_bbox(
     # Term washes first (drawn underneath the cited box).
     for tb in term_boxes:
         draw_list.append((bbox_to_pixels(tb, dpi=dpi), _STYLE_TERM))
+    # Red image outlines (figures).
+    for ib in img_boxes:
+        draw_list.append((bbox_to_pixels(ib, dpi=dpi), _STYLE_IMAGE))
 
     if locate_text is not None or terms:
         # Citation-anchored path: solid box only if the span was located.
         if located is not None:
             draw_list.append((bbox_to_pixels(located, dpi=dpi), _STYLE_CITED))
-    else:
-        # Legacy path: draw the stored bbox solid.
+    elif not box_images:
+        # Legacy path: draw the stored bbox solid (skipped when only imaging).
         draw_list.append((bbox_to_pixels(bbox, dpi=dpi), _STYLE_CITED))
 
     if not draw_list:
