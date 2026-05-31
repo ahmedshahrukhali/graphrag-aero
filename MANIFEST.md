@@ -82,7 +82,8 @@ DONE: PDF highlight Phase 1 (`1411efd`, two-tier term/title) + Phase 2a (`9cf774
 figures) + 3D embedding-space tab (`74e98dc`, UMAP, baked JSON, keeps Neo4j tab).
 1. **About tab** — What/Why/How (problem, architecture, pipeline, stack). Authoring pre-approved.
 2. **The big program — full re-ingest with grounded bboxes + VLM + dual corpus** (decided S17,
-   user-directed; this supersedes the old "Phase 2b"). Pieces:
+   user-directed; this supersedes the old "Phase 2b"). **→ Full plan: [docs/REINGEST_PLAN.md](docs/REINGEST_PLAN.md)**
+   (start a fresh session there; begin with WS-A recon + WS-B word-bbox). Pieces:
    - **Word/pixel-grounded bboxes from ingestion** (fixes S15 desync at root): born-digital via
      pdfplumber `extract_words()`; scanned via PaddleOCR `return_word_box=True` (per-char/word
      boxes — confirmed) or Florence-2 `<OCR_WITH_REGION>`. Persist a per-chunk word index
