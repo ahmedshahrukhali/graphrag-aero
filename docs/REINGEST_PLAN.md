@@ -62,20 +62,30 @@ and can land first regardless.
 - **License/robots: GREEN.** caac.gov.cn robots.txt disallows only `/CAAC/local/` and `/image/`;
   `/XXGK/` and `/GFXWJ/` permitted, no crawl-delay. PRC public gov documents. Rate-limit anyway.
 
-### Axis 2 (second stratum) — Investigation reports: CAAC ↔ TSB
-- The twin of the TSB occurrence half. Chinese reports: 民用航空器事件调查报告 /
-  航空器严重征候调查报告 (e.g. Bell 407 CFIT; Sichuan 3U8633 windscreen).
-- **License/robots: AMBER → ASN is INDEX-ONLY.** aviation-safety.net signals `ai-train=no` and
-  disallows AI-training bots (ClaudeBot). So: use ASN's China profile
-  (`/database/country/country.php?id=b`) to *discover* occurrences, then pull the actual PDFs
-  from their **primary host** (caac.gov.cn TZTG announcements, regional CAAC bureaus, original
-  issuer). Reports that exist *only* on ASN → **skip or ask**; do not bulk-fetch PDFs from ASN.
+### Axis 2 (second stratum) — Safety bulletins: CAAC 运行安全通告 (OSB) ↔ TSB
+- **REVISED S19 (user steer):** the TSB-equivalent safety intelligence is CAAC's own
+  **运行安全通告 (Operational Safety Bulletin / "OSB")** — published **directly by CAAC**, same
+  host, robots-GREEN, no `ai-train` concern. This **supersedes the ASN-index→primary-PDF dance**
+  as the primary Axis-2 source (cleaner: one host, one scraper, deterministic enumeration).
+- ASN (aviation-safety.net) is now **optional cross-reference only** (signals `ai-train=no`;
+  index-only if ever used, never bulk-fetch its PDFs). Off the critical path.
 
-### Scraper
+### Payload / category selectors (user-provided — key the scraper off these CAAC title markers)
+- `咨询通告`  → AC corpus            (`corpus=caac`, category `ac`)   — Axis 1
+- `运行安全通告` (or `OSB`) → safety-bulletin corpus (category `osb`) — Axis 2
+
+### Scraper — enumeration mechanism (recon S19)
 Model on `ingestion/acquisition/` (rate-limited, robots-respecting, idempotent) →
-`data/corpus/zh/{ac,reports}/`. Note: asn.flightsafety.org's cert chain fails strict
-verification — the httpx scraper must handle that explicitly (don't disable verification
-globally; scope it to that host).
+`data/corpus/zh/{ac,osb}/`. **Recon finding:** the CAAC section index + site search are
+**JS/JSONP-driven** (TRS WAS5 engine; the static `was5/web/search` GET returns a fixed ~706 B
+shell regardless of params/encoding — results load via a client-side JSONP/AJAX call). A naive
+`requests` index-walk does NOT enumerate. Two viable builds:
+  1. **Capture the JSONP results endpoint** (URL + channelid + params) from the live page's network
+     traffic once, then hit it directly with `httpx` — lightweight, container-friendly (preferred).
+  2. **Playwright headless** in the ingestion image: drive the search UI with the title markers
+     above, read the rendered list, harvest doc→PDF links — robust but ships Chromium.
+Capturing (1) was in progress via Chrome MCP (extension stalled on a permission prompt); finish it
+to avoid shipping Playwright if possible.
 
 ---
 
