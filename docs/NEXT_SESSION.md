@@ -26,7 +26,14 @@ Read this + `MANIFEST.md` resume pointer + `docs/REINGEST_PLAN.md` §6, then sta
 
 ---
 
-## WS-B — region-grounding render *(recommended first; lowest risk, schema already frozen)*
+## WS-B — region-grounding render — ☑ DONE (sonnet-4.6, 2026-05-31)
+Shipped: `render_page_with_bbox(region_bboxes=...)` draws stored rects; `search_page_bbox` +
+`locate_text` deleted; `app._page_regions` filters `page_bboxes` to the cited page. Full suite
+362 passed. **Only remaining WS-B item: live click-through at :7860** (stack up → submit a query →
+confirm the cited box lands from the stored region; old-index chunks show one coarse rect, expected).
+Original plan kept below for reference.
+
+### (original WS-B plan)
 Goal: render the chunk's stored `page_bboxes` directly; stop re-searching at render time.
 1. `hf_space/pdf_render.py`: add a path that draws the stored region rect(s) from
    `RetrievedChunk.page_bboxes` (already carried, WS-0). Each entry is `(page, x0, top, x1, bottom)`

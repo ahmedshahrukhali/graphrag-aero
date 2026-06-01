@@ -9,6 +9,9 @@ data/corpus/*
 data/chunks/
 data/recon/
 data/*.log
+data/hf-cache/
+data/tmp_vl/
+data/tmp_internvl.py
 .claude/
 logs/
 crops/

@@ -236,6 +236,14 @@ changes what gets written to disk / Qdrant / Neo4j must be **frozen before it**.
   reset: carry `page_bboxes` through the passthrough chain and draw the chunk's region rect on the
   page in `hf_space/pdf_render.py`; **delete the `page.search` path**. Much smaller than the old
   word-box plan. Proves the grounding UX without waiting on ZH.
+  - **☑ DONE (sonnet-4.6, 2026-05-31).** `render_page_with_bbox` now takes `region_bboxes` (the
+    chunk's stored rects for the page) drawn solid; `search_page_bbox` + the `locate_text`/quote-
+    anchoring path **deleted** (the S15 desync source). `app._sources_to_retrieve` carries
+    `page_bboxes`; `app._gallery_items` filters them to the cited page via new `_page_regions`.
+    Term-wash (`search_page_terms`) + figure red-box kept (term-wash is the only remaining
+    `page.search` caller — a coverage tint, not grounding). hf_space suite green; full suite
+    **362 passed** (−4 vs 366: deleted 7 search-path tests, added 3 region tests). Live click-through
+    at :7860 still pending (needs the stack up) — render is deterministic so low-risk.
 - **WS-C — figures** *(depends on WS-B)*. **Qwen3-VL-8B** module (decided S19, §4.2) — crop each
   figure, one VL call → caption + region OCR; `:Figure` nodes; figure-caption-as-chunk (`kind=figure`).
   Reuses B's stored-box render path for red-boxing — **that dependency is why C follows B**, not the

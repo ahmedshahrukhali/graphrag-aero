@@ -95,34 +95,12 @@ def _draw_boxes(
     return Image.alpha_composite(out, overlay).convert("RGB")
 
 
-# First N words of the cited quote are enough to localise it on the page;
-# searching the full (often multi-line) quote verbatim misses too easily.
-_LOCATE_PROBE_WORDS = 12
-
-
-def search_page_bbox(page, needle: str) -> BBox | None:
-    """Locate ``needle`` on a pdfplumber ``page`` and return its bbox in PDF
-    points ``(x0, top, x1, bottom)``, or ``None`` if not found.
-
-    Whitespace between words is matched flexibly (``\\s+``) so line wraps in
-    the PDF don't defeat the match. Only the first ``_LOCATE_PROBE_WORDS``
-    words of ``needle`` are used — enough to pin the location without
-    requiring the whole (often wrapped) quote to match verbatim.
-    """
-    words = [w for w in re.split(r"\s+", needle.strip()) if w]
-    if not words:
-        return None
-    probe = words[:_LOCATE_PROBE_WORDS]
-    pattern = r"\s+".join(re.escape(w) for w in probe)
-    try:
-        hits = page.search(pattern, regex=True, case=False)
-    except Exception:  # noqa: BLE001  — pdfplumber search is best-effort
-        return None
-    if not hits:
-        return None
-    h = hits[0]
-    return (float(h["x0"]), float(h["top"]), float(h["x1"]), float(h["bottom"]))
-
+# WS-B (region-level grounding): the cited box is no longer located by searching
+# the page for the answer's quote (``search_page_bbox`` — deleted). It is drawn
+# directly from the chunk's stored ``page_bboxes`` (one rect per page, computed
+# once at ingest), which is deterministic and never desyncs. See REINGEST_PLAN
+# §4.1. The term-wash below still uses ``page.search`` — it's only a coverage
+# tint, not the grounding box.
 
 # A page with 40× "fuel" shouldn't turn into confetti — cap the wash boxes.
 _MAX_TERM_BOXES = 25
@@ -178,6 +156,11 @@ def page_image_bboxes(page, *, max_boxes: int = _MAX_TERM_BOXES) -> list[BBox]:
     return out
 
 
+def _bbox_is_drawable(bbox: BBox) -> bool:
+    """A stored bbox worth drawing — nonzero area (not the [0,0,0,0] placeholder)."""
+    return (bbox[2] - bbox[0]) > 0 and (bbox[3] - bbox[1]) > 0
+
+
 @lru_cache(maxsize=64)
 def render_page_with_bbox(
     pdf_url: str,
@@ -186,7 +169,7 @@ def render_page_with_bbox(
     *,
     dpi: int = DEFAULT_DPI,
     draw_bbox: bool = True,
-    locate_text: str | None = None,
+    region_bboxes: tuple[BBox, ...] = (),
     terms: tuple[str, ...] = (),
     box_images: bool = False,
 ) -> Image.Image:
@@ -197,17 +180,17 @@ def render_page_with_bbox(
     Highlight behaviour (two tiers, see ``_STYLE_CITED`` / ``_STYLE_TERM``):
     - ``draw_bbox=False`` → bare page, no overlay (the UI bbox toggle).
     - ``terms`` given → every on-page occurrence of those query terms gets a
-      light wash (this is what lights up the document title and the repeated
-      mentions). Drawn under the cited box.
+      light wash (lights up the document title + repeated mentions). Drawn under
+      the cited box. This is the only path that still calls ``page.search``.
     - ``box_images=True`` → red outline around every raster image (figure) on
       the page. We don't interpret the image; this just marks it as captured.
-    - ``locate_text`` given → search the page for that text and box the
-      *matched span* solid on top. If the text isn't found, no solid box is
-      drawn (no misleading highlight); any term washes still render. The
-      coarse stored ``bbox`` is intentionally ignored on this path.
-    - ``locate_text=None`` and no ``terms`` (legacy) → draw the stored ``bbox``.
+    - **Cited box (WS-B, region-level):** ``region_bboxes`` — the chunk's stored
+      regions for *this* page (PDF points, ``(x0, top, x1, bottom)``) — are drawn
+      solid on top. These come from ingest (``page_bboxes``); no page search, no
+      desync. If ``region_bboxes`` is empty, fall back to the legacy single
+      ``bbox`` (when it's drawable and we're not in image-only mode).
 
-    All args are part of the LRU cache key (``terms`` must be a tuple).
+    All args are part of the LRU cache key (tuples required for hashing).
 
     Raises :class:`PdfRenderError` on download / parse / out-of-range failures.
     """
@@ -221,7 +204,6 @@ def render_page_with_bbox(
             p = pdf.pages[page - 1]
             page_image = p.to_image(resolution=dpi)
             pil = page_image.original.copy()
-            located = search_page_bbox(p, locate_text) if (draw_bbox and locate_text) else None
             term_boxes = search_page_terms(p, terms) if (draw_bbox and terms) else []
             img_boxes = page_image_bboxes(p) if (draw_bbox and box_images) else []
     except PdfRenderError:
@@ -240,13 +222,12 @@ def render_page_with_bbox(
     for ib in img_boxes:
         draw_list.append((bbox_to_pixels(ib, dpi=dpi), _STYLE_IMAGE))
 
-    if locate_text is not None or terms:
-        # Citation-anchored path: solid box only if the span was located.
-        if located is not None:
-            draw_list.append((bbox_to_pixels(located, dpi=dpi), _STYLE_CITED))
-    elif not box_images:
-        # Legacy path: draw the stored bbox solid (skipped when only imaging).
-        draw_list.append((bbox_to_pixels(bbox, dpi=dpi), _STYLE_CITED))
+    # Cited regions: the stored page_bboxes for this page, drawn solid on top.
+    cited = [rb for rb in region_bboxes if _bbox_is_drawable(rb)]
+    if not cited and not box_images and _bbox_is_drawable(bbox):
+        cited = [bbox]  # legacy single-rect fallback
+    for rb in cited:
+        draw_list.append((bbox_to_pixels(rb, dpi=dpi), _STYLE_CITED))
 
     if not draw_list:
         return pil

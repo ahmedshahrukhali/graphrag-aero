@@ -100,12 +100,19 @@ corpus from doc_id prefix, kind=text). +8 tests, full suite **366 passed**. See 
 (`docs/ws0_vram_measurement.md` — 6.2 GB / 8 GB, 100% GPU, ~1.8 GB free → **FITS**; the swap is no
 longer VRAM-gated, only quality-gated). **Next session: read [docs/NEXT_SESSION.md](docs/NEXT_SESSION.md)**
 — self-contained briefs for the next steps (in order):
-1. **WS-B** — region-grounding render: draw the stored `page_bboxes` in `hf_space/pdf_render.py`,
-   **delete the `page.search` path**. Lowest risk, schema frozen — recommended first.
-2. **WS-A** — ZH source spike (caac.gov.cn ACs GREEN + ASN-as-index → primary PDFs only). Fail-fast;
+1. ~~**WS-B** — region-grounding render~~ **☑ DONE (S19)**: `region_bboxes` drawn from stored
+   `page_bboxes`; `search_page_bbox`/`locate_text` deleted; 362 passed. Only remaining: live
+   click-through at :7860.
+2. **WS-C** — figures: Qwen3-VL-8B (decided, `docs/ws_c_qwenvl_findings.md`) via HF transformers in
+   the ingestion image; crop→caption+OCR; `:Figure` nodes + `kind=figure` chunks. Depends on WS-B ✓.
+3. **WS-A** — ZH source spike (caac.gov.cn ACs GREEN + ASN-as-index → primary PDFs only). Fail-fast;
    this is where `corpus=caac` + `zh` lang first enter (extend doc_id/embed/backend filters).
-3. **Qwen3-8B bake-off** — VRAM settled; decide the swap on EN+ZH answer quality (qwen3:8b already
-   pulled in Ollama).
+4. **Qwen3-8B (text) generator bake-off** — VRAM settled; on a sample synthesis prompt gemma2:9b gave
+   a clean cited answer while qwen3-**vl** (tried as generator) spilled + returned thinking-only.
+   Decide gemma2 vs text-qwen3:8b on EN+ZH answer quality. (VL model is figure-tier only.)
+**Env flag (S19):** host had starlette 1.2.1 which breaks fastapi 0.110 (`Router on_startup`);
+pinned host to `starlette==0.36.3` to restore backend tests. Docker images pin correctly via fastapi;
+this was host-env drift only.
 Still pending (pre-approved, independent): **About tab** — What/Why/How. Still unfrozen: curation
 admission criteria (§3) — freeze before WS-F.
 **Parked:** graph-native breadth A/B/C (Neo4j recurrence quality) — user deprioritized.

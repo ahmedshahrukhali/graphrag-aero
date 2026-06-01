@@ -91,6 +91,8 @@ def _sources_to_retrieve(sources: list[dict], query: str) -> RetrieveResponse:
             section_title=s.get("section_title", ""),
             page=int(s.get("page", 0)),
             bbox=tuple(bbox),  # type: ignore[arg-type]
+            # WS-B: region-level grounding rects (page, x0, top, x1, bottom).
+            page_bboxes=tuple(tuple(float(v) for v in pb) for pb in s.get("page_bboxes", ())),
             lang=s.get("lang", ""),
             text=s.get("text", ""),
             ann_score=float(s.get("ann_score", 0.0)),
@@ -179,14 +181,25 @@ def _query_terms(query: str, *, max_terms: int = 8) -> tuple[str, ...]:
     return tuple(out)
 
 
+def _page_regions(c: RetrievedChunk) -> tuple[tuple[float, float, float, float], ...]:
+    """The chunk's stored region rects that fall on its own page (WS-B).
+
+    ``page_bboxes`` entries are (page, x0, top, x1, bottom); keep the ones for
+    ``c.page`` and drop the page index so they're plain (x0, top, x1, bottom)
+    rects ready for ``render_page_with_bbox``."""
+    out: list[tuple[float, float, float, float]] = []
+    for pb in c.page_bboxes:
+        if len(pb) == 5 and int(pb[0]) == c.page:
+            out.append((pb[1], pb[2], pb[3], pb[4]))
+    return tuple(out)
+
+
 def _gallery_items(
     retrieve: RetrieveResponse,
     *,
     draw_bbox: bool = True,
-    citations: dict[tuple[str, int], str] | None = None,
     cited_keys: set[tuple[str, int]] | None = None,
 ) -> list[tuple[Any, str]]:
-    citations = citations or {}
     cited_keys = cited_keys or set()
     terms = _query_terms(retrieve.query)
     items: list[tuple[Any, str]] = []
@@ -200,17 +213,16 @@ def _gallery_items(
         )
         if not c.source_url:
             continue
-        # Highlight a page only when the answer cites it. Anchor the box to the
-        # model's exact quote if it gave one; otherwise fall back to the chunk's
-        # own text so the box still lands on the cited passage (the model emits
-        # [doc p.page] without quotes, so the quote path rarely fires alone).
+        # Highlight a page only when the answer cites it. WS-B: the cited box is
+        # the chunk's stored region(s) for this page (page_bboxes) — drawn
+        # directly, no page-search/quote-anchoring (that desynced; see §4.1).
         do_box = bool(draw_bbox and is_cited)
-        locate = citations.get(key) or (c.text if do_box else None)
+        regions = _page_regions(c) if do_box else ()
         try:
             img = render_page_with_bbox(
                 c.source_url, c.page, c.bbox,
                 draw_bbox=do_box,
-                locate_text=locate if do_box else None,
+                region_bboxes=regions,
                 terms=terms if do_box else (),
                 box_images=do_box,
             )
@@ -494,12 +506,8 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
             return []
         retrieve = _sources_to_retrieve(srcs, art.get("query", ""))
         draft = art.get("draft", "") if show_bbox else ""
-        citations = _parse_citations(draft)
         cited = _cited_keys(draft)
-        return _gallery_items(
-            retrieve, draw_bbox=bool(show_bbox),
-            citations=citations, cited_keys=cited,
-        )
+        return _gallery_items(retrieve, draw_bbox=bool(show_bbox), cited_keys=cited)
 
     def render_pages(artifacts: dict, show_bbox: bool):
         """Render source pages into the collapsible panel, and open it.
