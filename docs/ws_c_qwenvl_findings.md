@@ -46,6 +46,26 @@ is the figure understanding the demo wants, and very likely beats the Florence-2
 - **Thinking field:** Ollama ignored `think:false`; the model still emits a `thinking` field, but
   `response` is clean. Strip/ignore `thinking` when minting the Figure caption.
 
+## Head-to-head vs InternVL3-8B (the bake-off §4.6 asked for — run for real, not asserted)
+Same p.60 crop, same prompt. InternVL3-8B run in the embed container (host torch is CPU-only).
+bitsandbytes 4-bit was a dead end in this image (bnb 0.45+ wants CUDA 13 `libnvJitLink.so.13`;
+bnb 0.43 wants the old `triton.ops` removed in triton 3.x), so it ran **bf16 + CPU offload**.
+
+| | Qwen3-VL-8B (Ollama) | InternVL3-8B (HF, bf16+offload) |
+|---|---|---|
+| Caption | fuel gauge panel, pre-departure readings from CYHU, wing/nacelle + engines | fuel gauge panel, accident-related, CYHU readings |
+| OCR | WING TANKS **130** GAL · NAC TANK **57** GAL · CROSS FEED OPEN/CLOSED · LH/RH ENG · E/F | WING TANKS **150** GAL · NAC TANK **55** GAL · CROSS FEED OPEN/CLOSED · LH/RH ENG |
+| Speed | ~60 s | **361 s** (CPU offload; 4-bit never loaded) |
+| Setup | 2-min `ollama pull`, first try | transformers pin + bnb/CUDA/triton hell → slow CPU-offload fallback |
+
+**Ground truth (report a13q0098 p.16):** "wing tanks with a total capacity of **130** U[S gal]" and
+"nacelle tank with a usable capacity of **57** U[S gal]". → **Qwen3-VL read both correctly;
+InternVL3 misread both (150/55).** Caveat retained: figure OCR of fine print is error-prone in
+general — treat figure numbers as context, verify against report text when they matter.
+
+**Decision confirmed with data:** Qwen3-VL-8B wins on this sample — accurate OCR (verified) *and*
+far simpler to operate. InternVL3 dropped (not just "optional").
+
 ## Net
-Qwen3-VL-8B collapses Florence-2 + Moondream2 into one model with better output, at the cost of a
-borderline VRAM fit that's acceptable because the figure tier is offline. Adopt for WS-C.
+Qwen3-VL-8B collapses Florence-2 + Moondream2 into one model with better, verified output, at the
+cost of a borderline VRAM fit that's acceptable because the figure tier is offline. Adopt for WS-C.

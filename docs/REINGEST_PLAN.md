@@ -133,10 +133,11 @@ ingest and rendered directly. No re-search, no word index.
   `trust_remote_code`/revision pinning — verify). Offline batch; runs alone (no query-time models).
 - Outputs: **(a)** Neo4j `Figure` nodes (§4.3); **(b)** the caption **embedded as a chunk**
   (tag `kind=figure`) so figures become *retrievable*, not just graph decoration.
-- **Decision made (S19, `docs/ws_c_qwenvl_findings.md`):** Qwen3-VL-8B collapses Florence-2 +
-  Moondream2 into one model and produced an accurate caption + domain OCR on a sample TSB figure.
-  **InternVL3-8B bake-off is now optional** — only revisit if Qwen3-VL quality disappoints on ZH
-  figures during WS-C. Coarse figure boxes are fine for a VL model. Word-tier OCR is gone (§4.1).
+- **Decision made + bake-off run (S19, `docs/ws_c_qwenvl_findings.md`):** head-to-head vs
+  InternVL3-8B on the same TSB figure crop — Qwen3-VL read the gauge capacities correctly
+  (130/57 GAL, verified against report p.16) while **InternVL3 misread both (150/55)**, and
+  Qwen3-VL is far simpler to run (Ollama vs bnb/CUDA/triton hell). **InternVL3 dropped.** Coarse
+  figure boxes are fine for a VL model. Word-tier OCR is gone (§4.1).
 
 ### 4.3 Graph (Neo4j)
 - `graph/schema.py` — add `:Figure` constraint + `(:Occurrence)-[:HAS_FIGURE]->(:Figure)`
@@ -175,12 +176,14 @@ Two independent swaps, decide each by measurement on *our* docs (not benchmarks)
   Moondream2). Measured + quality-checked on a sample TSB figure (`docs/ws_c_qwenvl_findings.md`):
   accurate caption + region OCR; VRAM 7.7 GB / 28% CPU spill on this 8 GB card — borderline but
   tolerable for the **offline** figure tier (≠ query-time). Runs in the **ingestion** image via HF
-  transformers. **InternVL3-8B kept as an optional fallback** only (its LLM inherits the Qwen
-  license; note before redistribution). NB: do NOT use Qwen3-VL as the query-time generator — it
-  spills on this card; the generator decision is the separate gemma2→qwen3:8b text bake-off above.
+  transformers. **InternVL3-8B was tested head-to-head and DROPPED** — it misread the gauge
+  capacities (150/55 GAL) that Qwen3-VL read correctly (130/57, verified vs report p.16), and was
+  far harder to run. NB: do NOT use Qwen3-VL as the query-time generator — it spills on this card;
+  the generator decision is the separate gemma2→qwen3:8b text bake-off above.
 - **Bake-offs:** (a) gemma2 vs Qwen3-8B answer quality on the same EN+ZH docs — **still open**,
-  fold into the generation work; (b) figure caption + region OCR — **resolved S19** (Qwen3-VL-8B
-  adopted; re-open vs InternVL3 only if ZH figure quality disappoints in WS-C).
+  fold into the generation work (qwen3-**vl** as generator was tried + rejected: spill +
+  thinking-only output; candidate is the *text* qwen3:8b); (b) figure caption + region OCR —
+  **resolved S19 with data** — Qwen3-VL-8B beat InternVL3-8B (verified OCR + simpler ops).
 - **Possible future capability (not scoped):** a VL generator could *look at* the cited page/figure
   at answer time — multimodal grounding right at the HITL gate.
 
