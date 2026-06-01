@@ -14,7 +14,10 @@ Read this + `MANIFEST.md` resume pointer + `docs/REINGEST_PLAN.md` §6, then sta
   All additive/optional → the **existing 63,946-pt Qdrant index still hydrates** (page_bboxes
   derived from legacy `(page,bbox)`; corpus from doc_id prefix; kind=text). 366 tests green.
 - **WS-0 VRAM measurement** (`docs/ws0_vram_measurement.md`): qwen3:8b Q4_K_M = **6.2 GB, 100% GPU,
-  ~1.8 GB free. FITS.** VRAM is no longer the gate for the model swap.
+  ~1.8 GB free. FITS.** VRAM is no longer the gate for the text-generation swap.
+- **Figure-tier model DECIDED (S19, `docs/ws_c_qwenvl_findings.md`):** **Qwen3-VL-8B** adopted,
+  replacing Florence-2 + Moondream2. Strong caption + region OCR on a sample TSB figure; VRAM 7.7 GB
+  (28% CPU spill — tolerable offline). InternVL3 bake-off now optional. This lands in **WS-C**.
 
 ## Still open from WS-0
 - **Curation admission criteria (§3) NOT yet frozen.** They're a write-shape decision (they decide
@@ -66,6 +69,13 @@ benchmarks:
   call sites) and re-verify the HITL flow. Sequential-VRAM discipline already covers the +0.7 GB.
 - Minor doc nit found during measurement: this machine's gemma2:9b is **Q4_0**, while CLAUDE.md/
   MANIFEST say Q4_K_M. Reconcile the docs when you touch the LLM row.
+
+## WS-C figure tier (when you reach it — depends on WS-B)
+Model is decided: **Qwen3-VL-8B** via HF transformers in the ingestion image (`docs/ws_c_qwenvl_findings.md`).
+Implementation notes from the S19 spike: **crop each figure before captioning** (full pages exceed
+the vision-token budget → empty output); **strip the `thinking` field**, keep `response`; ctx 8192
+is ample for a crop. Emit `Figure {doc_id, page, bbox, caption, ocr_text}` → Neo4j `:Figure` +
+a `kind=figure` retrievable chunk. `qwen3-vl:8b` is already pulled in Ollama for further spiking.
 
 ## Sequencing reminder (REINGEST_PLAN §6)
 WS-B → WS-C (figures, depends on B) → WS-A → WS-E (dual-corpus eval) → **WS-F (single overnight

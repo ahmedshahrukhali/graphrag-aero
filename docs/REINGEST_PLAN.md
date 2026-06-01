@@ -34,7 +34,7 @@ everything. Every doc admitted should be justifiable.
 
 | Decision | Value | Why |
 |---|---|---|
-| Image→text models | **Florence-2 + Moondream2** | Florence-2 (230M/770M) = OCR + `OCR_WITH_REGION` quad boxes + region caption in one model; Moondream2 (~1.9B, 4-bit ≈2.4GB) = richer prose blurb. |
+| Image→text model | **Qwen3-VL-8B** (decided S19, 2026-05-31; supersedes Florence-2 + Moondream2) | One VL model = caption + region OCR; beat the baseline on a sample TSB figure (`docs/ws_c_qwenvl_findings.md`). VRAM 7.7 GB (borderline, ~28% CPU spill on this 8 GB card — tolerable offline). Runs in the ingestion image via HF transformers. |
 | OCR word boxes | PaddleOCR `return_word_box=True` (per-char/word boxes — confirmed) and/or Florence-2 `OCR_WITH_REGION` | grounds scanned-page highlights |
 | Born-digital word boxes | pdfplumber `page.extract_words()` (native per-word x0/top/x1/bottom) | grounds text-page highlights |
 | Vector store layout | **one collection, `corpus` payload tag** (`tsb`/`tc`/`caac`) | overlap demo is trivial in shared space; filter to separate |
@@ -124,18 +124,19 @@ ingest and rendered directly. No re-search, no word index.
   ingest). This collapses WS-B to roughly: carry `page_bboxes` through + draw a rect.
 - Figures (§4.2) keep their own coarse region box from detection — same tier, consistent UX.
 
-### 4.2 Image understanding — Florence-2 + Moondream2
-- New `ingestion/processing/figures.py`: detect figures (`page.images`), and per figure run
-  **Florence-2** (`OCR_WITH_REGION` + region caption) and **Moondream2** (prose blurb).
-  Emit `Figure` records `{doc_id, page, bbox, caption, ocr_text}`.
-- Deps: add Florence-2 + Moondream to the **ingestion** image (torch already present;
-  `trust_remote_code`/revision pinning needed — verify). Sequential load fits 8GB; offline.
-- Outputs: **(a)** Neo4j `Figure` nodes (§4.3); **(b)** the blurb **embedded as a chunk**
+### 4.2 Image understanding — Qwen3-VL-8B (decided S19; was Florence-2 + Moondream2)
+- New `ingestion/processing/figures.py`: detect figures (`page.images`), **crop each figure**, and
+  run **Qwen3-VL-8B** once per crop for both caption + region OCR. Emit `Figure` records
+  `{doc_id, page, bbox, caption, ocr_text}`. Strip the model's `thinking` field; keep `response`.
+  **Feed crops, not full pages** (a full page exceeds the vision-token budget → empty output).
+- Deps: add Qwen3-VL-8B to the **ingestion** image via HF transformers (torch already present;
+  `trust_remote_code`/revision pinning — verify). Offline batch; runs alone (no query-time models).
+- Outputs: **(a)** Neo4j `Figure` nodes (§4.3); **(b)** the caption **embedded as a chunk**
   (tag `kind=figure`) so figures become *retrievable*, not just graph decoration.
-- **Open bake-off (§4.6):** one 8B VL model (`qwen3-vl:8b` **or** `InternVL3-8B`) may replace
-  *both* Florence-2 + Moondream2 on the **figure tier** (region detection + caption +
-  figure-internal OCR, incl. Chinese). Coarse figure boxes are fine for a VL model; decide by
-  measurement on our own scanned EN+ZH docs, not specs. Word-tier OCR is gone (§4.1).
+- **Decision made (S19, `docs/ws_c_qwenvl_findings.md`):** Qwen3-VL-8B collapses Florence-2 +
+  Moondream2 into one model and produced an accurate caption + domain OCR on a sample TSB figure.
+  **InternVL3-8B bake-off is now optional** — only revisit if Qwen3-VL quality disappoints on ZH
+  figures during WS-C. Coarse figure boxes are fine for a VL model. Word-tier OCR is gone (§4.1).
 
 ### 4.3 Graph (Neo4j)
 - `graph/schema.py` — add `:Figure` constraint + `(:Occurrence)-[:HAS_FIGURE]->(:Figure)`
@@ -170,20 +171,16 @@ Two independent swaps, decide each by measurement on *our* docs (not benchmarks)
   No Q4_K_S needed. Safe *only* as sole resident at generation time, which the existing
   `ModelSession` + `synthesize_node.unload()` already enforce. **VRAM is no longer the gate** — the
   swap now hinges purely on the answer-quality bake-off below.
-- **8B VL on the figure tier** (§4.2) — collapses Florence-2 + Moondream2 into one model.
-  Candidates: **Qwen3-VL-8B** (rel. 2025-10-15, on Ollama `qwen3-vl:8b`; 32-lang OCR, robust to
-  blur/tilt, normalized 2D grounding, **leads OCRBench** open-weight) vs **InternVL3-8B** (OpenGVLab,
-  Apr 2025; **92.7 DocVQA**, bbox-coordinate grounding, strong Chinese — headline strength is
-  structured-doc parsing). They split the benchmarks → decide by bake-off, not reputation. Good fit
-  for *coarse* figure boxes; **not** for word-level (scrapped, §4.1). Throughput: an 8B VL per
-  *figure* is fine (sparse); never per page. Runs in the **ingestion** image via HF transformers,
-  so InternVL3's unclear Ollama support is a non-issue here.
-  - Caveats: InternVL3's LLM component inherits the **Qwen license** (Qwen2.5 backbone) — fine for
-    a research demo, note before redistribution. Ollama support only matters if a VL model ever
-    becomes the *generator* (then Qwen3-VL has the edge).
-- **Bake-offs:** (a) gemma2 vs Qwen3-8B answer quality on the same EN+ZH docs; (b) figure caption +
-  region OCR: Moondream/Florence baseline vs Qwen3-VL-8B vs InternVL3-8B on sample EN+ZH figures.
-  Fold (a) into WS-0, (b) into WS-C.
+- **8B VL on the figure tier** (§4.2) — **DECIDED S19: Qwen3-VL-8B** (collapses Florence-2 +
+  Moondream2). Measured + quality-checked on a sample TSB figure (`docs/ws_c_qwenvl_findings.md`):
+  accurate caption + region OCR; VRAM 7.7 GB / 28% CPU spill on this 8 GB card — borderline but
+  tolerable for the **offline** figure tier (≠ query-time). Runs in the **ingestion** image via HF
+  transformers. **InternVL3-8B kept as an optional fallback** only (its LLM inherits the Qwen
+  license; note before redistribution). NB: do NOT use Qwen3-VL as the query-time generator — it
+  spills on this card; the generator decision is the separate gemma2→qwen3:8b text bake-off above.
+- **Bake-offs:** (a) gemma2 vs Qwen3-8B answer quality on the same EN+ZH docs — **still open**,
+  fold into the generation work; (b) figure caption + region OCR — **resolved S19** (Qwen3-VL-8B
+  adopted; re-open vs InternVL3 only if ZH figure quality disappoints in WS-C).
 - **Possible future capability (not scoped):** a VL generator could *look at* the cited page/figure
   at answer time — multimodal grounding right at the HITL gate.
 
@@ -239,9 +236,10 @@ changes what gets written to disk / Qdrant / Neo4j must be **frozen before it**.
   reset: carry `page_bboxes` through the passthrough chain and draw the chunk's region rect on the
   page in `hf_space/pdf_render.py`; **delete the `page.search` path**. Much smaller than the old
   word-box plan. Proves the grounding UX without waiting on ZH.
-- **WS-C — figures** *(depends on WS-B)*. Florence-2 + Moondream2 module; `:Figure` nodes;
-  figure-blurb-as-chunk. Reuses B's stored-box render path for red-boxing — **that dependency is
-  why C follows B**, not the reverse.
+- **WS-C — figures** *(depends on WS-B)*. **Qwen3-VL-8B** module (decided S19, §4.2) — crop each
+  figure, one VL call → caption + region OCR; `:Figure` nodes; figure-caption-as-chunk (`kind=figure`).
+  Reuses B's stored-box render path for red-boxing — **that dependency is why C follows B**, not the
+  reverse.
 - **WS-E — dual-corpus + cross-corpus eval** *(after ZH lands)*. `corpus` tagging already frozen
   in WS-0; add the cross-corpus NN-similarity + cross-lingual recall metric; wire the 3D-viz refresh.
 - **WS-D — curation manifest emission** *(criteria already locked in WS-0)*. The manifest itself
