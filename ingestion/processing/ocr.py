@@ -21,31 +21,58 @@ class OcrNotAvailable(RuntimeError):
     """Raised when paddleocr is requested but not importable."""
 
 
-_ocr_singleton: Any | None = None  # module-level cache; lazy-built
+# One PaddleOCR model per language code — built lazily, cached per process.
+# Keyed by PaddleOCR's own ``lang`` code ("latin" | "ch" | "chinese_cht"), not
+# our corpus lang, because Simplified (CAAC) and Traditional (TTSB) are both
+# corpus-lang "zh" yet need different weights.
+_ocr_by_lang: dict[str, Any] = {}
+
+# Angle classification corrects skew on scanned pages — the Chinese corpus is
+# deliberately scanned, so enable it there. The latin TC/TSB PDFs aren't rotated.
+_NEEDS_ANGLE_CLS = frozenset({"ch", "chinese_cht"})
 
 
-def _get_ocr() -> Any:
-    global _ocr_singleton
-    if _ocr_singleton is not None:
-        return _ocr_singleton
+def paddle_lang(lang: str, source: str) -> str:
+    """Map (corpus lang, source) → the PaddleOCR ``lang`` code.
+
+    - en / fr            → "latin"  (multilingual Latin model)
+    - zh + caac          → "ch"     (Simplified Chinese)
+    - zh + ttsb          → "chinese_cht" (Traditional Chinese)
+    - zh + anything else → "ch"     (default Simplified)
+    """
+    if lang == "zh":
+        return "chinese_cht" if source == "ttsb" else "ch"
+    return "latin"
+
+
+def _get_ocr(ocr_lang: str = "latin") -> Any:
+    cached = _ocr_by_lang.get(ocr_lang)
+    if cached is not None:
+        return cached
     try:
         from paddleocr import PaddleOCR  # type: ignore
     except ImportError as e:
         raise OcrNotAvailable(
             "paddleocr is not installed in this image. Install the [ocr] extra."
         ) from e
-    # Multilingual model handles EN + FR. Disable angle classifier — TC/TSB
-    # PDFs aren't rotated. Initialise once per process.
-    _ocr_singleton = PaddleOCR(use_angle_cls=False, lang="latin", show_log=False)
-    return _ocr_singleton
+    model = PaddleOCR(
+        use_angle_cls=ocr_lang in _NEEDS_ANGLE_CLS,
+        lang=ocr_lang,
+        show_log=False,
+    )
+    _ocr_by_lang[ocr_lang] = model
+    return model
 
 
 OCR_RESOLUTION = 200  # DPI used when rendering pages for PaddleOCR
 _PTS_PER_PIXEL = 72.0 / OCR_RESOLUTION  # pixels → PDF points (top-left origin)
 
 
-def ocr_page(page: Any, page_no: int) -> PageExtract:
+def ocr_page(page: Any, page_no: int, ocr_lang: str = "latin") -> PageExtract:
     """OCR a pdfplumber page (assumed image-only) and return a :class:`PageExtract`.
+
+    ``ocr_lang`` is a PaddleOCR ``lang`` code ("latin" | "ch" | "chinese_cht");
+    derive it with :func:`paddle_lang` from the doc's (lang, source).
 
     PaddleOCR returns one entry per detected line:
         [ [bbox4points], (text, confidence) ]
@@ -57,12 +84,14 @@ def ocr_page(page: Any, page_no: int) -> PageExtract:
     so they are consistent with pdfplumber's text-extraction coordinates and can be
     passed directly to ``hf_space.pdf_render.bbox_to_pixels``.
     """
-    ocr = _get_ocr()
+    ocr = _get_ocr(ocr_lang)
     # Render the page to an image (pdfplumber API). Resolution=200 balances
     # OCR accuracy with memory; tune later if needed.
     img = page.to_image(resolution=OCR_RESOLUTION)
     pil = img.original  # PIL.Image
-    result = ocr.ocr(pil, cls=False)
+    # Angle classification is configured on the model; pass cls accordingly so
+    # scanned Chinese pages get deskewed.
+    result = ocr.ocr(pil, cls=ocr_lang in _NEEDS_ANGLE_CLS)
     # PaddleOCR 2.x returns a list of pages; we passed one page so result[0].
     lines = result[0] if result else []
     chars: list[Char] = []

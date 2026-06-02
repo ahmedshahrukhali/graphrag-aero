@@ -39,6 +39,25 @@ def test_corpus_tag_mirrors_source_for_tsb_tc():
     assert doc_ref_for_path(Path("data/corpus/en/tc/AC_100-001_e08.pdf")).corpus == "tc"
 
 
+def test_zh_ttsb_doc_ref():
+    ref = doc_ref_for_path(Path("data/corpus/zh/ttsb/asc-aor-2001.pdf"))
+    assert ref.doc_id == "ttsb/asc-aor-2001"
+    assert ref.source == "ttsb"
+    assert ref.lang == "zh"
+    assert ref.corpus == "ttsb"
+    # No URL builder yet (TC-style) — the scraper adds it later.
+    assert ref.source_url is None
+
+
+def test_zh_caac_doc_ref():
+    ref = doc_ref_for_path(Path("data/corpus/zh/caac/ac-121-fs.pdf"))
+    assert ref.doc_id == "caac/ac-121-fs"
+    assert ref.source == "caac"
+    assert ref.lang == "zh"
+    assert ref.corpus == "caac"
+    assert ref.source_url is None
+
+
 def test_rejects_non_pdf():
     with pytest.raises(ValueError):
         doc_ref_for_path(Path("data/corpus/en/tsb/a00a0110.txt"))

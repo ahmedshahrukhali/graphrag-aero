@@ -125,3 +125,18 @@ def test_missing_subdir_ok(tmp_path: Path):
     # Empty root → no files, no error.
     assert iter_chunk_files(tmp_path / "empty") == []
     assert list(iter_records(tmp_path / "empty")) == []
+
+
+def test_zh_caac_filters_resolve(tmp_path: Path):
+    # The Chinese corpus lives under zh/{ttsb,caac}; both lang and source filters
+    # must admit the new values without raising.
+    root = tmp_path / "chunks"
+    _write_jsonl(root / "zh" / "caac" / "ac01.jsonl",
+                 [_make_record("caac/ac01", i, "zh") for i in range(2)])
+    _write_jsonl(root / "zh" / "ttsb" / "aor01.jsonl",
+                 [_make_record("ttsb/aor01", i, "zh") for i in range(3)])
+    assert len(iter_chunk_files(root, lang="zh")) == 2
+    assert [p.parent.name for p in iter_chunk_files(root, source="caac")] == ["caac"]
+    recs = list(iter_records(root, lang="zh", source="ttsb"))
+    assert len(recs) == 3
+    assert recs[0].corpus == "ttsb"  # derived from doc_id prefix

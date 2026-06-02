@@ -15,8 +15,8 @@ from pydantic import BaseModel, Field
 
 class RetrieveRequest(BaseModel):
     query: str = Field(..., min_length=1)
-    lang: Literal["en", "fr"] | None = None
-    source: Literal["tsb", "tc"] | None = None
+    lang: Literal["en", "fr", "zh"] | None = None
+    source: Literal["tsb", "tc", "ttsb", "caac"] | None = None
     ann_k: int = Field(50, ge=1, le=500)
     top_k: int = Field(10, ge=1, le=100)
 
@@ -50,8 +50,8 @@ class QueryRequest(BaseModel):
     query: str = Field(..., min_length=1)
     thread_id: str = Field(..., min_length=1)
     max_hops: int = Field(2, ge=1, le=5)
-    lang: Literal["en", "fr"] | None = None
-    source: Literal["tsb", "tc"] | None = None
+    lang: Literal["en", "fr", "zh"] | None = None
+    source: Literal["tsb", "tc", "ttsb", "caac"] | None = None
 
 
 class QueryPausedResponse(BaseModel):

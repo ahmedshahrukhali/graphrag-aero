@@ -16,8 +16,8 @@ from pathlib import Path
 from typing import Iterator
 
 
-LANGS = ("en", "fr")
-SOURCES = ("tsb", "tc")
+LANGS = ("en", "fr", "zh")
+SOURCES = ("tsb", "tc", "ttsb", "caac")
 
 
 @dataclass(frozen=True)

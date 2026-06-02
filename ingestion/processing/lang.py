@@ -9,17 +9,21 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Literal
 
-Lang = Literal["en", "fr"]
+Lang = Literal["en", "fr", "zh"]
 
 
 def lang_for_path(path: Path) -> Lang:
-    """Return 'en' or 'fr' based on whichever appears as a path segment.
+    """Return 'en', 'fr' or 'zh' based on whichever appears as a path segment.
 
-    Raises ``ValueError`` if neither is present — we refuse to guess.
+    'zh' covers the Chinese corpus (TTSB Traditional + CAAC Simplified); the
+    script variant is resolved downstream per-source, not from the path.
+    Raises ``ValueError`` if none is present — we refuse to guess.
     """
     parts = [p.lower() for p in Path(path).parts]
     if "en" in parts:
         return "en"
     if "fr" in parts:
         return "fr"
+    if "zh" in parts:
+        return "zh"
     raise ValueError(f"cannot infer language from path: {path}")

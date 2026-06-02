@@ -21,7 +21,7 @@ from . import pdf as pdf_mod
 from .chunk import Chunk, Tokenizer, chunk_pages
 from .dedup import Dedup
 from .doc_id import DocRef, doc_ref_for_path
-from .ocr import ocr_page
+from .ocr import ocr_page, paddle_lang
 
 logger = logging.getLogger(__name__)
 
@@ -36,16 +36,20 @@ def default_tokenizer() -> Tokenizer:
 
 # ─── per-doc extraction (text + OCR fallback) ────────────────────────────────
 
-def extract_pages_with_ocr(path: Path) -> list[pdf_mod.PageExtract]:
-    """Open ``path`` once; use pdfplumber per page, OCR-fall-back on image-only pages."""
+def extract_pages_with_ocr(path: Path, ocr_lang: str = "latin") -> list[pdf_mod.PageExtract]:
+    """Open ``path`` once; use pdfplumber per page, OCR-fall-back on image-only pages.
+
+    ``ocr_lang`` is the PaddleOCR ``lang`` code (see :func:`paddle_lang`) — selects
+    the Latin vs Simplified vs Traditional Chinese model for the OCR fallback.
+    """
     out: list[pdf_mod.PageExtract] = []
     with pdf_mod.open_pdf(path) as pdfdoc:
         for i, page in enumerate(pdfdoc.pages, start=1):
             extracted = pdf_mod.extract_page(page, i)
             if extracted.image_only:
-                logger.info("ocr fallback: %s page %d", path.name, i)
+                logger.info("ocr fallback: %s page %d (%s)", path.name, i, ocr_lang)
                 try:
-                    extracted = ocr_page(page, i)
+                    extracted = ocr_page(page, i, ocr_lang)
                 except Exception as e:
                     logger.warning("ocr failed for %s page %d: %s", path.name, i, e)
             out.append(extracted)
@@ -114,7 +118,7 @@ def process_doc(
         logger.info("skip (fresh): %s", dest)
         return 0
 
-    pages = extract_pages_with_ocr(src)
+    pages = extract_pages_with_ocr(src, paddle_lang(ref.lang, ref.source))
     chunks = chunk_pages(pages, tokenizer)
     kept = [c for c in chunks if dedup.is_new(c.chunk_hash)]
     records = (_chunk_to_record(ref, c) for c in kept)
@@ -129,10 +133,14 @@ def process_doc(
 # ─── CLI ─────────────────────────────────────────────────────────────────────
 
 def iter_corpus_pdfs(corpus_root: Path, source: str | None) -> list[Path]:
-    """All PDFs under ``corpus_root/{en,fr}/{tsb,tc}/*.pdf``, deterministic order."""
-    sources = ("tsb", "tc") if source in (None, "all") else (source,)
+    """All PDFs under ``corpus_root/{en,fr,zh}/{tsb,tc,ttsb,caac}/*.pdf``, deterministic order.
+
+    Missing ``{lang}/{source}`` dirs are skipped, so the EN/FR × tsb/tc and
+    ZH × ttsb/caac layouts coexist without enumerating impossible combos.
+    """
+    sources = ("tsb", "tc", "ttsb", "caac") if source in (None, "all") else (source,)
     paths: list[Path] = []
-    for lang in ("en", "fr"):
+    for lang in ("en", "fr", "zh"):
         for src in sources:
             d = corpus_root / lang / src
             if not d.is_dir():
@@ -145,7 +153,7 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description="Chunk corpus PDFs into JSONL.")
     p.add_argument("--in", dest="in_root", type=Path, default=Path("data/corpus"))
     p.add_argument("--out", dest="out_root", type=Path, default=Path("data/chunks"))
-    p.add_argument("--source", choices=["tsb", "tc", "all"], default="all")
+    p.add_argument("--source", choices=["tsb", "tc", "ttsb", "caac", "all"], default="all")
     p.add_argument("--limit", type=int, default=None,
                    help="Max docs to process — handy for sample runs.")
     p.add_argument("--force", action="store_true",

@@ -96,15 +96,23 @@ full `chunk.Chunk → DocRef.corpus → run._chunk_to_record → embed.jsonl.Chu
 backend.schemas.RetrievedChunk → hf_space.api_client.RetrievedChunk` chain — all additive/optional,
 so the existing 63,946-pt index still hydrates (page_bboxes derived from legacy `(page,bbox)`,
 corpus from doc_id prefix, kind=text). +8 tests, full suite **366 passed**. See REINGEST_PLAN §6 WS-0.
-**⮕ START HERE NEXT SESSION (S20): [docs/CHINESE_OCR_PLAN.md](docs/CHINESE_OCR_PLAN.md) — APPROVED.**
+**⮕ S20 IN PROGRESS (opus-4.8): [docs/CHINESE_OCR_PLAN.md](docs/CHINESE_OCR_PLAN.md) — APPROVED.**
 The CAAC scrape is dead (JS/JSONP index, unscrapable). **Corpus decision pivoted:** keep the PDF→answer
 demo + English TC/TSB; add a **Chinese PDF corpus** from **Taiwan TTSB (Traditional, direct PDF URLs)
 + CAAC (Simplified, enumerate via search-engine seed, bypassing the JS index)**; **enable Chinese OCR**
 (the real change: per-language PaddleOCR model in `ingestion/processing/ocr.py` — `ch`/`chinese_cht`
 vs the current `latin`); deliberately source **scanned** Chinese PDFs so OCR actually fires. Downstream
-(BGE-M3, rerank, Qwen3-VL figures, WS-B bbox) is already multilingual — unchanged. First step: per-lang
-OCR routing + offline tests, then `acquisition/ttsb.py`, then `caac.py`. Wikipedia/HTML idea: DROPPED.
-Below = prior S19 history (WS-0/WS-B/figure-tier), still valid context.
+(BGE-M3, rerank, Qwen3-VL figures, WS-B bbox) is already multilingual — unchanged.
+**☑ Commit 1 DONE (S20, opus-4.8): per-language OCR routing + zh/ttsb/caac plumbing.** `ocr.py` now
+has `paddle_lang(lang, source)` (en/fr→`latin`, zh+caac→`ch`, zh+ttsb→`chinese_cht`; angle-cls on for
+Chinese) + a per-code model cache; `ocr_page(page, page_no, ocr_lang)`; `run.py` threads it from the
+DocRef and iterates `{en,fr,zh}/{tsb,tc,ttsb,caac}` (`--source` adds ttsb/caac); `lang.py` admits `zh`;
+`doc_id.py` `_KNOWN_SOURCES += ttsb,caac` (source_url None, TC-style); `embed/jsonl.py` LANGS/SOURCES
+and `backend/schemas.py` Literal filters admit zh/ttsb/caac. +16 tests, full suite **378 passed**.
+**⮕ NEXT (Commit 2): `ingestion/acquisition/ttsb.py`** — direct static PDF URLs (Traditional), wire
+`--source ttsb` into `acquisition/run.py`, prefer scanned ASC-era reports. Then Commit 3 `caac.py`
+(search-engine seed manifest → `data/corpus/zh/caac_seed.txt`). Then live scanned-OCR acceptance test,
+then curated re-ingest. Wikipedia/HTML idea: DROPPED. Below = prior S19 history, still valid context.
 
 ---
 

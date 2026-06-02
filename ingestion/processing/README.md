@@ -1,7 +1,9 @@
 # ingestion/processing/ — P1
 
-PDF → JSONL chunks. Reads `data/corpus/{en,fr}/{tsb,tc}/*.pdf` and writes
-`data/chunks/{en,fr}/{tsb,tc}/{stem}.jsonl` (one chunk per line).
+PDF → JSONL chunks. Reads `data/corpus/{en,fr,zh}/{tsb,tc,ttsb,caac}/*.pdf` and
+writes `data/chunks/{lang}/{source}/{stem}.jsonl` (one chunk per line). The `zh`
+corpus (TTSB Traditional + CAAC Simplified) routes OCR to the matching Chinese
+PaddleOCR model — see Pipeline step 2.
 
 ## Install (host)
 
@@ -53,7 +55,11 @@ One JSON object per line:
 
 1. **`pdf.py`** — pdfplumber per-page `extract_text()` + chars list. A page
    with no extractable text but with images is flagged `image_only`.
-2. **`ocr.py`** — lazy-imported PaddleOCR fallback for image-only pages.
+2. **`ocr.py`** — lazy-imported PaddleOCR fallback for image-only pages, with a
+   per-language model cache. `paddle_lang(lang, source)` picks the model:
+   `latin` (en/fr), `ch` (zh + caac, Simplified), `chinese_cht` (zh + ttsb,
+   Traditional). Angle classification is enabled for the Chinese models
+   (scanned-page skew) and off for latin. Coords are stored in PDF points.
 3. **`chunk.py`** — joins page text, tokenizes with the BGE-M3 (XLM-R)
    tokenizer, emits 512-token windows with 64-token overlap. Each chunk
    carries the dominant page and the union of contributing chars' bboxes on

@@ -44,7 +44,7 @@ def _make_corpus(tmp: Path) -> Path:
     return corpus
 
 
-def _fake_extract_pages_with_ocr(path: Path) -> list[PageExtract]:
+def _fake_extract_pages_with_ocr(path: Path, ocr_lang: str = "latin") -> list[PageExtract]:
     # Deterministic content keyed off filename + lang, with enough words to chunk.
     text = f"Findings the engine failed at altitude on {path.parent.parent.name}"
     return [PageExtract(page=1, text=text, chars=[])]
@@ -78,7 +78,7 @@ def test_run_is_idempotent_skips_fresh_outputs(tmp_path: Path):
     out = tmp_path / "chunks"
     call_count = {"n": 0}
 
-    def counting_extract(path: Path):
+    def counting_extract(path: Path, ocr_lang: str = "latin"):
         call_count["n"] += 1
         return _fake_extract_pages_with_ocr(path)
 
@@ -97,7 +97,7 @@ def test_run_force_reprocesses(tmp_path: Path):
     corpus = _make_corpus(tmp_path)
     out = tmp_path / "chunks"
 
-    def fake_extract(path: Path):
+    def fake_extract(path: Path, ocr_lang: str = "latin"):
         return _fake_extract_pages_with_ocr(path)
 
     with patch.object(run_mod, "extract_pages_with_ocr", side_effect=fake_extract), \
@@ -117,7 +117,7 @@ def test_run_limit_caps_doc_count(tmp_path: Path):
     out = tmp_path / "chunks"
     seen: list[Path] = []
 
-    def trace_extract(path: Path):
+    def trace_extract(path: Path, ocr_lang: str = "latin"):
         seen.append(path)
         return _fake_extract_pages_with_ocr(path)
 
@@ -134,7 +134,7 @@ def test_run_dedup_drops_duplicate_chunks_across_docs(tmp_path: Path):
     # Same text in both EN and FR docs -> identical chunk_hash -> 2nd one drops the chunk.
     same_text = "shared boilerplate paragraph that appears in both docs"
 
-    def same_extract(path: Path):
+    def same_extract(path: Path, ocr_lang: str = "latin"):
         return [PageExtract(page=1, text=same_text, chars=[])]
 
     with patch.object(run_mod, "extract_pages_with_ocr", side_effect=same_extract), \
@@ -158,3 +158,32 @@ def test_iter_corpus_pdfs_finds_only_pdfs_in_known_dirs(tmp_path: Path):
     paths = run_mod.iter_corpus_pdfs(corpus, source="all")
     names = sorted(p.name for p in paths)
     assert names == ["a23h0001.pdf", "a23h0001.pdf"]
+
+
+def test_iter_corpus_pdfs_includes_zh_sources(tmp_path: Path):
+    corpus = tmp_path / "corpus"
+    (corpus / "zh" / "caac").mkdir(parents=True)
+    (corpus / "zh" / "ttsb").mkdir(parents=True)
+    (corpus / "zh" / "caac" / "ac01.pdf").write_bytes(b"x")
+    (corpus / "zh" / "ttsb" / "aor01.pdf").write_bytes(b"x")
+    assert {p.name for p in run_mod.iter_corpus_pdfs(corpus, source="all")} == {
+        "ac01.pdf", "aor01.pdf"}
+    assert [p.name for p in run_mod.iter_corpus_pdfs(corpus, source="caac")] == ["ac01.pdf"]
+
+
+def test_process_doc_routes_zh_caac_to_ch_model(tmp_path: Path):
+    """The (lang, source) of a zh/caac doc must select PaddleOCR's 'ch' model."""
+    corpus = tmp_path / "corpus"
+    (corpus / "zh" / "caac").mkdir(parents=True)
+    src = corpus / "zh" / "caac" / "ac01.pdf"
+    src.write_bytes(b"x")
+    seen: dict[str, str] = {}
+
+    def capture(path: Path, ocr_lang: str = "latin"):
+        seen["ocr_lang"] = ocr_lang
+        return _fake_extract_pages_with_ocr(path)
+
+    from ingestion.processing.dedup import Dedup
+    with patch.object(run_mod, "extract_pages_with_ocr", side_effect=capture):
+        run_mod.process_doc(src, tmp_path / "chunks", _WhitespaceTokenizer(), Dedup())
+    assert seen["ocr_lang"] == "ch"
