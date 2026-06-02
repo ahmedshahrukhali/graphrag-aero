@@ -126,6 +126,9 @@ it lives at `ingestion/acquisition/caac_seed.txt` (with the module), NOT `data/c
 `data/corpus/*` is gitignored and the seed must be committed. **Live-validated**: 4 seed URLs HEAD →
 200 `application/pdf` (87 KB–2.8 MB) from this machine, so the axis is reachable, not dead. +9 offline
 tests (incl. a guard that the committed seed parses to ≥15 deduped URLs). Full suite **398 passed**.
+**⮕ SONNET QUEUE (opus-4.8 assigned, S20): [docs/SONNET_TASKS.md](docs/SONNET_TASKS.md)** — briefs for
+**D** (ttsb/caac source_url), **B** (freeze curation criteria §3), **A** (live OCR acceptance, HITL-gated).
+Suggested order D→B→A. Task A == Commit 4 below.
 **⮕ NEXT (Commit 4 — LIVE, HITL-gated): scanned-Chinese-OCR acceptance test → curated re-ingest.**
 Pull a sample (`--source ttsb --limit N` + `--source caac --limit N`), run `processing.run` (Chinese OCR
 fires on image_only pages), confirm real 中文 in chunks, `embed.run`, then a Chinese `/query` returns a
