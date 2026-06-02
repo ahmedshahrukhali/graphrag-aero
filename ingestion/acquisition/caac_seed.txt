@@ -1,0 +1,46 @@
+# CAAC (Civil Aviation Administration of China) PDF seed manifest — Simplified Chinese.
+#
+# The CAAC on-site index is JS/JSONP (unscrapable), so we bypass it: these direct
+# PDF URLs were harvested ONCE via search engine (site:caac.gov.cn filetype:pdf,
+# markers 咨询通告 / 信息通告 / 运行安全通告) on 2026-06-02 and committed for
+# reproducibility. caac.py reads this file, filters to caac.gov.cn *.pdf, dedupes
+# by basename (the opaque P-number is unique per doc), and download()s each into
+# data/corpus/zh/caac/.
+#
+# One URL per line. Blank lines and #-comments are ignored. URLs are kept verbatim
+# as the search engine returned them (including /PHONE/ and /English/ mirrors) —
+# those resolve; we do not rewrite paths we haven't verified.
+#
+# Whether a given PDF is scanned (image-only → fires Chinese OCR) vs born-digital
+# is decided at ingest by pdf.extract_page's image_only flag, not asserted here.
+# Older ACs (2003–2005) are the likely-scanned ones; newer (2018+) are born-digital.
+
+# ── 咨询通告 Advisory Circulars — older, likely scanned ──────────────────────
+https://www.caac.gov.cn/English/Highlights/regulation/202507/P020250730495163179477.pdf
+http://www.caac.gov.cn/XXGK/XXGK/GFXWJ/201511/P020151103346484825446.pdf
+http://www.caac.gov.cn/XXGK/XXGK/GFXWJ/201511/P020151103346495281320.pdf
+http://www.caac.gov.cn/XXGK/XXGK/GFXWJ/201511/P020151103347758780230.pdf
+http://www.caac.gov.cn/XXGK/XXGK/GFXWJ/201511/P020151103347606954435.pdf
+http://www.caac.gov.cn/XXGK/XXGK/GFXWJ/201511/P020151103346810395827.pdf
+http://www.caac.gov.cn/PHONE/XXGK_17/XXGK/GFXWJ/201511/P020151103347608877256.pdf
+
+# ── 咨询通告 Advisory Circulars — newer, born-digital ───────────────────────
+http://www.caac.gov.cn/XXGK/XXGK/GFXWJ/201904/P020190426411632941273.pdf
+http://www.caac.gov.cn/XXGK/XXGK/GFXWJ/201912/P020191219411440223959.pdf
+http://www.caac.gov.cn/XXGK/XXGK/GFXWJ/202412/P020241217627827577058.pdf
+http://www.caac.gov.cn/XXGK/XXGK/GFXWJ/202005/P020200513547358248843.pdf
+http://www.caac.gov.cn/XXGK/XXGK/GFXWJ/201808/P020180814593575149070.pdf
+http://www.caac.gov.cn/XXGK/XXGK/GFXWJ/202210/P020221018518399195631.pdf
+http://www.caac.gov.cn/XXGK/XXGK/GFXWJ/202303/P020230302596195295754.pdf
+https://www.caac.gov.cn/HDJL/YJZJ/202405/P020240524522679273476.pdf
+https://www.caac.gov.cn/HDJL/YJZJ/202512/P020251226558514350774.pdf
+https://www.caac.gov.cn/HDJL/YJZJ/202511/P020251125323576071515.pdf
+https://www.caac.gov.cn/PHONE/HDJL/YJZJ/202409/P020240914626851891664.pdf
+http://www.caac.gov.cn/PHONE/HDJL/YJZJ/202205/P020220513476438923922.pdf
+http://www.caac.gov.cn/HDJL/YJZJ/201904/P020190416324184061903.pdf
+https://www.caac.gov.cn/HDJL/YJZJ/201512/P020151209511102748772.pdf
+
+# ── 信息通告 Information Bulletins + 飞行标准管理手册 ─────────────────────────
+http://www.caac.gov.cn/XXGK/XXGK/GFXWJ/202511/P020251120388309559437.pdf
+http://www.caac.gov.cn/XXGK/XXGK/GFXWJ/202308/P020230822506555002145.pdf
+http://www.caac.gov.cn/PHONE/XXGK_17/XXGK/GFXWJ/202308/P020230822582821040457.pdf

@@ -277,6 +277,60 @@ def test_run_ttsb_respects_limit(tmp_path: Path):
     assert session.get.call_count == 3
 
 
+def test_run_caac_downloads_seed_pdfs_to_zh(tmp_path: Path):
+    seed = tmp_path / "seed.txt"
+    seed.write_text("\n".join([
+        "# CAAC seed",
+        "http://www.caac.gov.cn/XXGK/XXGK/GFXWJ/201511/P020151103346484825446.pdf",
+        "https://www.caac.gov.cn/HDJL/YJZJ/202512/P020251226558514350774.pdf",
+    ]), encoding="utf-8")
+
+    session = MagicMock()
+    session.get.side_effect = [
+        _StreamingResp([b"pdf-1"]),
+        _StreamingResp([b"pdf-2"]),
+    ]
+
+    results = run.run_caac(tmp_path, session, limit=None, seed_path=seed)
+
+    assert (tmp_path / "zh" / "caac" / "P020151103346484825446.pdf").read_bytes() == b"pdf-1"
+    assert (tmp_path / "zh" / "caac" / "P020251226558514350774.pdf").read_bytes() == b"pdf-2"
+    assert [r.downloaded for r in results] == [True, True]
+
+
+def test_run_caac_respects_limit_and_continues_past_error(tmp_path: Path):
+    import requests as _requests
+
+    seed = tmp_path / "seed.txt"
+    seed.write_text("\n".join([
+        "http://www.caac.gov.cn/a/P0001.pdf",
+        "http://www.caac.gov.cn/b/P0002.pdf",
+        "http://www.caac.gov.cn/c/P0003.pdf",
+    ]), encoding="utf-8")
+
+    session = MagicMock()
+    # limit=2 → only first two attempted; the first errors, crawl continues.
+    session.get.side_effect = [
+        _StreamingResp([], status_error=_requests.HTTPError("404")),
+        _StreamingResp([b"ok"]),
+    ]
+
+    results = run.run_caac(tmp_path, session, limit=2, seed_path=seed)
+
+    downloaded = [r for r in results if r.downloaded]
+    assert len(downloaded) == 1
+    assert (tmp_path / "zh" / "caac" / "P0002.pdf").exists()
+    assert not (tmp_path / "zh" / "caac" / "P0001.pdf").exists()
+    assert not (tmp_path / "zh" / "caac" / "P0003.pdf").exists()  # beyond limit
+
+
+def test_run_caac_missing_seed_is_noop(tmp_path: Path):
+    session = MagicMock()
+    results = run.run_caac(tmp_path, session, seed_path=tmp_path / "absent.txt")
+    assert results == []
+    session.get.assert_not_called()
+
+
 def test_run_tc_respects_limit(tmp_path: Path):
     # 3 EN detail pages, limit=1 -> only the first is fetched.
     en_index = (

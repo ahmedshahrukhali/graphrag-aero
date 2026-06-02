@@ -24,6 +24,9 @@ python -m ingestion.acquisition.run --source tc
 
 # only TTSB (Taiwan, Traditional Chinese) — sample 5 reports per listing
 python -m ingestion.acquisition.run --source ttsb --limit 5
+
+# only CAAC (China, Simplified Chinese) — from the committed seed manifest
+python -m ingestion.acquisition.run --source caac --limit 5
 ```
 
 Re-runs are idempotent: existing non-empty files at the destination path are skipped.
@@ -54,6 +57,14 @@ preserves the source pointer. Older ASC-era reports are often scanned (image-onl
 → they exercise the Chinese OCR path in `processing/`. Pagination of the listings
 is not yet followed; `--limit` plus the curated subset is the current scope.
 
+CAAC (China) has **no crawl**: its on-site index is a JS/JSONP widget that can't
+be scraped. Instead `caac_seed.txt` (committed, lives with the module since
+`data/corpus/` is gitignored) holds direct PDF URLs harvested once via search
+engine (`site:caac.gov.cn filetype:pdf`, markers 咨询通告 / 信息通告). `run_caac`
+reads + dedupes the seed (by P-number basename, collapsing `/PHONE/` `/big5/`
+mirrors) and downloads each. To refresh the corpus, edit the seed and re-run.
+Older ACs (2003–2005) are scanned → Chinese OCR; newer (2018+) are born-digital.
+
 ## Politeness
 
 - Rate-limited (default 1s between requests) — passed as `rate_limit_s` to
@@ -78,5 +89,7 @@ All tests are offline: HTTP is mocked. CI must pass without network access.
 | `tsb.py`         | Canada TSB occurrence ID extraction + PDF URL construction (EN + FR) |
 | `tc.py`          | TC AC PDF link extraction from the index page |
 | `ttsb.py`        | Taiwan TTSB `/media/` PDF link extraction + media-id filenames (ZH) |
+| `caac.py`        | CAAC seed-manifest parse + dedupe + basename filenames (ZH) |
+| `caac_seed.txt`  | Committed CAAC PDF URL seed (bypasses the unscrapable JS index) |
 | `run.py`         | CLI entry point — orchestrates all sources |
 | `tests/`         | Offline unit tests (HTTP mocked) |

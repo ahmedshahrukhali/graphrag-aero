@@ -117,10 +117,19 @@ ships `extract_pdf_urls` (host+`/media/{digits}/`+`.pdf` filter), `media_id`, an
 preserves provenance). `run.run_ttsb` crawls `ttsb.INDEX_URLS` → `data/corpus/zh/ttsb/`; `--source ttsb`
 wired. source_url stays None (doc_id TC-style) for now. +11 offline tests (HTTP mocked), full suite
 **389 passed**. NOT yet run live; listing pagination not followed (—limit + curated subset is scope).
-**⮕ NEXT (Commit 3): `ingestion/acquisition/caac.py`** — bypass the dead JS index via a search-engine/
-sitemap seed harvested once into a committed manifest `data/corpus/zh/caac_seed.txt` (markers 咨询通告 /
-运行安全通告, `site:caac.gov.cn filetype:pdf`), then `download()` each; wire `--source caac`; target
-**scanned** Simplified docs. Then: live scanned-Chinese-OCR acceptance test → curated re-ingest.
+**☑ Commit 3 DONE (S20, opus-4.8): `ingestion/acquisition/caac.py` + seed.** No crawl — CAAC's JS index
+is dead, so `caac.py` reads a **committed seed manifest** of direct PDF URLs harvested once via
+`site:caac.gov.cn filetype:pdf` (markers 咨询通告 / 信息通告). `load_seed` filters to caac.gov.cn `*.pdf`
+and dedupes by P-number basename (collapses `/PHONE/`·`/big5/` mirrors); `run_caac` downloads to
+`data/corpus/zh/caac/`; `--source caac` + `--caac-seed` wired. **Seed path deviates from the plan**:
+it lives at `ingestion/acquisition/caac_seed.txt` (with the module), NOT `data/corpus/zh/` — because
+`data/corpus/*` is gitignored and the seed must be committed. **Live-validated**: 4 seed URLs HEAD →
+200 `application/pdf` (87 KB–2.8 MB) from this machine, so the axis is reachable, not dead. +9 offline
+tests (incl. a guard that the committed seed parses to ≥15 deduped URLs). Full suite **398 passed**.
+**⮕ NEXT (Commit 4 — LIVE, HITL-gated): scanned-Chinese-OCR acceptance test → curated re-ingest.**
+Pull a sample (`--source ttsb --limit N` + `--source caac --limit N`), run `processing.run` (Chinese OCR
+fires on image_only pages), confirm real 中文 in chunks, `embed.run`, then a Chinese `/query` returns a
+cited answer with bbox highlight on an OCR'd region. The three acquisition modules are NOT yet run live.
 Wikipedia/HTML idea: DROPPED. Below = prior S19 history, still valid context.
 
 ---

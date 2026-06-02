@@ -5,6 +5,7 @@ Layout:
     data/corpus/fr/tsb/<id>.pdf
     data/corpus/en/tc/<filename>.pdf
     data/corpus/zh/ttsb/<media_id>_<name>.pdf
+    data/corpus/zh/caac/<P-number>.pdf
 """
 from __future__ import annotations
 
@@ -15,7 +16,7 @@ from pathlib import Path
 
 import requests
 
-from . import tc, tsb, ttsb
+from . import caac, tc, tsb, ttsb
 from .http_client import DownloadResult, download, fetch_text, make_session
 
 logger = logging.getLogger(__name__)
@@ -117,13 +118,36 @@ def run_ttsb(
     return results
 
 
+def run_caac(
+    out_root: Path,
+    session: requests.Session,
+    limit: int | None = None,
+    seed_path: Path = caac.DEFAULT_SEED,
+) -> list[DownloadResult]:
+    """Download CAAC PDFs listed in the seed manifest into ``data/corpus/zh/caac/``."""
+    urls = caac.load_seed_file(seed_path)
+    logger.info("CAAC: %d seed URLs in %s", len(urls), seed_path)
+    if limit is not None:
+        urls = urls[:limit]
+    results: list[DownloadResult] = []
+    for url in urls:
+        dest = out_root / "zh" / "caac" / caac.filename_for(url)
+        try:
+            results.append(download(session, url, dest))
+        except requests.RequestException as e:
+            logger.warning("CAAC %s: %s", url, e)
+    return results
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description="Scrape & download TC + TSB PDFs.")
     p.add_argument("--out", type=Path, default=Path("data/corpus"),
                    help="Output root (default: data/corpus)")
-    p.add_argument("--source", choices=["tsb", "tc", "ttsb", "all"], default="all")
+    p.add_argument("--source", choices=["tsb", "tc", "ttsb", "caac", "all"], default="all")
     p.add_argument("--limit", type=int, default=None,
                    help="Max docs per source — handy for sample runs.")
+    p.add_argument("--caac-seed", type=Path, default=caac.DEFAULT_SEED,
+                   help="CAAC PDF seed manifest (default: ingestion/acquisition/caac_seed.txt)")
     p.add_argument("-v", "--verbose", action="store_true")
     args = p.parse_args(argv)
 
@@ -140,6 +164,9 @@ def main(argv: list[str] | None = None) -> int:
         all_results.extend(run_tc(args.out, session, limit=args.limit))
     if args.source in ("ttsb", "all"):
         all_results.extend(run_ttsb(args.out, session, limit=args.limit))
+    if args.source in ("caac", "all"):
+        all_results.extend(run_caac(args.out, session, limit=args.limit,
+                                    seed_path=args.caac_seed))
 
     new = sum(1 for r in all_results if r.downloaded)
     skipped = sum(1 for r in all_results if not r.downloaded)
