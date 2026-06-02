@@ -56,6 +56,11 @@ def load_seed(text: str) -> list[str]:
     return urls
 
 
+def seed_url_map(urls: list[str]) -> dict[str, str]:
+    """Return ``{basename → url}`` for a deduplicated list of seed URLs."""
+    return {filename_for(u): u for u in urls}
+
+
 def load_seed_file(path: Path = DEFAULT_SEED) -> list[str]:
     """Read + parse the seed manifest at ``path`` (empty list if it's missing)."""
     if not path.exists():

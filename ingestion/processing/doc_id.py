@@ -24,7 +24,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from ingestion.acquisition import tsb
+from ingestion.acquisition import caac, tsb, ttsb
 from .lang import Lang, lang_for_path
 
 
@@ -83,5 +83,15 @@ def _source_url(source: str, stem: str, lang: Lang) -> str | None:
     if source == "tsb":
         # TSB IDs in the index are uppercase; stems on disk are lowercase.
         return tsb.build_pdf_url(stem.upper(), lang)
+    if source == "ttsb":
+        # stem = "{media_id}_{decoded_name}" (see ttsb.filename_for).
+        mid, sep, name = stem.partition("_")
+        if sep and mid.isdigit() and name:
+            return ttsb.build_pdf_url(mid, name)
+        return None
+    if source == "caac":
+        # Look up the original URL from the committed seed manifest.
+        url_map = caac.seed_url_map(caac.load_seed_file())
+        return url_map.get(f"{stem}.pdf")
     # TC URL includes a YYYY-MM dir we don't know from the stem alone.
     return None

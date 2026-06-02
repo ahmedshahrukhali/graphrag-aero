@@ -6,6 +6,7 @@ from ingestion.acquisition.caac import (
     filename_for,
     load_seed,
     load_seed_file,
+    seed_url_map,
 )
 
 _PDF = "http://www.caac.gov.cn/XXGK/XXGK/GFXWJ/201511/P020151103346484825446.pdf"
@@ -48,6 +49,16 @@ def test_load_seed_rejects_non_caac_and_non_pdf():
 
 def test_load_seed_file_missing_returns_empty(tmp_path):
     assert load_seed_file(tmp_path / "nope.txt") == []
+
+
+def test_seed_url_map_keys_by_basename():
+    url = "https://www.caac.gov.cn/XXGK/XXGK/MHXH/201511/P020151103346484825446.pdf"
+    m = seed_url_map([url])
+    assert m == {"P020151103346484825446.pdf": url}
+
+
+def test_seed_url_map_empty():
+    assert seed_url_map([]) == {}
 
 
 def test_committed_default_seed_parses_nonempty():

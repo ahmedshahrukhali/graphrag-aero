@@ -3,7 +3,12 @@ from __future__ import annotations
 
 import textwrap
 
-from ingestion.acquisition.ttsb import extract_pdf_urls, filename_for, media_id
+from ingestion.acquisition.ttsb import (
+    build_pdf_url,
+    extract_pdf_urls,
+    filename_for,
+    media_id,
+)
 
 _BASE = "https://www.ttsb.gov.tw/1133/1154/1155/1159/Lpsimplelist"
 
@@ -74,3 +79,24 @@ def test_filename_for_decodes_percent_encoded_chinese():
     assert filename_for("https://www.ttsb.gov.tw/media/9234/%E5%AE%89%E6%8D%B7.pdf") == (
         "9234_安捷.pdf"
     )
+
+
+def test_build_pdf_url_ascii():
+    assert build_pdf_url("3059", "00_general") == (
+        "https://www.ttsb.gov.tw/media/3059/00_general.pdf"
+    )
+
+
+def test_build_pdf_url_chinese():
+    assert build_pdf_url("9234", "安捷b-86002調查報告") == (
+        "https://www.ttsb.gov.tw/media/9234/安捷b-86002調查報告.pdf"
+    )
+
+
+def test_build_pdf_url_roundtrips_filename_for():
+    # filename_for strips the .pdf into a stem; build_pdf_url adds it back.
+    url = "https://www.ttsb.gov.tw/media/9234/ci611_general.pdf"
+    name = filename_for(url)               # "9234_ci611_general.pdf"
+    mid = media_id(url)                    # "9234"
+    stem = name[len(mid) + 1:-4]           # "ci611_general"
+    assert build_pdf_url(mid, stem) == url

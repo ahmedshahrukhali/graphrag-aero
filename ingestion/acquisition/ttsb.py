@@ -23,6 +23,8 @@ from urllib.parse import unquote, urljoin, urlparse
 
 from bs4 import BeautifulSoup
 
+_TTSB_BASE = "https://www.ttsb.gov.tw"
+
 # Traditional-Chinese listing pages that link report PDFs directly. The English
 # tree (/english/...) serves English PDFs — we deliberately use the Chinese tree.
 INDEX_URLS = (
@@ -32,6 +34,16 @@ INDEX_URLS = (
 
 _TTSB_HOST_SUFFIX = "ttsb.gov.tw"
 _MEDIA_ID_RE = re.compile(r"/media/(\d+)/")
+
+
+def build_pdf_url(media_id: str, name: str) -> str:
+    """Reconstruct the canonical TTSB PDF URL from its media id and filename stem.
+
+    ``name`` is the decoded basename *without* the ``.pdf`` extension — the
+    reverse of :func:`filename_for`. The HTTP client re-encodes UTF-8 on the
+    wire; no manual percent-encoding is needed here.
+    """
+    return f"{_TTSB_BASE}/media/{media_id}/{name}.pdf"
 
 
 def extract_pdf_urls(html: str, base_url: str) -> list[str]:
