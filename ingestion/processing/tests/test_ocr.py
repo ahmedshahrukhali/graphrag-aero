@@ -104,14 +104,19 @@ def test_ocr_page_converts_pixels_to_points_and_passes_cls(fake_paddle):
 
     assert extract.page == 7
     assert extract.text == "中文测试"
-    assert len(extract.chars) == 1
-    ch = extract.chars[0]
+    # One Char PER GLYPH (4), so the chunker can align chunk text to bboxes.
+    assert len(extract.chars) == 4
     # 200-DPI pixels → PDF points: factor 72/200 = 0.36
     f = 72.0 / OCR_RESOLUTION
-    assert ch.x0 == pytest.approx(10 * f)
-    assert ch.x1 == pytest.approx(110 * f)
-    assert ch.top == pytest.approx(20 * f)
-    assert ch.bottom == pytest.approx(40 * f)
+    first, last = extract.chars[0], extract.chars[-1]
+    # Line x-extent [10,110]px subdivided across 4 glyphs: first starts at 10px,
+    # last ends at 110px; all glyphs share the line's y-extent.
+    assert first.x0 == pytest.approx(10 * f)
+    assert last.x1 == pytest.approx(110 * f)
+    assert first.x1 == pytest.approx((10 + (110 - 10) / 4) * f)
+    for ch in extract.chars:
+        assert ch.top == pytest.approx(20 * f)
+        assert ch.bottom == pytest.approx(40 * f)
     # the Chinese model deskews → cls=True was passed to .ocr()
     assert _FakeOCR.instances[0].cls_calls == [True]
 

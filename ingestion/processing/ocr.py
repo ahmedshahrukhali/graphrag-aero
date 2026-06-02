@@ -113,13 +113,22 @@ def ocr_page(page: Any, page_no: int, ocr_lang: str = "latin") -> PageExtract:
         x1  = max(xs) * _PTS_PER_PIXEL
         top = min(ys) * _PTS_PER_PIXEL
         bottom = max(ys) * _PTS_PER_PIXEL
-        chars.append(Char(
-            text=text,
-            x0=float(x0), x1=float(x1),
-            top=float(top), bottom=float(bottom),
-            size=float(bottom - top),
-            page=page_no,
-        ))
+        # Emit ONE Char per glyph (not per line): the chunker aligns chunk text to
+        # char bboxes glyph-by-glyph (``ch == next_char.text``), so a per-line Char
+        # whose .text is the whole line never matches and the chunk bbox is lost.
+        # Region-level grounding only needs the union, so subdivide the line's
+        # width evenly across its glyphs and share the line's y-extent.
+        n = len(text)
+        for j, glyph in enumerate(text):
+            gx0 = x0 + (x1 - x0) * j / n if n else x0
+            gx1 = x0 + (x1 - x0) * (j + 1) / n if n else x1
+            chars.append(Char(
+                text=glyph,
+                x0=float(gx0), x1=float(gx1),
+                top=float(top), bottom=float(bottom),
+                size=float(bottom - top),
+                page=page_no,
+            ))
         text_parts.append(text)
     page_text = "\n".join(text_parts)
     return PageExtract(page=page_no, text=page_text, chars=chars, image_only=False)
