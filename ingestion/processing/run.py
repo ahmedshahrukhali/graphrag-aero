@@ -19,6 +19,7 @@ from typing import Iterable
 
 from . import pdf as pdf_mod
 from .chunk import Chunk, Tokenizer, chunk_pages
+from .curation import Admission, CurationManifest, admit
 from .dedup import Dedup
 from .doc_id import DocRef, doc_ref_for_path
 from .ocr import ocr_page, paddle_lang
@@ -109,8 +110,10 @@ def process_doc(
     dedup: Dedup,
     *,
     force: bool = False,
+    curate: bool = False,
+    manifest: CurationManifest | None = None,
 ) -> int:
-    """Process one PDF. Returns number of chunks written (0 if skipped/fresh)."""
+    """Process one PDF. Returns number of chunks written (0 if skipped/fresh/rejected)."""
     ref = doc_ref_for_path(src)
     # Output mirrors corpus layout but under out_root and with .jsonl: {lang}/{source}/{stem}.jsonl
     dest = out_root / ref.lang / ref.source / f"{ref.stem}.jsonl"
@@ -120,6 +123,15 @@ def process_doc(
 
     pages = extract_pages_with_ocr(src, paddle_lang(ref.lang, ref.source))
     chunks = chunk_pages(pages, tokenizer)
+
+    if curate:
+        result: Admission = admit(ref, chunks)
+        if manifest is not None:
+            manifest.record(ref, result)
+        if not result.admitted:
+            logger.info("curate reject (%s): %s", result.reason.value, src.name)
+            return 0
+
     kept = [c for c in chunks if dedup.is_new(c.chunk_hash)]
     records = (_chunk_to_record(ref, c) for c in kept)
     n = write_jsonl(dest, records)
@@ -158,6 +170,8 @@ def main(argv: list[str] | None = None) -> int:
                    help="Max docs to process — handy for sample runs.")
     p.add_argument("--force", action="store_true",
                    help="Reprocess even if the destination is fresh.")
+    p.add_argument("--curate", action="store_true",
+                   help="Apply admission criteria (curation.py); write curation_manifest.json.")
     p.add_argument("-v", "--verbose", action="store_true")
     args = p.parse_args(argv)
 
@@ -178,16 +192,32 @@ def main(argv: list[str] | None = None) -> int:
 
     tokenizer = default_tokenizer()
     dedup = Dedup()
+    manifest = CurationManifest() if args.curate else None
     total_chunks = 0
     for src in paths:
         try:
-            total_chunks += process_doc(src, args.out_root, tokenizer, dedup, force=args.force)
+            total_chunks += process_doc(
+                src, args.out_root, tokenizer, dedup,
+                force=args.force, curate=args.curate, manifest=manifest,
+            )
         except Exception as e:
             logger.exception("failed: %s: %s", src, e)
     logger.info(
         "done: %d chunks across %d docs (%d unique hashes)",
         total_chunks, len(paths), len(dedup),
     )
+    if manifest is not None:
+        manifest_path = args.out_root / "curation_manifest.json"
+        manifest_path.parent.mkdir(parents=True, exist_ok=True)
+        import json as _json
+        manifest_path.write_text(
+            _json.dumps(manifest.to_dict(), indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        logger.info("curation manifest -> %s", manifest_path)
+        warning = manifest.balance_warning()
+        if warning:
+            logger.warning(warning)
     return 0
 
 

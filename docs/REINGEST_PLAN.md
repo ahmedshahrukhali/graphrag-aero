@@ -95,18 +95,46 @@ to avoid shipping Playwright if possible.
 
 ---
 
-## 3. Data-curation workstream (cross-cutting, gated quality)
+## 3. Data-curation workstream (cross-cutting, gated quality) — **FROZEN v1**
 
-Define and enforce admission criteria; emit a **curation manifest** (counts per
-corpus/lang, born-digital vs OCR, figures captioned, rejects + reasons).
+> Implemented in `ingestion/processing/curation.py` (VERSION = 1). Opt-in via
+> `--curate` in `processing/run.py`; writes `curation_manifest.json`. Default
+> behaviour (no `--curate`) is unchanged.
 
-- SHA-256 dedup already exists (`ingestion/processing/dedup.py`) — keep, tune.
-- Reject: empty/failed scans, cover-only or boilerplate-only docs, non-report pages,
-  language-misdetected docs, sub-threshold content length.
-- Balance: keep the corpus topically comparable across EN/TC and ZH so the overlap demo is
-  honest (display is tag-stratified anyway, but the underlying set should be balanced).
-- Provenance: every chunk already carries `{doc_id, source_url, page, lang, ...}`; add
-  `corpus` + (for figures) figure provenance.
+### Frozen admission rules
+
+| Rule | Threshold | Constant |
+|---|---|---|
+| **empty** | 0 chunks extracted | — |
+| **sub_threshold** | total text < **200 chars** | `MIN_DOC_CHARS = 200` |
+| **cover_only** | every chunk is boilerplate (text.strip() < **80 chars** OR matches page-marker `"- N -"` OR date-only pattern) | `BOILERPLATE_CHUNK_CHARS = 80` |
+| **lang_misdetect** | ZH doc whose non-space chars are > **80 % ASCII letters** | `ZH_ASCII_LETTER_THRESHOLD = 0.80` |
+
+Rules are evaluated in priority order (empty → sub_threshold → cover_only →
+lang_misdetect); first match short-circuits.
+
+### Dedup policy (unchanged, frozen)
+
+SHA-256 of normalised chunk text (`ingestion/processing/dedup.py`). First occurrence
+wins, cross-document. Re-runs are idempotent.
+
+### Balance target (informational)
+
+Admitted ZH docs should be within **0.5 × to 2.0 ×** the count of admitted EN/TC docs
+so the cross-lingual overlap demo is honest. Checked by `manifest.balance_warning()`;
+a warning is logged if out of band and written to `curation_manifest.json`. Not enforced
+per-doc — curate the corpus size manually before WS-F.
+
+### Manifest schema
+
+`curation_manifest.json` keys: `curation_version`, `admitted`, `rejected`, `total`,
+`reject_reasons` (reason → count), `by_corpus` (corpus → {admitted, rejected}),
+`by_lang` (lang → {admitted, rejected}), `balance_warning` (optional string).
+
+### Provenance
+
+Every chunk already carries `{doc_id, source_url, page, lang, corpus, page_bboxes, ...}`
+(frozen in WS-0). No changes here; `curation.py` is a filter layer only.
 
 ---
 
