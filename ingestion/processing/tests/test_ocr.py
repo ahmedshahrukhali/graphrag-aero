@@ -19,11 +19,12 @@ from ingestion.processing.ocr import OCR_RESOLUTION, ocr_page, paddle_lang
 # ─── paddle_lang: pure (lang, source) → model-code mapping ────────────────────
 
 @pytest.mark.parametrize("lang,source,expected", [
-    ("en", "tsb", "latin"),
-    ("fr", "tc", "latin"),
+    ("en", "tsb", "en"),             # PP-OCRv5 English (no more shared "latin")
+    ("fr", "tc", "fr"),              # PP-OCRv5 French (diacritics)
     ("zh", "caac", "ch"),            # Simplified
     ("zh", "ttsb", "chinese_cht"),   # Traditional
     ("zh", "whatever", "ch"),        # zh default → Simplified
+    ("xx", "tsb", "en"),             # unknown lang → English default
 ])
 def test_paddle_lang_mapping(lang, source, expected):
     assert paddle_lang(lang, source) == expected
@@ -98,8 +99,9 @@ def fake_paddle(monkeypatch):
 # ─── model construction is routed + cached per code ───────────────────────────
 
 def test_latin_model_built_without_angle_cls(fake_paddle):
-    m = ocr_mod._get_ocr("latin")
-    assert m.lang == "latin"
+    # EN/FR (Latin-script) models don't deskew — only the scanned Chinese ones do.
+    m = ocr_mod._get_ocr("en")
+    assert m.lang == "en"
     assert m.use_textline_orientation is False
 
 
@@ -146,7 +148,7 @@ def test_ocr_page_converts_pixels_to_points(fake_paddle):
 
 def test_ocr_page_device_from_env(fake_paddle, monkeypatch):
     monkeypatch.setenv("PADDLE_OCR_DEVICE", "gpu")  # explicit override wins
-    ocr_page(_FakePage(), page_no=1, ocr_lang="latin")
+    ocr_page(_FakePage(), page_no=1, ocr_lang="en")
     assert _FakeOCR.instances[0].device == "gpu"
     assert _FakeOCR.instances[0].use_textline_orientation is False
 

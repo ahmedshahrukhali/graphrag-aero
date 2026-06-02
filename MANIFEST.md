@@ -146,10 +146,12 @@ tests (incl. a guard that the committed seed parses to ≥15 deduped URLs). Full
 10-doc zh sample indexed). Scale TTSB/CAAC + re-fold EN/TC with `--curate` (multi-hour, Haiku-monitored per
 REINGEST §7/§10). **Non-GPU WS-F bottleneck = CPU pdfplumber (page rasterization + text extract) + single-
 process serial orchestration** — GPU OCR won't saturate until ingestion parallelizes across docs.
-**Before WS-F:** verify the `latin` (EN/FR) OCR path under paddle 3.x — only `ch`/`chinese_cht` proven; WS-F
-will hit image-only EN/TC pages. NB: pre-2018 ASC TTSB PDFs have broken CID text layers — v2 lang_misdetect
-rejects them automatically. Also open: browser click-through of the ZH bbox highlight at :7860 (page_bboxes
-confirmed in API, not yet screenshotted); About tab. Wikipedia/HTML idea: DROPPED. Below = prior S19 history.
+**latin OCR path FIXED** (paddle 3.x dropped the 2.x shared `latin` model): `paddle_lang` now maps
+en→`en`, fr→`fr` (valid PP-OCRv5 codes, construction-verified in-image; predict→parse proven on `ch`).
+**Forward plan: [docs/NEXT_SESSION.md](docs/NEXT_SESSION.md)** (WS-F steps, EN-image smoke, bottleneck +
+speedups, VRAM discipline). NB: pre-2018 ASC TTSB PDFs have broken CID text layers — v2 lang_misdetect
+rejects them automatically. Also open: predict-verify `en` on a real EN image-only page before WS-F;
+browser click-through of the ZH bbox highlight at :7860; About tab. Wikipedia/HTML idea: DROPPED.
 
 ---
 

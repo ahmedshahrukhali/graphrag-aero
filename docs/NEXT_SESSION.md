@@ -1,89 +1,65 @@
-# Next-session plan — WS-A + WS-B (and the Qwen3-8B bake-off)
+# Next-session plan — WS-F curated re-ingest (the big run)
 
-**Author:** sonnet-4.6 (S19, 2026-05-31). **Status of the re-ingest program:** WS-0 ☑ fully closed.
-Read this + `MANIFEST.md` resume pointer + `docs/REINGEST_PLAN.md` §6, then start at WS-A or WS-B
-(they're independent; WS-B is lower-risk and lands a visible win — recommended first).
+**Author:** sonnet-4.6 (S21, 2026-06-02). **Status:** Chinese-OCR plan DONE + GPU-accelerated;
+the only remaining big step is the curated re-ingest at scale. Read this + the `MANIFEST.md`
+resume pointer + `docs/REINGEST_PLAN.md` §3 (FROZEN v2 curation) / §7 (run sequence) / §10
+(Haiku monitoring), then execute.
 
----
+## Where we are (end of S21)
+- **Chinese OCR proven end-to-end** (scanned PDF → `ch`/`chinese_cht` PaddleOCR → 中文 chunks →
+  retrieval #1 → cited Chinese `/query` answer → region highlight). Qdrant at **64,440** pts
+  (63,946 EN/FR/TC + ~494 zh sample).
+- **OCR is on GPU** (paddlepaddle-gpu 3.0 / PP-OCRv5, self-contained wheel). Device auto-detects
+  (GPU→CPU fallback, printed to stderr — no silent CPU drop). `text_rec_score_thresh=0.5`.
+- **Curation FROZEN v2** (`curation.py` + `--curate`): empty / sub_threshold(<200) / cover_only /
+  lang_misdetect(CJK<0.10). Auto-rejects the broken pre-2018 ASC-era TTSB CID-mojibake PDFs.
+- **EN/FR OCR mapped to valid PP-OCRv5 models** (`en`/`fr`; the 2.x shared `latin` model is gone).
+  Construction verified in-image; the predict→parse path is the same one proven on `ch`.
 
-## What's done (so you don't redo it)
-- **WS-0 schema freeze** (`62b5fa3`): `page_bboxes` (region-level, one rect per page the chunk
-  touches), `corpus` tag, `kind` discriminator frozen through the whole chain
-  `chunk.Chunk → DocRef.corpus → run._chunk_to_record → embed.jsonl.ChunkRecord(+payload) →
-  agent.state.ScoredChunkDict → backend.schemas.RetrievedChunk → hf_space.api_client.RetrievedChunk`.
-  All additive/optional → the **existing 63,946-pt Qdrant index still hydrates** (page_bboxes
-  derived from legacy `(page,bbox)`; corpus from doc_id prefix; kind=text). 366 tests green.
-- **WS-0 VRAM measurement** (`docs/ws0_vram_measurement.md`): qwen3:8b Q4_K_M = **6.2 GB, 100% GPU,
-  ~1.8 GB free. FITS.** VRAM is no longer the gate for the text-generation swap.
-- **Figure-tier model DECIDED (S19, `docs/ws_c_qwenvl_findings.md`):** **Qwen3-VL-8B** adopted,
-  replacing Florence-2 + Moondream2. Strong caption + region OCR on a sample TSB figure; VRAM 7.7 GB
-  (28% CPU spill — tolerable offline). InternVL3 bake-off now optional. This lands in **WS-C**.
+## Do, in order
 
-## Still open from WS-0
-- **Curation admission criteria (§3) NOT yet frozen.** They're a write-shape decision (they decide
-  what's *in* the corpus), so freeze them before WS-F, ideally alongside WS-A when the ZH feed shape
-  is known. Output: explicit reject rules + a balance target across EN/TC ↔ ZH.
+### 1. (Quick, before the big run) EN-image OCR smoke
+A born-digital-heavy corpus rarely OCRs, but ~670 image-heavy PDFs exist. Confirm the `en` path
+produces sane text on one real EN image-only page (predict, not just construct):
+`docker compose --profile ingest run --rm ingestion --in /app/data/corpus --out /app/data/chunks --source tsb --limit <a scanned one> -v`
+— watch for `ocr fallback … (en)` + sane Latin text in the chunk. (Only `ch`/`chinese_cht` are
+predict-verified so far.)
 
----
+### 2. Scale the ZH corpus (optional, for balance)
+Current sample = 10 zh docs. If the overlap demo needs more, add TTSB/CAAC seeds and pull
+(`acquisition.run --source ttsb|caac`), then process `--curate`. Keep the v2 balance band in mind
+(ZH : EN_TC admitted within 0.5–2.0×; manifest logs a `balance_warning`).
 
-## WS-B — region-grounding render — ☑ DONE (sonnet-4.6, 2026-05-31)
-Shipped: `render_page_with_bbox(region_bboxes=...)` draws stored rects; `search_page_bbox` +
-`locate_text` deleted; `app._page_regions` filters `page_bboxes` to the cited page. Full suite
-362 passed. **Only remaining WS-B item: live click-through at :7860** (stack up → submit a query →
-confirm the cited box lands from the stored region; old-index chunks show one coarse rect, expected).
-Original plan kept below for reference.
+### 3. WS-F — the curated re-ingest (multi-hour, Haiku-monitored per REINGEST §10)
+`docker compose --profile ingest run --rm ingestion --in /app/data/corpus --out /app/data/chunks --curate -v`
+then `docker compose --profile embed run --rm embed`.
+- Writes `data/chunks/curation_manifest.json` — eyeball admitted/rejected per corpus+lang and the
+  reject-reason histogram before trusting the index.
+- Idempotent (chunk_hash point IDs); safe to resume.
 
-### (original WS-B plan)
-Goal: render the chunk's stored `page_bboxes` directly; stop re-searching at render time.
-1. `hf_space/pdf_render.py`: add a path that draws the stored region rect(s) from
-   `RetrievedChunk.page_bboxes` (already carried, WS-0). Each entry is `(page, x0, top, x1, bottom)`
-   — draw the rect on its page using the existing `bbox_to_pixels` + `_draw_boxes`.
-2. **Delete the `page.search` path** (`search_page_bbox` + the `locate_text` branch in
-   `render_page_with_bbox`). No fallback needed — every re-ingested chunk has its region; legacy
-   chunks have the WS-0-derived single rect. Keep `page_image_bboxes` (figure red-boxing) and the
-   term-wash (`search_page_terms`) only if you still want them; the *cited* box now comes from
-   `page_bboxes`, not search.
-3. `hf_space/app.py`: pass `page_bboxes` into the render call instead of `locate_text`.
-4. Tests: mock pdfplumber; assert the rect is drawn from `page_bboxes` and that the search path is
-   gone. Live-verify on one EN doc at :7860 once the stack is up.
-**Note:** old-index chunks render a single coarse rect (the WS-0 derivation). The *sharp* per-page
-region only appears for docs re-chunked in WS-F. That's expected — WS-B proves the mechanism.
+### 4. Re-verify after the run
+- `python -m eval.run --json` (Recall@k / nDCG / MRR) — NB the eval dataset has **no ZH queries**;
+  add a few zh query/relevance pairs to `eval/dataset.jsonl` to measure Chinese retrieval honestly.
+- Spot-check a Chinese `/query` + an EN `/query` against the refreshed index.
 
-## WS-A — ZH source spike *(fail-fast; the genuinely riskable item)*
-Goal: prove the two ZH feeds return real documents; surface blockers early.
-1. New scraper modelled on `ingestion/acquisition/` (rate-limited, robots-respecting, idempotent),
-   writing to `data/corpus/zh/{ac,reports}/`.
-2. **Axis 1 (GREEN, the spine):** caac.gov.cn 咨询通告 ACs via the GFXWJ monthly folders + the
-   catalog AC `AC-01-AA-2017-01R26`. `/XXGK/` + `/GFXWJ/` are robots-permitted.
-3. **Axis 2 (AMBER):** ASN China profile as an *index only* → pull actual PDFs from their primary
-   host (caac.gov.cn TZTG / regional bureaus). **Never bulk-fetch PDFs from asn.flightsafety.org**
-   (it signals `ai-train=no`). asn's cert chain fails strict verify — scope the httpx verify
-   exception to that host, don't disable globally.
-4. Extend `doc_id._KNOWN_SOURCES`/path parsing + `DocRef.corpus` to mint `caac` for the ZH tree.
-   (WS-0 left `corpus=source`; the ZH axis is where `caac` first appears.) Also extend
-   `embed.jsonl.LANGS`/`SOURCES` and the backend `Literal["en","fr"]`/`["tsb","tc"]` filters to
-   admit `zh`/`caac` — these were intentionally left untouched in WS-0 (no ZH data existed yet).
-5. Spike deliverable: a handful of real ZH PDFs on disk + a note on volume/quality. If a feed is
-   dead or licence-ambiguous, STOP and ask — don't improvise sourcing.
+## Performance note (the real WS-F ceiling is NOT the GPU)
+OCR + embed are GPU now. The bottleneck is **CPU + serial orchestration**:
+- pdfplumber page rasterization (scanned pages render to ~6889×9745 px) and text extraction for the
+  born-digital majority are single-threaded CPU.
+- `processing.run` does one doc at a time, so CPU stages and GPU OCR don't overlap across docs — the
+  GPU idles between pages.
+**If WS-F is too slow:** parallelize ingestion across docs (worker pool: doc N's CPU work overlaps
+doc N-1's GPU OCR) and/or drop the OCR render DPI from 200 (those 200 MB bitmaps are overkill; ~150
+likely fine). These are the highest-leverage speedups and are *not* yet done.
 
-## The Qwen3-8B bake-off (fold into whichever session does generation work)
-VRAM is settled (fits). Decide the swap on **answer quality over our own EN+ZH docs**, not
-benchmarks:
-- Run the same N queries (EN + ZH once ZH lands) through gemma2:9b and qwen3:8b at the production
-  prompt/num_ctx. Compare grounding, citation discipline, and CJK fluency. qwen3:8b is already
-  pulled in Ollama.
-- If qwen wins: swap `OLLAMA_*` model default in `agent/llm.py` (+ `agent/run.py`, `backend/deps.py`
-  call sites) and re-verify the HITL flow. Sequential-VRAM discipline already covers the +0.7 GB.
-- Minor doc nit found during measurement: this machine's gemma2:9b is **Q4_0**, while CLAUDE.md/
-  MANIFEST say Q4_K_M. Reconcile the docs when you touch the LLM row.
+## VRAM discipline (8 GB card)
+OCR peaks at ~7.9 GB during inference; embed ~2 GB; gemma2:9b ~5.5 GB. They must run in **separate
+phases** — never concurrently. WS-F is ingest-then-embed (sequential), so this holds; just don't fire
+`/query` (gemma) during the batch.
 
-## WS-C figure tier (when you reach it — depends on WS-B)
-Model is decided: **Qwen3-VL-8B** via HF transformers in the ingestion image (`docs/ws_c_qwenvl_findings.md`).
-Implementation notes from the S19 spike: **crop each figure before captioning** (full pages exceed
-the vision-token budget → empty output); **strip the `thinking` field**, keep `response`; ctx 8192
-is ample for a crop. Emit `Figure {doc_id, page, bbox, caption, ocr_text}` → Neo4j `:Figure` +
-a `kind=figure` retrievable chunk. `qwen3-vl:8b` is already pulled in Ollama for further spiking.
-
-## Sequencing reminder (REINGEST_PLAN §6)
-WS-B → WS-C (figures, depends on B) → WS-A → WS-E (dual-corpus eval) → **WS-F (single overnight
-re-ingest, LAST)**. Land ALL code + tests before WS-F; Haiku monitors WS-F per §10.
+## Still open (smaller)
+- Browser click-through screenshot of the ZH bbox highlight at :7860 (page_bboxes confirmed in API).
+- About tab (What/Why/How) — author pre-approved.
+- Query-time latency: gemma2:9b ~350 s/query — the Qwen3-8B generator swap is still under eval.
+- Each `--rm` ingestion container re-downloads PP-OCR models; mount a model-cache volume to skip it
+  on repeat runs.

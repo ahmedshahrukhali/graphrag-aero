@@ -70,14 +70,22 @@ def _announce(device: str, reason: str) -> str:
 def paddle_lang(lang: str, source: str) -> str:
     """Map (corpus lang, source) → the PaddleOCR ``lang`` code.
 
-    - en / fr            → "latin"  (multilingual Latin model)
+    - en                 → "en"     (English PP-OCRv5 model)
+    - fr                 → "fr"     (French PP-OCRv5 model — handles diacritics)
     - zh + caac          → "ch"     (Simplified Chinese)
     - zh + ttsb          → "chinese_cht" (Traditional Chinese)
     - zh + anything else → "ch"     (default Simplified)
+
+    NB: PaddleOCR 3.x (PP-OCRv5) dropped the 2.x shared ``latin`` model — there
+    is no model for ``lang="latin"`` (it raises). Use the per-language ``en``/``fr``
+    models instead (verified available in this image; more accurate than the old
+    shared model). Unknown langs default to ``en``.
     """
     if lang == "zh":
         return "chinese_cht" if source == "ttsb" else "ch"
-    return "latin"
+    if lang == "fr":
+        return "fr"
+    return "en"
 
 
 def _get_ocr(ocr_lang: str = "latin") -> Any:
