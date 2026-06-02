@@ -5,7 +5,7 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 ---
 
 ## Session 21 — 2026-06-02 — sonnet-4.6
-**Commits:** `23f4307`, `5af18de`, `98f59b0`, `15a50d8`, `c1dd3ce`, `bfb079a` (+ this docs commit)
+**Commits:** `23f4307`, `5af18de`, `98f59b0`, `15a50d8`, `c1dd3ce`, `bfb079a`, `e809319`, `893a979`
 **Achieved (cleared the S20 Sonnet queue D→B→A; A is the live capstone):**
 - **Task D DONE** (`23f4307`): real `source_url` for ttsb/caac doc_ids. `ttsb.build_pdf_url(media_id,name)` rebuilds `/media/{id}/{name}.pdf` from the `{media_id}_{name}` stem; CAAC looks up `caac.seed_url_map(load_seed_file())` by basename (path lost on download). +8 tests.
 - **Task B DONE** (`5af18de`, refined to **v2** in `bfb079a`): froze REINGEST §3 curation rules + `ingestion/processing/curation.py` (`admit()` + `CurationManifest`) + opt-in `--curate` in processing/run.py (writes `curation_manifest.json`; default unchanged). Rules: empty / sub_threshold(<200 chars) / cover_only(boilerplate) / lang_misdetect.
@@ -17,10 +17,13 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
   4. `ocr.py` emitted **one Char per line** → chunker's glyph-align dropped all OCR bboxes; now per-glyph (`c1dd3ce`).
   - **curation v2** (`bfb079a`): v1's ">80% ASCII" lang rule missed CID-mojibake ASC PDFs (admitted 3 docs / ~3.3k junk chunks); v2 = CJK-fraction floor (0.10) rejects all 4 broken ASC docs, admits the 5 clean Traditional reports.
 - Rebuilt ingestion/embed/backend images (each baked stale code). Full suite **428 passed**, 1 skipped (offline). Stack UP (qdrant/neo4j/postgres/ollama/backend).
+- **GPU PaddleOCR migration** (`893a979`, user-directed): CPU paddle 2.x → **paddlepaddle-gpu 3.0.0 (cu126) + paddleocr 3.x**. Paddle 3.x bundles CUDA in the wheel → runs on python:3.11-slim, no CUDA base image (the 2.6 wheel needed system cuDNN/cublas — symlink whack-a-mole, abandoned). API rewrite: `predict()`/`OCRResult.rec_texts`+`rec_polys`, `use_textline_orientation`, `device=` (was `.ocr()`/`use_angle_cls`). **Device auto-detect: GPU preferred, CPU fallback, printed to stderr** (paddlex swallows our logger) so unattended WS-F never silently drops to CPU. `text_rec_score_thresh=0.5` trims PP-OCRv5 scan-artifact noise. compose: GPU reservation on ingestion. **Verified live**: GPU sampler caught the OCR container at 7894 MiB/100%; output correct 中文; re-embedded → **64,440** pts. +2 device tests, host suite **430 passed**. Also confirmed embed image torch sees the GPU (`cuda_available: True`).
+- Wrote `.claude/launch.json` (backend/frontend/hf-space dev servers) + started frontend (:3000).
 **Left:**
-- **Curated re-ingest (WS-F)** is the remaining big step — now unblocked (criteria frozen v2, OCR proven). Small ZH sample (10 docs) is in the index; scale up TTSB/CAAC + re-fold EN/TC with `--curate` when ready (multi-hour, Haiku-monitored per REINGEST §7/§10).
-- Browser click-through of the ZH bbox highlight at :7860/frontend (page_bboxes confirmed in API; visual not screenshotted this session). About tab still open.
-- NB: ASC-era TTSB PDFs (pre-2018) have broken CID text layers — exclude from curated corpus (v2 rejects them automatically).
+- **Curated re-ingest (WS-F)** is the remaining big step — now unblocked (criteria frozen v2, OCR proven, GPU-accelerated). Scale up TTSB/CAAC + re-fold EN/TC with `--curate` (multi-hour, Haiku-monitored per REINGEST §7/§10). **Non-GPU bottleneck for WS-F = CPU pdfplumber (page rasterization + text extract) + single-process serial orchestration**; the GPU OCR won't saturate until ingestion parallelizes across docs.
+- `latin` (EN/FR) OCR path under paddle 3.x is UNVERIFIED (only `ch`/`chinese_cht` proven) — check before WS-F hits image-only EN/TC pages.
+- Browser click-through of the ZH bbox highlight at :7860/frontend (page_bboxes confirmed in API; visual not screenshotted). About tab still open.
+- NB: ASC-era TTSB PDFs (pre-2018) have broken CID text layers — v2 lang_misdetect rejects them automatically.
 
 ## Session 20 — 2026-06-02 — opus-4.8
 **Commits:** `ca96406`, `9464a5a`, `c1c6e40`, `fa57a07`, `90208c8`

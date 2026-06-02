@@ -136,11 +136,20 @@ tests (incl. a guard that the committed seed parses to ≥15 deduped URLs). Full
   fixed:** embed CLI zh choices (`98f59b0`), ingestion `libgomp1` + PIL→ndarray (`15a50d8`), per-glyph OCR
   chars so bboxes survive (`c1dd3ce`), curation v2 CJK-floor catches CID-mojibake (`bfb079a`). Suite **428
   passed**. ingestion/embed/backend images rebuilt (all had stale code).
-**⮕ NEXT (S22 — curated re-ingest, WS-F): now UNBLOCKED** (criteria frozen v2, OCR proven, 10-doc zh sample
-indexed). Scale TTSB/CAAC + re-fold EN/TC with `--curate` (multi-hour, Haiku-monitored per REINGEST §7/§10).
-NB: pre-2018 ASC TTSB PDFs have broken CID text layers — v2 lang_misdetect rejects them automatically.
-Also open: browser click-through of the ZH bbox highlight at :7860 (page_bboxes confirmed in API, not yet
-screenshotted); About tab. Wikipedia/HTML idea: DROPPED. Below = prior S19 history, still valid context.
+- **GPU OCR migration (`893a979`, user-directed):** CPU paddle 2.x → **paddlepaddle-gpu 3.0.0 (cu126) +
+  paddleocr 3.x** (self-contained CUDA wheel → runs on slim, no CUDA base image). 3.x API rewrite
+  (`predict()`/`rec_texts`+`rec_polys`, `use_textline_orientation`, `device=`). Device auto-detect (GPU
+  preferred, CPU fallback, **printed to stderr** so unattended runs never silently drop to CPU);
+  `text_rec_score_thresh=0.5`; ingestion compose GPU reservation. Live-verified GPU (sampler 7894 MiB/100%),
+  output correct 中文, re-embedded → **64,440** pts. Host suite **430 passed**. embed image torch GPU confirmed.
+**⮕ NEXT (S22 — curated re-ingest, WS-F): now UNBLOCKED** (criteria frozen v2, OCR proven + GPU-accelerated,
+10-doc zh sample indexed). Scale TTSB/CAAC + re-fold EN/TC with `--curate` (multi-hour, Haiku-monitored per
+REINGEST §7/§10). **Non-GPU WS-F bottleneck = CPU pdfplumber (page rasterization + text extract) + single-
+process serial orchestration** — GPU OCR won't saturate until ingestion parallelizes across docs.
+**Before WS-F:** verify the `latin` (EN/FR) OCR path under paddle 3.x — only `ch`/`chinese_cht` proven; WS-F
+will hit image-only EN/TC pages. NB: pre-2018 ASC TTSB PDFs have broken CID text layers — v2 lang_misdetect
+rejects them automatically. Also open: browser click-through of the ZH bbox highlight at :7860 (page_bboxes
+confirmed in API, not yet screenshotted); About tab. Wikipedia/HTML idea: DROPPED. Below = prior S19 history.
 
 ---
 
