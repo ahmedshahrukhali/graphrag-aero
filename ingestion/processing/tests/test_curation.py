@@ -9,7 +9,7 @@ from ingestion.processing.chunk import Chunk
 from ingestion.processing.curation import (
     BOILERPLATE_CHUNK_CHARS,
     MIN_DOC_CHARS,
-    ZH_ASCII_LETTER_THRESHOLD,
+    MIN_ZH_CJK_FRACTION,
     Admission,
     CurationManifest,
     RejectReason,
@@ -127,10 +127,21 @@ def test_admit_one_good_chunk_passes_cover_only():
 # ── admit — LANG_MISDETECT ────────────────────────────────────────────────────
 
 def test_admit_zh_mostly_ascii_rejected():
-    # A ZH doc whose text is entirely Latin — lang-misdetect.
+    # A ZH doc whose text is entirely Latin (cjk_frac=0) — lang-misdetect.
     zh_ref = _ref(lang="zh", source="ttsb", corpus="ttsb")
     ascii_chunks = _good_chunks(3)  # text is all ASCII
     result = admit(zh_ref, ascii_chunks)
+    assert not result.admitted
+    assert result.reason == RejectReason.LANG_MISDETECT
+
+
+def test_admit_zh_cid_mojibake_rejected():
+    # Broken text layer (CID-mojibake, symbol-heavy, cjk_frac=0) — the real
+    # ASC-era TTSB failure mode v1's ASCII-letter proxy missed. v2 CJK-floor
+    # catches it.
+    zh_ref = _ref(lang="zh", source="ttsb", corpus="ttsb")
+    mojibake = [_chunk("(cid:1)(cid:2)(cid:3) kKQ| T WwG F|w|jN~q " * 10)]
+    result = admit(zh_ref, mojibake)
     assert not result.admitted
     assert result.reason == RejectReason.LANG_MISDETECT
 
@@ -141,6 +152,15 @@ def test_admit_zh_chinese_text_admitted():
     chinese_text = "本報告敘述台灣交通安全委員會調查航空事故之結果。" * 20
     chunks = [_chunk(chinese_text)]
     result = admit(zh_ref, chunks)
+    assert result.admitted
+
+
+def test_admit_zh_mixed_chinese_english_admitted():
+    # A real report ~46% CJK (English aviation terms interleaved) clears the
+    # 0.10 floor — must not be rejected.
+    zh_ref = _ref(lang="zh", source="ttsb", corpus="ttsb")
+    mixed = "國家運輸安全調查委員會 ATR-72 重大運輸事故調查報告 final report " * 15
+    result = admit(zh_ref, [_chunk(mixed)])
     assert result.admitted
 
 

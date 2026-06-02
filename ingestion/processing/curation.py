@@ -19,9 +19,9 @@ from enum import Enum
 from .chunk import Chunk
 from .doc_id import DocRef
 
-# ── FROZEN thresholds (version 1) ────────────────────────────────────────────
+# ── FROZEN thresholds (version 2) ────────────────────────────────────────────
 
-VERSION = 1
+VERSION = 2
 
 #: Minimum total extracted characters for a document to be admitted.
 MIN_DOC_CHARS: int = 200
@@ -29,9 +29,13 @@ MIN_DOC_CHARS: int = 200
 #: A chunk whose stripped text is shorter than this is a boilerplate candidate.
 BOILERPLATE_CHUNK_CHARS: int = 80
 
-#: A ZH doc is lang-misdetected when this fraction of its non-space chars are
-#: ASCII letters.  0.80 = 80 %.
-ZH_ASCII_LETTER_THRESHOLD: float = 0.80
+#: A ZH doc must be substantially Chinese: reject if the CJK-ideograph fraction
+#: of its non-space chars is below this floor. v2 (live-evidence refinement of
+#: v1's ">80% ASCII letters" proxy, which missed CID-mojibake PDFs whose broken
+#: text layer is symbol-heavy, not letter-heavy): the broken ASC-era TTSB docs
+#: score 0.00 CJK while genuine Chinese reports score >=0.41, so 0.10 separates
+#: them cleanly.
+MIN_ZH_CJK_FRACTION: float = 0.10
 
 #: Informational balance target: ZH-admitted : EN_TC-admitted should stay inside
 #: this band so the cross-lingual overlap demo is honest.
@@ -53,6 +57,12 @@ _DATE_ONLY_RE = re.compile(
     rf"|^\s*(?:{_MONTHS})\s+\d{{4}}\s*$",
     re.I,
 )
+
+
+def _is_cjk(ch: str) -> bool:
+    """True for a CJK Unified Ideograph (U+4E00–U+9FFF) — covers Simplified +
+    Traditional Han, enough to tell real Chinese from mojibake / Latin."""
+    return "一" <= ch <= "鿿"
 
 
 # ── Admission result ─────────────────────────────────────────────────────────
@@ -108,8 +118,8 @@ def admit(ref: DocRef, chunks: list[Chunk]) -> Admission:
         all_text = "".join(c.text for c in chunks)
         non_space = [ch for ch in all_text if not ch.isspace()]
         if non_space:
-            ascii_frac = sum(1 for ch in non_space if ch.isascii() and ch.isalpha()) / len(non_space)
-            if ascii_frac > ZH_ASCII_LETTER_THRESHOLD:
+            cjk_frac = sum(1 for ch in non_space if _is_cjk(ch)) / len(non_space)
+            if cjk_frac < MIN_ZH_CJK_FRACTION:
                 return Admission(False, RejectReason.LANG_MISDETECT)
 
     return _ADMITTED

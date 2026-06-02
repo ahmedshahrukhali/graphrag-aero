@@ -95,9 +95,9 @@ to avoid shipping Playwright if possible.
 
 ---
 
-## 3. Data-curation workstream (cross-cutting, gated quality) — **FROZEN v1**
+## 3. Data-curation workstream (cross-cutting, gated quality) — **FROZEN v2**
 
-> Implemented in `ingestion/processing/curation.py` (VERSION = 1). Opt-in via
+> Implemented in `ingestion/processing/curation.py` (VERSION = 2). Opt-in via
 > `--curate` in `processing/run.py`; writes `curation_manifest.json`. Default
 > behaviour (no `--curate`) is unchanged.
 
@@ -108,10 +108,18 @@ to avoid shipping Playwright if possible.
 | **empty** | 0 chunks extracted | — |
 | **sub_threshold** | total text < **200 chars** | `MIN_DOC_CHARS = 200` |
 | **cover_only** | every chunk is boilerplate (text.strip() < **80 chars** OR matches page-marker `"- N -"` OR date-only pattern) | `BOILERPLATE_CHUNK_CHARS = 80` |
-| **lang_misdetect** | ZH doc whose non-space chars are > **80 % ASCII letters** | `ZH_ASCII_LETTER_THRESHOLD = 0.80` |
+| **lang_misdetect** | ZH doc whose CJK-ideograph fraction (non-space chars) is < **0.10** | `MIN_ZH_CJK_FRACTION = 0.10` |
 
 Rules are evaluated in priority order (empty → sub_threshold → cover_only →
 lang_misdetect); first match short-circuits.
+
+**v2 note (live-evidence refinement, S20 Task A):** v1's lang rule was ">80 %
+ASCII letters", a proxy for "not Chinese". Live ingest of the TTSB sample showed
+it misses ASC-era PDFs with a **broken CID text layer** — pdfplumber extracts
+symbol-heavy mojibake (`(cid:7)`, `kKQ| T WwG`) that is *not* >80 % letters, so
+3 garbage docs (0.00 CJK, ~3.3k junk chunks) were admitted. v2 measures CJK
+directly: genuine reports score ≥0.41, broken/Latin docs score 0.00 → a 0.10
+floor separates them and catches all four ASC mojibake docs.
 
 ### Dedup policy (unchanged, frozen)
 
