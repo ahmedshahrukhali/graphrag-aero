@@ -40,5 +40,10 @@ CMD ["--in", "/app/data/corpus", "--out", "/app/data/chunks"]
 
 # ─── optional OCR stage: install paddle on top ───────────────────────────────
 FROM base AS ocr
+# GPU PaddleOCR. paddlepaddle-gpu 3.x bundles its CUDA libs in the wheel
+# (torch-style), so it runs on this slim base with no CUDA toolkit / cuDNN /
+# cublas in the image — install it from the paddle index, CUDA build cu126.
+RUN pip install --no-cache-dir paddlepaddle-gpu==3.0.0 \
+      -i https://www.paddlepaddle.org.cn/packages/stable/cu126/
 COPY ingestion/processing/requirements-ocr.txt /tmp/requirements-ocr.txt
 RUN pip install --no-cache-dir -r /tmp/requirements-ocr.txt

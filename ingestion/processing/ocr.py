@@ -10,6 +10,8 @@ chunker treats OCR-derived chars uniformly.
 from __future__ import annotations
 
 import logging
+import os
+import sys
 from typing import Any
 
 import numpy as np
@@ -29,9 +31,40 @@ class OcrNotAvailable(RuntimeError):
 # corpus-lang "zh" yet need different weights.
 _ocr_by_lang: dict[str, Any] = {}
 
-# Angle classification corrects skew on scanned pages — the Chinese corpus is
-# deliberately scanned, so enable it there. The latin TC/TSB PDFs aren't rotated.
+# Textline-orientation classification corrects skew on scanned pages — the
+# Chinese corpus is deliberately scanned, so enable it there. The latin TC/TSB
+# PDFs aren't rotated. (PaddleOCR 3.x renamed ``use_angle_cls`` → this.)
 _NEEDS_ANGLE_CLS = frozenset({"ch", "chinese_cht"})
+
+
+def _ocr_device() -> str:
+    """PaddleOCR 3.x device string, chosen safely.
+
+    Precedence: explicit ``PADDLE_OCR_DEVICE`` env → else auto-detect a usable
+    CUDA GPU → else ``cpu``. paddlepaddle-gpu does NOT silently fall back to CPU
+    (``device="gpu"`` errors with no GPU), so we detect rather than assume — a
+    CPU-only host (or CI) gets ``cpu`` automatically. The ``import paddle`` is
+    guarded: in unit tests paddle isn't installed, so we land on ``cpu``."""
+    override = os.environ.get("PADDLE_OCR_DEVICE")
+    if override:
+        return _announce(override, " (PADDLE_OCR_DEVICE override)")
+    try:
+        import paddle  # type: ignore
+        if paddle.device.is_compiled_with_cuda() and paddle.device.cuda.device_count() > 0:
+            return _announce("gpu", "")
+    except Exception as e:  # noqa: BLE001 — probe failure → CPU, but say so
+        return _announce("cpu", f" (GPU probe failed: {e})")
+    return _announce("cpu", " (no usable GPU detected)")
+
+
+def _announce(device: str, reason: str) -> str:
+    """Surface the OCR device choice. paddleocr/paddlex reconfigures logging on
+    import and swallows this module's logger, so we ALSO print to stderr — the
+    choice must be visible in unattended WS-F runs (no silent CPU fallback)."""
+    msg = f"OCR device: {device}{reason}"
+    logger.info(msg)
+    print(msg, file=sys.stderr, flush=True)
+    return device
 
 
 def paddle_lang(lang: str, source: str) -> str:
@@ -57,10 +90,19 @@ def _get_ocr(ocr_lang: str = "latin") -> Any:
         raise OcrNotAvailable(
             "paddleocr is not installed in this image. Install the [ocr] extra."
         ) from e
+    # PaddleOCR 3.x constructor: ``use_angle_cls``/``show_log`` are gone; textline
+    # orientation replaces angle-cls. Disable the doc-orientation + unwarp stages
+    # (extra model downloads we don't need for our already-upright page renders).
     model = PaddleOCR(
-        use_angle_cls=ocr_lang in _NEEDS_ANGLE_CLS,
         lang=ocr_lang,
-        show_log=False,
+        use_textline_orientation=ocr_lang in _NEEDS_ANGLE_CLS,
+        use_doc_orientation_classify=False,
+        use_doc_unwarping=False,
+        # PP-OCRv5 (3.x default) detects more regions than v2.x, incl. scan
+        # artifacts/stamps at low confidence. Drop sub-threshold lines so chunks
+        # carry body text, not bleed-through noise.
+        text_rec_score_thresh=0.5,
+        device=_ocr_device(),
     )
     _ocr_by_lang[ocr_lang] = model
     return model
@@ -76,11 +118,12 @@ def ocr_page(page: Any, page_no: int, ocr_lang: str = "latin") -> PageExtract:
     ``ocr_lang`` is a PaddleOCR ``lang`` code ("latin" | "ch" | "chinese_cht");
     derive it with :func:`paddle_lang` from the doc's (lang, source).
 
-    PaddleOCR returns one entry per detected line:
-        [ [bbox4points], (text, confidence) ]
-    We collapse the polygon to a rectangular bbox and synthesize one Char per
-    *line* (not per glyph) — the downstream chunker only uses chars for bbox
-    aggregation, so per-line is plenty.
+    PaddleOCR 3.x ``predict()`` returns a list of one ``OCRResult`` (dict-like)
+    per input image. We passed one image, so ``results[0]`` carries parallel
+    lists: ``rec_texts`` (one string per detected line) and ``rec_polys`` (the
+    line's 4-point polygon in pixel space). We collapse each polygon to a
+    rectangle and synthesize one Char *per glyph* (not per line) so the chunker's
+    glyph-by-glyph bbox alignment works.
 
     Bbox coordinates are stored in **PDF point space** (top-left origin, 72 pts/inch)
     so they are consistent with pdfplumber's text-extraction coordinates and can be
@@ -90,22 +133,19 @@ def ocr_page(page: Any, page_no: int, ocr_lang: str = "latin") -> PageExtract:
     # Render the page to an image (pdfplumber API). Resolution=200 balances
     # OCR accuracy with memory; tune later if needed.
     img = page.to_image(resolution=OCR_RESOLUTION)
-    # ``.original`` is a PIL.Image, but PaddleOCR.ocr() asserts an
-    # ndarray/list/str/bytes and treats ndarrays as BGR (OpenCV convention).
-    # Convert RGB→BGR into a contiguous array.
+    # ``.original`` is a PIL.Image; PaddleOCR wants an ndarray and treats it as
+    # BGR (OpenCV convention). Convert RGB→BGR into a contiguous array.
     pil = img.original.convert("RGB")
     arr = np.asarray(pil)[:, :, ::-1].copy()
-    # Angle classification is configured on the model; pass cls accordingly so
-    # scanned Chinese pages get deskewed.
-    result = ocr.ocr(arr, cls=ocr_lang in _NEEDS_ANGLE_CLS)
-    # PaddleOCR 2.x returns a list of pages; we passed one page so result[0].
-    lines = result[0] if result else []
+    results = ocr.predict(arr)
+    res = results[0] if results else None
+    texts = list(res["rec_texts"]) if res else []
+    polys = list(res["rec_polys"]) if res else []
     chars: list[Char] = []
     text_parts: list[str] = []
-    for entry in lines:
-        polygon, (text, _conf) = entry
-        xs = [p[0] for p in polygon]
-        ys = [p[1] for p in polygon]
+    for text, polygon in zip(texts, polys):
+        xs = [float(p[0]) for p in polygon]
+        ys = [float(p[1]) for p in polygon]
         # PaddleOCR coords are pixels in the rendered image. Convert to PDF
         # point space so all bboxes across text and OCR pages share a coordinate
         # system that pdf_render.bbox_to_pixels understands.

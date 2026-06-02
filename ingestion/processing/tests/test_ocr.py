@@ -32,26 +32,35 @@ def test_paddle_lang_mapping(lang, source, expected):
 # ─── fake PaddleOCR + page, installed per-test ────────────────────────────────
 
 class _FakeOCR:
+    """Mimics PaddleOCR 3.x: keyword-only constructor + ``predict()`` returning
+    a list of one OCRResult-like dict with parallel rec_texts / rec_polys."""
+
     instances: list["_FakeOCR"] = []
 
-    def __init__(self, *, use_angle_cls, lang, show_log):
-        self.use_angle_cls = use_angle_cls
+    def __init__(self, *, lang, use_textline_orientation,
+                 use_doc_orientation_classify, use_doc_unwarping, device,
+                 text_rec_score_thresh):
         self.lang = lang
-        self.show_log = show_log
-        self.cls_calls: list[bool] = []
+        self.use_textline_orientation = use_textline_orientation
+        self.use_doc_orientation_classify = use_doc_orientation_classify
+        self.use_doc_unwarping = use_doc_unwarping
+        self.device = device
+        self.text_rec_score_thresh = text_rec_score_thresh
+        self.predict_calls: list = []
         _FakeOCR.instances.append(self)
 
-    def ocr(self, img, cls):
-        self.cls_calls.append(cls)
-        # ocr_page now passes a BGR ndarray (not a PIL.Image) — assert the
+    def predict(self, img):
+        # ocr_page passes a BGR ndarray (not a PIL.Image) — assert the
         # conversion happened so we don't regress the "PIL → ndarray" fix.
         import numpy as np
         assert isinstance(img, np.ndarray)
-        # PaddleOCR returns a list of pages; we passed one page → result[0] is
-        # the list of line entries. Polygon is in pixel space of the 200-DPI render.
-        return [[
-            [[[10, 20], [110, 20], [110, 40], [10, 40]], ("中文测试", 0.99)],
-        ]]
+        self.predict_calls.append(img)
+        # 3.x OCRResult: parallel lists. Poly in pixel space of the 200-DPI render.
+        return [{
+            "rec_texts": ["中文测试"],
+            "rec_polys": [[[10, 20], [110, 20], [110, 40], [10, 40]]],
+            "rec_scores": [0.99],
+        }]
 
 
 class _FakePage:
@@ -61,6 +70,17 @@ class _FakePage:
         return types.SimpleNamespace(original=Image.new("RGB", (8, 8)))
 
 
+def _fake_paddle_module(*, cuda: bool):
+    """A stand-in ``paddle`` so _ocr_device() doesn't import the real (heavy)
+    library in tests — keeps the suite hermetic and the device choice deterministic."""
+    mod = types.ModuleType("paddle")
+    mod.device = types.SimpleNamespace(
+        is_compiled_with_cuda=lambda: cuda,
+        cuda=types.SimpleNamespace(device_count=lambda: (1 if cuda else 0)),
+    )
+    return mod
+
+
 @pytest.fixture
 def fake_paddle(monkeypatch):
     _FakeOCR.instances = []
@@ -68,6 +88,9 @@ def fake_paddle(monkeypatch):
     fake_mod = types.ModuleType("paddleocr")
     fake_mod.PaddleOCR = _FakeOCR
     monkeypatch.setitem(sys.modules, "paddleocr", fake_mod)
+    # Default: no CUDA → device auto-detects to "cpu" (hermetic, no real paddle).
+    monkeypatch.setitem(sys.modules, "paddle", _fake_paddle_module(cuda=False))
+    monkeypatch.delenv("PADDLE_OCR_DEVICE", raising=False)
     yield
     ocr_mod._ocr_by_lang = {}
 
@@ -77,14 +100,14 @@ def fake_paddle(monkeypatch):
 def test_latin_model_built_without_angle_cls(fake_paddle):
     m = ocr_mod._get_ocr("latin")
     assert m.lang == "latin"
-    assert m.use_angle_cls is False
+    assert m.use_textline_orientation is False
 
 
 def test_chinese_models_enable_angle_cls(fake_paddle):
     ch = ocr_mod._get_ocr("ch")
     cht = ocr_mod._get_ocr("chinese_cht")
-    assert ch.lang == "ch" and ch.use_angle_cls is True
-    assert cht.lang == "chinese_cht" and cht.use_angle_cls is True
+    assert ch.lang == "ch" and ch.use_textline_orientation is True
+    assert cht.lang == "chinese_cht" and cht.use_textline_orientation is True
 
 
 def test_models_are_cached_per_code(fake_paddle):
@@ -96,9 +119,9 @@ def test_models_are_cached_per_code(fake_paddle):
     assert len(_FakeOCR.instances) == 2
 
 
-# ─── ocr_page: coords in PDF points, cls flag matches the model ───────────────
+# ─── ocr_page: coords in PDF points, parses 3.x predict() output ──────────────
 
-def test_ocr_page_converts_pixels_to_points_and_passes_cls(fake_paddle):
+def test_ocr_page_converts_pixels_to_points(fake_paddle):
     page = _FakePage()
     extract = ocr_page(page, page_no=7, ocr_lang="ch")
 
@@ -117,10 +140,25 @@ def test_ocr_page_converts_pixels_to_points_and_passes_cls(fake_paddle):
     for ch in extract.chars:
         assert ch.top == pytest.approx(20 * f)
         assert ch.bottom == pytest.approx(40 * f)
-    # the Chinese model deskews → cls=True was passed to .ocr()
-    assert _FakeOCR.instances[0].cls_calls == [True]
+    # predict() was called once with the BGR ndarray.
+    assert len(_FakeOCR.instances[0].predict_calls) == 1
 
 
-def test_ocr_page_latin_passes_cls_false(fake_paddle):
+def test_ocr_page_device_from_env(fake_paddle, monkeypatch):
+    monkeypatch.setenv("PADDLE_OCR_DEVICE", "gpu")  # explicit override wins
     ocr_page(_FakePage(), page_no=1, ocr_lang="latin")
-    assert _FakeOCR.instances[0].cls_calls == [False]
+    assert _FakeOCR.instances[0].device == "gpu"
+    assert _FakeOCR.instances[0].use_textline_orientation is False
+
+
+def test_device_falls_back_to_cpu_without_gpu(fake_paddle):
+    # Fixture stubs paddle with no CUDA → auto-detect must pick CPU (the fallback).
+    ocr_page(_FakePage(), page_no=1, ocr_lang="ch")
+    assert _FakeOCR.instances[0].device == "cpu"
+
+
+def test_device_prefers_gpu_when_available(fake_paddle, monkeypatch):
+    # Stub paddle reporting a usable CUDA GPU → auto-detect must prefer GPU.
+    monkeypatch.setitem(sys.modules, "paddle", _fake_paddle_module(cuda=True))
+    ocr_page(_FakePage(), page_no=1, ocr_lang="ch")
+    assert _FakeOCR.instances[0].device == "gpu"

@@ -1,4 +1,8 @@
 # Optional: PaddleOCR fallback for image-only pages. Only install in images
-# that need OCR. Heavy: paddlepaddle is hundreds of MB.
-paddleocr>=2.7,<3.0
-paddlepaddle>=2.6,<3.0
+# that need OCR. Heavy: the GPU paddle wheel bundles its own CUDA libs.
+#
+# paddlepaddle-gpu 3.x is installed separately in the Dockerfile because its
+# wheel lives on the paddle index (not PyPI) and must be version-matched to a
+# CUDA build (cu126). Paddle 3.x bundles CUDA at the wheel level, so it runs on
+# python:3.11-slim with no CUDA base image — no system cuDNN/cublas needed.
+paddleocr>=3,<4
