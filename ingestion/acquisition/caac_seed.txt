@@ -25,6 +25,8 @@ http://www.caac.gov.cn/XXGK/XXGK/GFXWJ/201511/P020151103346810395827.pdf
 http://www.caac.gov.cn/PHONE/XXGK_17/XXGK/GFXWJ/201511/P020151103347608877256.pdf
 
 # ── 咨询通告 Advisory Circulars — newer, born-digital ───────────────────────
+# (3 URLs pruned 2026-06-02 — returned 404 on a live pull from this machine:
+#  P020240524522679273476, P020190416324184061903, P020151209511102748772.)
 http://www.caac.gov.cn/XXGK/XXGK/GFXWJ/201904/P020190426411632941273.pdf
 http://www.caac.gov.cn/XXGK/XXGK/GFXWJ/201912/P020191219411440223959.pdf
 http://www.caac.gov.cn/XXGK/XXGK/GFXWJ/202412/P020241217627827577058.pdf
@@ -32,13 +34,10 @@ http://www.caac.gov.cn/XXGK/XXGK/GFXWJ/202005/P020200513547358248843.pdf
 http://www.caac.gov.cn/XXGK/XXGK/GFXWJ/201808/P020180814593575149070.pdf
 http://www.caac.gov.cn/XXGK/XXGK/GFXWJ/202210/P020221018518399195631.pdf
 http://www.caac.gov.cn/XXGK/XXGK/GFXWJ/202303/P020230302596195295754.pdf
-https://www.caac.gov.cn/HDJL/YJZJ/202405/P020240524522679273476.pdf
 https://www.caac.gov.cn/HDJL/YJZJ/202512/P020251226558514350774.pdf
 https://www.caac.gov.cn/HDJL/YJZJ/202511/P020251125323576071515.pdf
 https://www.caac.gov.cn/PHONE/HDJL/YJZJ/202409/P020240914626851891664.pdf
 http://www.caac.gov.cn/PHONE/HDJL/YJZJ/202205/P020220513476438923922.pdf
-http://www.caac.gov.cn/HDJL/YJZJ/201904/P020190416324184061903.pdf
-https://www.caac.gov.cn/HDJL/YJZJ/201512/P020151209511102748772.pdf
 
 # ── 信息通告 Information Bulletins + 飞行标准管理手册 ─────────────────────────
 http://www.caac.gov.cn/XXGK/XXGK/GFXWJ/202511/P020251120388309559437.pdf
