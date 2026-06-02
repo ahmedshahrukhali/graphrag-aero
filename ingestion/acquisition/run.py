@@ -4,6 +4,7 @@ Layout:
     data/corpus/en/tsb/<id>.pdf
     data/corpus/fr/tsb/<id>.pdf
     data/corpus/en/tc/<filename>.pdf
+    data/corpus/zh/ttsb/<media_id>_<name>.pdf
 """
 from __future__ import annotations
 
@@ -14,7 +15,7 @@ from pathlib import Path
 
 import requests
 
-from . import tc, tsb
+from . import tc, tsb, ttsb
 from .http_client import DownloadResult, download, fetch_text, make_session
 
 logger = logging.getLogger(__name__)
@@ -86,11 +87,41 @@ def run_tc(
     return results
 
 
+def run_ttsb(
+    out_root: Path,
+    session: requests.Session,
+    limit: int | None = None,
+) -> list[DownloadResult]:
+    """Crawl the TTSB Traditional-Chinese listing pages; download report PDFs.
+
+    Single-step: each listing page links its report PDFs directly under
+    ``/media/{id}/``. ``limit`` caps PDFs *per listing page* (sample runs).
+    """
+    results: list[DownloadResult] = []
+    for index_url in ttsb.INDEX_URLS:
+        try:
+            html = fetch_text(session, index_url)
+        except requests.RequestException as e:
+            logger.warning("TTSB index %s: %s", index_url, e)
+            continue
+        pdf_urls = ttsb.extract_pdf_urls(html, index_url)
+        logger.info("TTSB %s: %d report PDFs", index_url, len(pdf_urls))
+        if limit is not None:
+            pdf_urls = pdf_urls[:limit]
+        for pdf_url in pdf_urls:
+            dest = out_root / "zh" / "ttsb" / ttsb.filename_for(pdf_url)
+            try:
+                results.append(download(session, pdf_url, dest))
+            except requests.RequestException as e:
+                logger.warning("TTSB %s: %s", pdf_url, e)
+    return results
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description="Scrape & download TC + TSB PDFs.")
     p.add_argument("--out", type=Path, default=Path("data/corpus"),
                    help="Output root (default: data/corpus)")
-    p.add_argument("--source", choices=["tsb", "tc", "all"], default="all")
+    p.add_argument("--source", choices=["tsb", "tc", "ttsb", "all"], default="all")
     p.add_argument("--limit", type=int, default=None,
                    help="Max docs per source — handy for sample runs.")
     p.add_argument("-v", "--verbose", action="store_true")
@@ -107,6 +138,8 @@ def main(argv: list[str] | None = None) -> int:
         all_results.extend(run_tsb(args.out, session, limit=args.limit))
     if args.source in ("tc", "all"):
         all_results.extend(run_tc(args.out, session, limit=args.limit))
+    if args.source in ("ttsb", "all"):
+        all_results.extend(run_ttsb(args.out, session, limit=args.limit))
 
     new = sum(1 for r in all_results if r.downloaded)
     skipped = sum(1 for r in all_results if not r.downloaded)

@@ -109,10 +109,19 @@ Chinese) + a per-code model cache; `ocr_page(page, page_no, ocr_lang)`; `run.py`
 DocRef and iterates `{en,fr,zh}/{tsb,tc,ttsb,caac}` (`--source` adds ttsb/caac); `lang.py` admits `zh`;
 `doc_id.py` `_KNOWN_SOURCES += ttsb,caac` (source_url None, TC-style); `embed/jsonl.py` LANGS/SOURCES
 and `backend/schemas.py` Literal filters admit zh/ttsb/caac. +16 tests, full suite **378 passed**.
-**⮕ NEXT (Commit 2): `ingestion/acquisition/ttsb.py`** — direct static PDF URLs (Traditional), wire
-`--source ttsb` into `acquisition/run.py`, prefer scanned ASC-era reports. Then Commit 3 `caac.py`
-(search-engine seed manifest → `data/corpus/zh/caac_seed.txt`). Then live scanned-OCR acceptance test,
-then curated re-ingest. Wikipedia/HTML idea: DROPPED. Below = prior S19 history, still valid context.
+**☑ Commit 2 DONE (S20, opus-4.8): `ingestion/acquisition/ttsb.py`.** Live recon settled the shape:
+the TTSB Traditional-Chinese listing pages (`/1133/1154/1155/{1159,1157}/Lpsimplelist`) link report
+PDFs **directly** under `/media/{id}/*.pdf` (single-step crawl, unlike TC's index→detail→pdf). Module
+ships `extract_pdf_urls` (host+`/media/{digits}/`+`.pdf` filter), `media_id`, and `filename_for` →
+`{media_id}_{decoded basename}` (media id disambiguates repeated basenames like `00_general.pdf` and
+preserves provenance). `run.run_ttsb` crawls `ttsb.INDEX_URLS` → `data/corpus/zh/ttsb/`; `--source ttsb`
+wired. source_url stays None (doc_id TC-style) for now. +11 offline tests (HTTP mocked), full suite
+**389 passed**. NOT yet run live; listing pagination not followed (—limit + curated subset is scope).
+**⮕ NEXT (Commit 3): `ingestion/acquisition/caac.py`** — bypass the dead JS index via a search-engine/
+sitemap seed harvested once into a committed manifest `data/corpus/zh/caac_seed.txt` (markers 咨询通告 /
+运行安全通告, `site:caac.gov.cn filetype:pdf`), then `download()` each; wire `--source caac`; target
+**scanned** Simplified docs. Then: live scanned-Chinese-OCR acceptance test → curated re-ingest.
+Wikipedia/HTML idea: DROPPED. Below = prior S19 history, still valid context.
 
 ---
 

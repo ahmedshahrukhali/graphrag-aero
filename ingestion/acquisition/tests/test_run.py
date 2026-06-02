@@ -212,6 +212,71 @@ def test_run_tc_continues_past_detail_404(tmp_path: Path):
     assert (tmp_path / "en" / "tc" / "AC_bbb.pdf").read_bytes() == b"bbb-bytes"
 
 
+def test_run_ttsb_downloads_media_pdfs_to_zh(tmp_path: Path):
+    # The listing page links report PDFs directly under /media/{id}/.
+    listing = (
+        '<a href="/1243/16869/44270/post">detail</a>'
+        '<a href="/media/9234/a.pdf">報告A</a>'
+        '<a href="/media/8925/b.pdf">報告B</a>'
+    )
+    empty = ""  # second INDEX_URL (Major) returns nothing to download
+
+    session = MagicMock()
+    session.get.side_effect = [
+        _text_resp(listing),               # Completed listing
+        _StreamingResp([b"pdf-a"]),        # /media/8925/b.pdf (sorted: 8925 first)
+        _StreamingResp([b"pdf-b"]),        # /media/9234/a.pdf
+        _text_resp(empty),                 # Major listing — no PDFs
+    ]
+
+    results = run.run_ttsb(tmp_path, session, limit=None)
+
+    assert (tmp_path / "zh" / "ttsb" / "8925_b.pdf").read_bytes() == b"pdf-a"
+    assert (tmp_path / "zh" / "ttsb" / "9234_a.pdf").read_bytes() == b"pdf-b"
+    assert [r.downloaded for r in results] == [True, True]
+
+
+def test_run_ttsb_continues_past_download_error(tmp_path: Path):
+    import requests as _requests
+
+    listing = (
+        '<a href="/media/9234/a.pdf">A</a>'
+        '<a href="/media/8925/b.pdf">B</a>'
+    )
+    ok = _StreamingResp([b"ok"])
+    bad = _StreamingResp([], status_error=_requests.HTTPError("404"))
+
+    session = MagicMock()
+    # sorted order: 8925/b first (fails), then 9234/a (ok); then empty Major listing.
+    session.get.side_effect = [_text_resp(listing), bad, ok, _text_resp("")]
+
+    results = run.run_ttsb(tmp_path, session, limit=None)
+
+    downloaded = [r for r in results if r.downloaded]
+    assert len(downloaded) == 1
+    assert (tmp_path / "zh" / "ttsb" / "9234_a.pdf").exists()
+    assert not (tmp_path / "zh" / "ttsb" / "8925_b.pdf").exists()
+
+
+def test_run_ttsb_respects_limit(tmp_path: Path):
+    listing = (
+        '<a href="/media/9234/a.pdf">A</a>'
+        '<a href="/media/8925/b.pdf">B</a>'
+        '<a href="/media/7000/c.pdf">C</a>'
+    )
+    session = MagicMock()
+    session.get.side_effect = [
+        _text_resp(listing),
+        _StreamingResp([b"x"]),   # one PDF (limit=1 per listing)
+        _text_resp(""),           # Major listing
+    ]
+
+    results = run.run_ttsb(tmp_path, session, limit=1)
+    assert [r.downloaded for r in results] == [True]
+    # listing + 1 download + second (empty) listing = 3 calls.
+    assert session.get.call_count == 3
+
+
 def test_run_tc_respects_limit(tmp_path: Path):
     # 3 EN detail pages, limit=1 -> only the first is fetched.
     en_index = (
