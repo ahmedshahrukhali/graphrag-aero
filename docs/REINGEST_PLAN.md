@@ -44,7 +44,13 @@ everything. Every doc admitted should be justifiable.
 
 ---
 
-## 2. Chinese corpus sourcing — RESOLVED (S18, approved 2026-05-31)
+## 2. Chinese corpus sourcing — ⚠️ SUPERSEDED (S19, 2026-06-01)
+
+> **This section is obsolete.** S19 recon proved the CAAC on-site index is JS/JSONP (TRS WAS5) and
+> **not scrapable**. The corpus was re-decided: keep the PDF→answer demo + English TC/TSB, add a
+> **Chinese PDF corpus from Taiwan TTSB + CAAC-direct-PDFs (search-seed enumeration)**, and **enable
+> Chinese OCR**. Authoritative plan: **[docs/CHINESE_OCR_PLAN.md](CHINESE_OCR_PLAN.md)**. The S18 text
+> below is kept for history only.
 
 S17 feared no clean public CAAC index. S18 recon found **two clean, enumerable ZH sources**,
 each a topical twin of an existing corpus half. **Approved: ingest both, ACs as the spine.**

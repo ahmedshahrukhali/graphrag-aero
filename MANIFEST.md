@@ -96,6 +96,18 @@ full `chunk.Chunk → DocRef.corpus → run._chunk_to_record → embed.jsonl.Chu
 backend.schemas.RetrievedChunk → hf_space.api_client.RetrievedChunk` chain — all additive/optional,
 so the existing 63,946-pt index still hydrates (page_bboxes derived from legacy `(page,bbox)`,
 corpus from doc_id prefix, kind=text). +8 tests, full suite **366 passed**. See REINGEST_PLAN §6 WS-0.
+**⮕ START HERE NEXT SESSION (S20): [docs/CHINESE_OCR_PLAN.md](docs/CHINESE_OCR_PLAN.md) — APPROVED.**
+The CAAC scrape is dead (JS/JSONP index, unscrapable). **Corpus decision pivoted:** keep the PDF→answer
+demo + English TC/TSB; add a **Chinese PDF corpus** from **Taiwan TTSB (Traditional, direct PDF URLs)
++ CAAC (Simplified, enumerate via search-engine seed, bypassing the JS index)**; **enable Chinese OCR**
+(the real change: per-language PaddleOCR model in `ingestion/processing/ocr.py` — `ch`/`chinese_cht`
+vs the current `latin`); deliberately source **scanned** Chinese PDFs so OCR actually fires. Downstream
+(BGE-M3, rerank, Qwen3-VL figures, WS-B bbox) is already multilingual — unchanged. First step: per-lang
+OCR routing + offline tests, then `acquisition/ttsb.py`, then `caac.py`. Wikipedia/HTML idea: DROPPED.
+Below = prior S19 history (WS-0/WS-B/figure-tier), still valid context.
+
+---
+
 **WS-0 is now FULLY CLOSED** (S19): schema freeze (`62b5fa3`) **+** Qwen3-8B VRAM measurement
 (`docs/ws0_vram_measurement.md` — 6.2 GB / 8 GB, 100% GPU, ~1.8 GB free → **FITS**; the swap is no
 longer VRAM-gated, only quality-gated). **Next session: read [docs/NEXT_SESSION.md](docs/NEXT_SESSION.md)**

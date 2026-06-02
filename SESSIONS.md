@@ -16,10 +16,11 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 - **WS-B DONE:** region-grounding render. `render_page_with_bbox(region_bboxes=...)` draws stored rects; `search_page_bbox`/`locate_text` deleted (S15 desync source); `app._page_regions` filters `page_bboxes` to the cited page. Full suite **362 passed** (−4 vs 366: 7 search-path tests removed, 3 region tests added). Live :7860 click-through still pending.
 - **InternVL3 bake-off RAN (real head-to-head):** embed container (host torch CPU-only), bf16+CPU-offload after bnb/CUDA/triton dead-ends. On the same p.60 crop, **Qwen3-VL read 130/57 GAL correctly (verified vs report p.16); InternVL3 misread (150/55)**, and was ~6× slower + far harder to run. → **InternVL3 dropped; Qwen3-VL confirmed with data.** 16 GB model cached in data/hf-cache (gitignored).
 - **Env flag:** host starlette 1.2.1 broke fastapi 0.110 backend tests; pinned `starlette==0.36.3` (host-env drift only; Docker images pin via fastapi).
-**Left (resume here → see docs/NEXT_SESSION.md):**
-- **WS-B** region render (draw `page_bboxes`, delete `page.search`) — recommended first, schema frozen.
-- **WS-A** ZH scraper (fail-fast); first place `corpus=caac`/`zh` lang enter.
-- Qwen3-8B bake-off (EN+ZH answer quality; qwen3:8b already pulled). Curation criteria (§3) + About tab still pending.
+- **WS-A recon → CAAC scrape DEAD** (JS/JSONP TRS WAS5 index, unscrapable; Chrome MCP stalled on a permission prompt). **CORPUS PIVOTED** (user): keep PDF→answer demo + English TC/TSB; add a **Chinese PDF corpus** = Taiwan TTSB (Traditional, direct PDF URLs) + CAAC (Simplified, enumerate via search-engine seed, bypassing the JS index); **enable Chinese OCR** (per-lang PaddleOCR model — the real change). Must include **scanned** Chinese PDFs so OCR fires. A Wikipedia/HTML detour was proposed and **rejected** (the demo is PDF→answer). Plan APPROVED → `docs/CHINESE_OCR_PLAN.md`.
+**Left (resume here → S20 = [docs/CHINESE_OCR_PLAN.md](docs/CHINESE_OCR_PLAN.md)):**
+- Implement Chinese OCR (per-lang model in `ingestion/processing/ocr.py`) + offline tests FIRST.
+- Then `acquisition/ttsb.py` (direct PDFs) + `acquisition/caac.py` (search-seed); lang/doc_id/filter plumbing (add `zh`/`ttsb`/`caac`).
+- Live scanned-Chinese-OCR acceptance test, then curated re-ingest. Also still open: WS-B :7860 click-through; curation criteria (§3); About tab.
 
 ## Session 18 — 2026-05-31 — opus-4.8
 **Commits:** `201cc06`, `aaf41a1`
