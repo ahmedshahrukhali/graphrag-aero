@@ -4,6 +4,16 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 
 ---
 
+## Session 20 — 2026-06-02 — opus-4.8
+**Commits:** `ca96406`
+**Achieved:**
+- **CHINESE_OCR_PLAN Commit 1 DONE** (per-language OCR routing + zh/ttsb/caac plumbing). The real change: `ocr.py` now has `paddle_lang(lang, source)` → `latin` (en/fr) / `ch` (zh+caac, Simplified) / `chinese_cht` (zh+ttsb, Traditional), a per-code model cache (angle-cls ON for the scanned Chinese models, off for latin), and `ocr_page(page, page_no, ocr_lang)`.
+- Wiring: `run.py` derives the code from the DocRef and threads it through `extract_pages_with_ocr`; `iter_corpus_pdfs` now sweeps `{en,fr,zh}/{tsb,tc,ttsb,caac}` and `--source` admits ttsb/caac. `lang.py` admits `zh`; `doc_id._KNOWN_SOURCES += ttsb,caac` (source_url None, TC-style). `embed/jsonl` LANGS/SOURCES + `backend/schemas` Literal filters admit zh/ttsb/caac. processing README updated.
+- **+16 tests, full suite 378 passed** (was 362) — all offline; PaddleOCR stubbed via `sys.modules`, no weights/network. Fixed the 4 existing `test_run.py` extract-stub signatures for the new `ocr_lang` arg.
+**Left (resume here → S20 Commit 2):**
+- `ingestion/acquisition/ttsb.py` — direct static Traditional-Chinese PDF URLs; wire `--source ttsb` into `acquisition/run.py`; prefer scanned ASC-era reports. Then Commit 3 `caac.py` (search-seed manifest `data/corpus/zh/caac_seed.txt`).
+- Then live scanned-Chinese-OCR acceptance test → curated re-ingest. Still open: WS-B :7860 click-through; curation criteria (§3); About tab.
+
 ## Session 19 — 2026-05-31 — sonnet-4.6
 **Commits:** _(this session)_
 **Achieved:**
