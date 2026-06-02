@@ -10,6 +10,7 @@ import sys
 import types
 
 import pytest
+from PIL import Image
 
 from ingestion.processing import ocr as ocr_mod
 from ingestion.processing.ocr import OCR_RESOLUTION, ocr_page, paddle_lang
@@ -40,8 +41,12 @@ class _FakeOCR:
         self.cls_calls: list[bool] = []
         _FakeOCR.instances.append(self)
 
-    def ocr(self, pil, cls):
+    def ocr(self, img, cls):
         self.cls_calls.append(cls)
+        # ocr_page now passes a BGR ndarray (not a PIL.Image) — assert the
+        # conversion happened so we don't regress the "PIL → ndarray" fix.
+        import numpy as np
+        assert isinstance(img, np.ndarray)
         # PaddleOCR returns a list of pages; we passed one page → result[0] is
         # the list of line entries. Polygon is in pixel space of the 200-DPI render.
         return [[
@@ -52,7 +57,8 @@ class _FakeOCR:
 class _FakePage:
     def to_image(self, resolution):
         assert resolution == OCR_RESOLUTION
-        return types.SimpleNamespace(original=object())  # PIL stand-in
+        # Real PIL image so ocr_page's .convert("RGB") + np.asarray work.
+        return types.SimpleNamespace(original=Image.new("RGB", (8, 8)))
 
 
 @pytest.fixture

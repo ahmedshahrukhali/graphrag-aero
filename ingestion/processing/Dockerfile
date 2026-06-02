@@ -11,10 +11,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# System deps pdfplumber needs (libgl for image rendering when OCR is used).
+# System deps for image rendering (libgl, libglib) + PaddleOCR's paddle core,
+# which dynamically loads libgomp (GNU OpenMP) — absent from python:3.11-slim,
+# so `import paddle` fails with "libgomp.so.1: cannot open shared object file".
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
-      libgl1 libglib2.0-0 \
+      libgl1 libglib2.0-0 libgomp1 \
  && rm -rf /var/lib/apt/lists/*
 
 # ─── core stage: text-only ingestion ─────────────────────────────────────────

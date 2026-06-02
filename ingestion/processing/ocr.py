@@ -12,6 +12,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+import numpy as np
+
 from .pdf import Char, PageExtract
 
 logger = logging.getLogger(__name__)
@@ -88,10 +90,14 @@ def ocr_page(page: Any, page_no: int, ocr_lang: str = "latin") -> PageExtract:
     # Render the page to an image (pdfplumber API). Resolution=200 balances
     # OCR accuracy with memory; tune later if needed.
     img = page.to_image(resolution=OCR_RESOLUTION)
-    pil = img.original  # PIL.Image
+    # ``.original`` is a PIL.Image, but PaddleOCR.ocr() asserts an
+    # ndarray/list/str/bytes and treats ndarrays as BGR (OpenCV convention).
+    # Convert RGB→BGR into a contiguous array.
+    pil = img.original.convert("RGB")
+    arr = np.asarray(pil)[:, :, ::-1].copy()
     # Angle classification is configured on the model; pass cls accordingly so
     # scanned Chinese pages get deskewed.
-    result = ocr.ocr(pil, cls=ocr_lang in _NEEDS_ANGLE_CLS)
+    result = ocr.ocr(arr, cls=ocr_lang in _NEEDS_ANGLE_CLS)
     # PaddleOCR 2.x returns a list of pages; we passed one page so result[0].
     lines = result[0] if result else []
     chars: list[Char] = []
