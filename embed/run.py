@@ -64,8 +64,8 @@ def main(
 ) -> int:
     p = argparse.ArgumentParser(description="Embed chunks (BGE-M3 dense) → Qdrant.")
     p.add_argument("--in", dest="in_root", type=Path, default=Path("data/chunks"))
-    p.add_argument("--source", choices=["tsb", "tc", "all"], default="all")
-    p.add_argument("--lang", choices=["en", "fr", "all"], default="all")
+    p.add_argument("--source", choices=["tsb", "tc", "ttsb", "caac", "all"], default="all")
+    p.add_argument("--lang", choices=["en", "fr", "zh", "all"], default="all")
     p.add_argument("--limit", type=int, default=None,
                    help="Cap on number of chunks (smoke runs).")
     p.add_argument("--batch-size", type=int, default=32)

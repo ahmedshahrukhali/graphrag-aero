@@ -168,3 +168,19 @@ def test_limit_caps_records(chunks_dir: Path):
         client=client,
     )
     assert count_points(client, "test_dense") == 4
+
+
+def test_filter_zh_ttsb_source(tmp_path: Path):
+    """The CLI must admit --lang zh and --source ttsb/caac (S20 ZH corpus)."""
+    root = tmp_path / "chunks"
+    _write_chunk_jsonl(root / "zh" / "ttsb" / "9234_x.jsonl",
+                       [_make_record("ttsb/9234_x", i, "zh") for i in range(3)])
+    _write_chunk_jsonl(root / "zh" / "caac" / "P020.jsonl",
+                       [_make_record("caac/P020", i + 30, "zh") for i in range(2)])
+    client = QdrantClient(":memory:")
+    main(
+        ["--in", str(root), "--lang", "zh", "--source", "ttsb"],
+        embedder_factory=lambda bs: StubEmbedder(),
+        client=client,
+    )
+    assert count_points(client, "test_dense") == 3
