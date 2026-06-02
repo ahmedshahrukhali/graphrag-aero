@@ -4,6 +4,24 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 
 ---
 
+## Session 21 — 2026-06-02 — sonnet-4.6
+**Commits:** `23f4307`, `5af18de`, `98f59b0`, `15a50d8`, `c1dd3ce`, `bfb079a` (+ this docs commit)
+**Achieved (cleared the S20 Sonnet queue D→B→A; A is the live capstone):**
+- **Task D DONE** (`23f4307`): real `source_url` for ttsb/caac doc_ids. `ttsb.build_pdf_url(media_id,name)` rebuilds `/media/{id}/{name}.pdf` from the `{media_id}_{name}` stem; CAAC looks up `caac.seed_url_map(load_seed_file())` by basename (path lost on download). +8 tests.
+- **Task B DONE** (`5af18de`, refined to **v2** in `bfb079a`): froze REINGEST §3 curation rules + `ingestion/processing/curation.py` (`admit()` + `CurationManifest`) + opt-in `--curate` in processing/run.py (writes `curation_manifest.json`; default unchanged). Rules: empty / sub_threshold(<200 chars) / cover_only(boilerplate) / lang_misdetect.
+- **Task A DONE — full live OCR acceptance** (HITL-approved). Pulled 9 TTSB + 5 CAAC PDFs. **Chinese OCR proven end-to-end:** scanned CAAC AC-121-17 (4/4 image-only) → `ch` PaddleOCR → real 中文 chunks → BGE-M3 → `/retrieve` ranks it **#1 (0.995)** with `page_bboxes` on the OCR'd region → `/query` returns a **fully-cited Chinese answer** sourced entirely from the OCR'd doc (`[caac/P020…230 p.2/p.3]`). `chinese_cht` OCR also fired (TTSB 3287 p.69). Qdrant 63,946 → **64,437** pts (+491 zh).
+- **4 real bugs fixed live (all surfaced by the run, the point of A):**
+  1. `embed/run.py` (`98f59b0`) CLI `--source/--lang` didn't admit zh/ttsb/caac (argparse blocked step 4).
+  2. ingestion image missing **libgomp1** → `import paddle` died (`15a50d8`).
+  3. `ocr.py` passed a **PIL.Image** to PaddleOCR (wants ndarray/BGR) (`15a50d8`).
+  4. `ocr.py` emitted **one Char per line** → chunker's glyph-align dropped all OCR bboxes; now per-glyph (`c1dd3ce`).
+  - **curation v2** (`bfb079a`): v1's ">80% ASCII" lang rule missed CID-mojibake ASC PDFs (admitted 3 docs / ~3.3k junk chunks); v2 = CJK-fraction floor (0.10) rejects all 4 broken ASC docs, admits the 5 clean Traditional reports.
+- Rebuilt ingestion/embed/backend images (each baked stale code). Full suite **428 passed**, 1 skipped (offline). Stack UP (qdrant/neo4j/postgres/ollama/backend).
+**Left:**
+- **Curated re-ingest (WS-F)** is the remaining big step — now unblocked (criteria frozen v2, OCR proven). Small ZH sample (10 docs) is in the index; scale up TTSB/CAAC + re-fold EN/TC with `--curate` when ready (multi-hour, Haiku-monitored per REINGEST §7/§10).
+- Browser click-through of the ZH bbox highlight at :7860/frontend (page_bboxes confirmed in API; visual not screenshotted this session). About tab still open.
+- NB: ASC-era TTSB PDFs (pre-2018) have broken CID text layers — exclude from curated corpus (v2 rejects them automatically).
+
 ## Session 20 — 2026-06-02 — opus-4.8
 **Commits:** `ca96406`, `9464a5a`, `c1c6e40`, `fa57a07`, `90208c8`
 **Achieved:**

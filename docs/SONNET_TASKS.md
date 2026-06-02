@@ -1,5 +1,11 @@
 # Sonnet task queue — assigned by opus-4.8 (S20, 2026-06-02)
 
+> **☑ ALL DONE — S21 (sonnet-4.6, 2026-06-02).** D `23f4307`, B `5af18de` (+v2 `bfb079a`),
+> A live HITL-approved (`98f59b0`,`15a50d8`,`c1dd3ce`,`bfb079a`). Chinese-OCR acceptance
+> proven end-to-end (scanned CAAC AC-121-17 → `ch` OCR → cited `/query` answer, `page_bboxes`
+> on the OCR'd region; Qdrant +491 zh = 64,437). See SESSIONS S21 / MANIFEST resume pointer.
+> Kept below for the original briefs.
+
 Three self-contained briefs queued for **Sonnet 4.6+** (senior tier — these author
 phase code-of-record, not grunt work). The repo is the message bus: read the
 MANIFEST resume pointer first, work one task at a time, commit at each boundary

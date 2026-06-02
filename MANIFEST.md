@@ -126,14 +126,21 @@ it lives at `ingestion/acquisition/caac_seed.txt` (with the module), NOT `data/c
 `data/corpus/*` is gitignored and the seed must be committed. **Live-validated**: 4 seed URLs HEAD →
 200 `application/pdf` (87 KB–2.8 MB) from this machine, so the axis is reachable, not dead. +9 offline
 tests (incl. a guard that the committed seed parses to ≥15 deduped URLs). Full suite **398 passed**.
-**⮕ SONNET QUEUE (opus-4.8 assigned, S20): [docs/SONNET_TASKS.md](docs/SONNET_TASKS.md)** — briefs for
-**D** (ttsb/caac source_url), **B** (freeze curation criteria §3), **A** (live OCR acceptance, HITL-gated).
-Suggested order D→B→A. Task A == Commit 4 below.
-**⮕ NEXT (Commit 4 — LIVE, HITL-gated): scanned-Chinese-OCR acceptance test → curated re-ingest.**
-Pull a sample (`--source ttsb --limit N` + `--source caac --limit N`), run `processing.run` (Chinese OCR
-fires on image_only pages), confirm real 中文 in chunks, `embed.run`, then a Chinese `/query` returns a
-cited answer with bbox highlight on an OCR'd region. The three acquisition modules are NOT yet run live.
-Wikipedia/HTML idea: DROPPED. Below = prior S19 history, still valid context.
+**☑ SONNET QUEUE CLEARED (S21, sonnet-4.6, 2026-06-02): [docs/SONNET_TASKS.md](docs/SONNET_TASKS.md) D→B→A all DONE.**
+- **D** (`23f4307`): ttsb/caac `source_url` wired (ttsb rebuilt from stem; caac seed lookup).
+- **B** (`5af18de` + v2 `bfb079a`): curation criteria FROZEN (REINGEST §3 v2), `curation.py` + `--curate`.
+- **A** (LIVE, HITL-approved): **Chinese-OCR acceptance PROVEN end-to-end.** Scanned CAAC AC-121-17 (4/4
+  image-only) → `ch` PaddleOCR → real 中文 chunks → BGE-M3 → `/retrieve` ranks it #1 (0.995) with
+  `page_bboxes` on the OCR'd region → `/query` returns a **fully-cited Chinese answer** from the OCR'd doc
+  (`[caac/P020…230 p.2/p.3]`). `chinese_cht` also fired. Qdrant 63,946 → **64,437** (+491 zh). **4 live bugs
+  fixed:** embed CLI zh choices (`98f59b0`), ingestion `libgomp1` + PIL→ndarray (`15a50d8`), per-glyph OCR
+  chars so bboxes survive (`c1dd3ce`), curation v2 CJK-floor catches CID-mojibake (`bfb079a`). Suite **428
+  passed**. ingestion/embed/backend images rebuilt (all had stale code).
+**⮕ NEXT (S22 — curated re-ingest, WS-F): now UNBLOCKED** (criteria frozen v2, OCR proven, 10-doc zh sample
+indexed). Scale TTSB/CAAC + re-fold EN/TC with `--curate` (multi-hour, Haiku-monitored per REINGEST §7/§10).
+NB: pre-2018 ASC TTSB PDFs have broken CID text layers — v2 lang_misdetect rejects them automatically.
+Also open: browser click-through of the ZH bbox highlight at :7860 (page_bboxes confirmed in API, not yet
+screenshotted); About tab. Wikipedia/HTML idea: DROPPED. Below = prior S19 history, still valid context.
 
 ---
 
