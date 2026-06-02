@@ -5,14 +5,15 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 ---
 
 ## Session 20 — 2026-06-02 — opus-4.8
-**Commits:** `ca96406`, `9464a5a`, `c1c6e40`
+**Commits:** `ca96406`, `9464a5a`, `c1c6e40`, `fa57a07`, `90208c8`
 **Achieved:**
 - **CHINESE_OCR_PLAN Commit 1 DONE** (`ca96406`): per-language OCR routing + zh/ttsb/caac plumbing. `ocr.py` now has `paddle_lang(lang, source)` → `latin` (en/fr) / `ch` (zh+caac, Simplified) / `chinese_cht` (zh+ttsb, Traditional), a per-code model cache (angle-cls ON for the scanned Chinese models), and `ocr_page(page, page_no, ocr_lang)`. `run.py` threads the code from the DocRef; `iter_corpus_pdfs` sweeps `{en,fr,zh}/{tsb,tc,ttsb,caac}`. `lang.py` admits `zh`; `doc_id._KNOWN_SOURCES += ttsb,caac`; `embed/jsonl` + `backend/schemas` filters admit zh/ttsb/caac. +16 tests (PaddleOCR stubbed via sys.modules). Fixed 4 existing test_run stub signatures for the new arg.
 - **Commit 2 DONE** (`c1c6e40`): `acquisition/ttsb.py` (Taiwan, Traditional Chinese). **Live recon** settled the shape — TTSB listing pages (`/1133/1154/1155/{1159,1157}/Lpsimplelist`) link report PDFs **directly** under `/media/{id}/*.pdf` → single-step crawl. `extract_pdf_urls` + `media_id` + `filename_for` → `{media_id}_{basename}` (id disambiguates repeated basenames like `00_general.pdf`). `run.run_ttsb` → `data/corpus/zh/ttsb/`; `--source ttsb` wired. source_url None (TC-style). +11 offline tests.
-- **Full suite 389 passed** (was 362), 1 skipped — all offline, no weights/network.
-**Left (resume here → S20 Commit 3):**
-- `ingestion/acquisition/caac.py` — CAAC JS index is dead; harvest a search-engine/sitemap seed once into a committed manifest `data/corpus/zh/caac_seed.txt` (markers 咨询通告 / 运行安全通告), then `download()` each; wire `--source caac`; target **scanned** Simplified docs.
-- Then live scanned-Chinese-OCR acceptance test → curated re-ingest. NB: ttsb.py not yet run live; listing pagination not followed (—limit + curated subset is scope). Still open: WS-B :7860 click-through; curation criteria (§3); About tab.
+- **Commit 3 DONE** (`90208c8`): `acquisition/caac.py` + committed seed. CAAC's JS index is dead, so no crawl — `caac.py` reads a **seed manifest** of direct PDF URLs harvested once via `site:caac.gov.cn filetype:pdf` (markers 咨询通告 / 信息通告). `load_seed` filters caac.gov.cn `*.pdf` + dedupes by P-number basename (collapses /PHONE//big5/ mirrors); `run_caac` → `data/corpus/zh/caac/`; `--source caac` + `--caac-seed` wired. **Seed lives at `ingestion/acquisition/caac_seed.txt`** (with the module, not `data/corpus/zh/` — that tree is gitignored). **Live-validated**: 4 seed URLs HEAD → 200 application/pdf (87 KB–2.8 MB). +9 offline tests (incl. committed-seed parse guard).
+- **Full suite 398 passed** (was 362), 1 skipped — all offline, no weights/network.
+**Left (resume here → S20 Commit 4 = LIVE, HITL-gated):**
+- Scanned-Chinese-OCR **acceptance test**: pull a sample (`--source ttsb --limit N` + `--source caac --limit N`) → `processing.run` (Chinese OCR fires on image_only pages) → confirm 中文 in chunks → `embed.run` → Chinese `/query` returns cited answer with bbox highlight on an OCR'd region. The three acquisition modules are NOT yet run live.
+- Then curated re-ingest. NB: TTSB listing pagination not followed (—limit + curated subset is scope). Still open: WS-B :7860 click-through; curation criteria (§3); About tab.
 
 ## Session 19 — 2026-05-31 — sonnet-4.6
 **Commits:** _(this session)_
