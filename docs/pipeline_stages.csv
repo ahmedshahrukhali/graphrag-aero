@@ -21,7 +21,7 @@ P3 Retrieve,online-query,Cross-encoder rerank,Score top-k candidates with bi-dir
 P4 Agent,online-query,LangGraph state machine,Multi-hop reasoning graph with interrupt node,agent/graph.py,LangGraph,,< 10 ms/node overhead,,None,PostgresSaver checkpointer; HITL before finalize
 P4 Agent,online-query,Neo4j graph query,Cypher lookup — Occurrence→Aircraft→Finding→Recommendation,graph/,Neo4j 5 + APOC,,~5–50 ms/query,,None,Used for structured entity hops
 P4 Agent,online-query,Postgres checkpoint,Read/write LangGraph state,backend/,PostgreSQL 16 (LangGraph PostgresSaver),,~5–20 ms/op,,None,Thread-safe; one entry per thread_id
-P4 Agent,online-query,LLM generation,Draft final answer from retrieved context,agent/nodes/synthesize.py,gemma2:9b Q4_K_M via Ollama,,~1–3 tokens/sec → ~5–30 s/response,GPU-bound (~5.5 GB VRAM),Sequential VRAM: retrieval models unloaded first
+P4 Agent,online-query,LLM generation,Draft final answer from retrieved context,agent/nodes/synthesize.py,gemma2:9b Q4_K_M via Ollama,,~1–3 tokens/sec → ~5–30 s/response,GPU-bound (~5.5 GB VRAM),Sequential VRAM: retrieval models unloaded first,
 P4 Agent,online-query,HITL gate,Interrupt + expose draft for human review before delivery,agent/graph.py,LangGraph interrupt,Human (async),,human latency,Human-in-the-loop,User can edit draft before resuming graph
 P5 Eval,offline-batch,Query runner,Run retrieve_and_rerank against live Qdrant for each eval query,eval/run.py,Qdrant + BGE-M3 + reranker,,~200–600 ms/query × N queries,,None,7 queries in dataset.jsonl (EN + FR + ZH)
 P5 Eval,offline-batch,Metrics compute,Recall@k / RR / nDCG@k per query and per language,eval/metrics.py,,,< 1 ms/query,,None,Binary relevance; doc_id-level
