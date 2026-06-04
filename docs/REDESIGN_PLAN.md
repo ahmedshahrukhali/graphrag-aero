@@ -55,9 +55,9 @@ transparent fused scoring.
   terms, ts}`.
 - New query cosine-similar (>0.80) to an `unaccepted_qa` row →
   (a) prompt states the prior attempt was wrong, (b) force reformulation (§2)
-  excluding the chunks that produced the rejected answer, (c) **raise LLM temperature**
-  for the retry (`agent/llm.py` — add a `temperature` arg; currently fixed). Surface
-  high-salience terms as a "Related Terms" payload for the UI.
+  excluding the chunks that produced the rejected answer. Surface high-salience
+  terms as a "Related Terms" payload for the UI. (Reformulation + chunk exclusion
+  already make the retry different — no temperature change needed.)
 - A resolved retry updates/clears the matching row.
 
 ## 4. Graph schema restructuring (admit manuals)
@@ -71,8 +71,7 @@ transparent fused scoring.
   follow-up (no manual corpus in tree yet).
 
 ## 5. LLM swap → Qwen3-8B
-- `agent/llm.py` + compose/env (`OLLAMA_MODEL`): gemma2:9b → qwen3:8b. Add the
-  `temperature` pass-through (needed by §3). VRAM cleared (S19).
+- `agent/llm.py` + compose/env (`OLLAMA_MODEL`): gemma2:9b → qwen3:8b. VRAM cleared (S19).
 
 ## 6. Eval — IN SCOPE (measure every change)
 `eval/` already has `recall_at_k` / `reciprocal_rank` / `ndcg_at_k`

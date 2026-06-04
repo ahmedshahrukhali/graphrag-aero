@@ -13,8 +13,8 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
   (weak on jargon/identifiers), TSB/TC-locked graph (`{occ_id}:...` identity, `Aircraft` dead/"reserved").
 - Wrote **[docs/REDESIGN_PLAN.md](docs/REDESIGN_PLAN.md)** — 6-part program: (1) hybrid dense+sparse
   retrieval, (2) real query-reformulation loop, (3) remove HITL → negative-feedback `unaccepted_qa`
-  store + temperature-raised retry, (4) Document-rooted graph schema seam (admit manuals later),
-  (5) LLM → Qwen3-8B + `temperature` pass-through, (6) eval IN-SCOPE measuring every change.
+  store + reformulated retry (excluding the failed chunks), (4) Document-rooted graph schema seam
+  (admit manuals later), (5) LLM → Qwen3-8B, (6) eval IN-SCOPE measuring every change.
 - Accepted/deferred: 1-chunk-1-cite looseness kept; OCR-first multimodal for manuals deferred (needs
   Qwen3-VL figure-tier wiring) — §4 lands only the schema seam.
 **Left (resume pointer → S26):** execute REDESIGN_PLAN in sequence — §5 (LLM swap, small, unblocks §3),

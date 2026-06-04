@@ -79,8 +79,8 @@ MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, o
 ## Resume pointer
 **⮕ S26 NEXT (set S25, opus-4.8): execute [docs/REDESIGN_PLAN.md](docs/REDESIGN_PLAN.md).**
 Design-only review (S25) found file-anchored defects in retrieval/agent/graph and froze a 6-part
-fix program. Start **§5** (LLM gemma2:9b → Qwen3-8B + `temperature` pass-through — small, unblocks §3),
-then **§1** hybrid dense+sparse + **§6** eval baseline (`python -m eval.run --json`, record numbers).
+fix program. Start **§5** (LLM gemma2:9b → Qwen3-8B — small), then **§1** hybrid dense+sparse + **§6** eval
+baseline (`python -m eval.run --json`, record numbers).
 WS-F re-ingest is DONE (S24: 77,173 vectors in `aerospace_dense`) — the redesign operates on that index.
 The pre-S25 re-ingest pointer below is historical; do not restart it.
 
