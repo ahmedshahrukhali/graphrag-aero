@@ -4,6 +4,15 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 
 ---
 
+## Session 24 — 2026-06-04 — sonnet-4.6
+**Commits:** `f583273`, `b47cde8`, `b21e130`, session-close
+**Achieved:**
+- WS-F 3c: curated ingest of 2,931 PDFs — 2,924 admitted, 6 rejected; curation manifest clean
+- WS-F 3d: 77,173 vectors embedded into fresh aerospace_dense (Cosine, dim=1024); EN+ZH retrieval verified
+- Perf: ThreadPoolExecutor ×4 workers + thread-safe Dedup/CurationManifest + OcrBatchQueue (batched GPU OCR, batch_size=8) + embed batch_size 32→128 + paddle_ocr_models volume + WSL2 RAM 28 GB
+- Docs: full pipeline CSV (P1b–P8, 32 rows) added to docs/pipeline_stages.csv
+**Left:** run eval suite for recall/nDCG/MRR numbers; consider CAAC corpus expansion (21 docs only)
+
 ## Session 23 — 2026-06-04 — opus-4.7
 **Commits:** `df4890b`, `1fa31d2`
 **Achieved (WS-F destructive run unblocked — prep landed, kickoff queued for Haiku/user):**

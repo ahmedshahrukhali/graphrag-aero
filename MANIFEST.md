@@ -163,12 +163,16 @@ sequence (3a quarantine → 3b clear `data/chunks` → 3c `--curate --force` ing
 - Docker Desktop was found stopped pre-3c (recurring across S19/S22/S23) — flag in NEXT_SESSION §3c
   pre-flight.
 
-**⮕ NEXT — WS-F 3c+3d (Haiku or Sonnet, multi-hour mechanical run, NOT Opus).** Follow
-`docs/NEXT_SESSION.md` §3c → §3d. 3c is `docker compose --profile ingest run --rm ingestion
---in /app/data/corpus --out /app/data/chunks --curate --force -v` (~2.5–4 h on ~2,876 docs);
-3d is `docker compose --profile embed run --rm embed --recreate` (~1–2 h GPU; **destroys the
-live 64,440-pt Qdrant collection**, irreversible). Eyeball `curation_manifest.json` mid-3c
-(rewritten every 25 docs) before kicking off 3d.
+**☑ S24 WS-F 3c+3d DONE (sonnet-4.6, 2026-06-04): 2,924 docs admitted, 77,173 vectors in Qdrant.**
+- 3c: curated ingest complete. 2,924 admitted / 6 rejected across en(1,443) + fr(1,430) + zh(51).
+  Curation manifest clean. Two perf fixes landed this session: parallel workers (ThreadPoolExecutor ×4,
+  thread-safe Dedup + CurationManifest), and OcrBatchQueue (batched GPU OCR, batch_size=8 across workers).
+  embed batch_size raised 32→128. paddle_ocr_models named volume persists PP-OCRv5. WSL2 RAM raised to 28 GB.
+- 3d: embed complete. 77,173 pts in aerospace_dense (Cosine, dim=1024), status green.
+  EN sanity query score=0.995 ✓; ZH (TTSB + CAAC) query score=0.964 ✓.
+- Commits: `f583273`, `b47cde8`, `b21e130`, `<session-close>`.
+
+**⮕ NEXT — post-WS-F: run eval suite, update pipeline_stages.csv with live timings, consider CAAC corpus expansion (only 21 docs vs 1,443 EN).**
 
 **S22 — curated re-ingest, WS-F: PILOT DONE, full run HELD by user (S22, opus-4.8).**
 **CRITICAL prerequisite found:** existing EN/FR chunks are **pre-WS-0** (dated 05-28, missing
