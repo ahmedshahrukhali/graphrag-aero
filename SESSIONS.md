@@ -29,9 +29,16 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 - **Smoke (carry-record):** `python -m ingestion.processing.run --in data/corpus --out data/chunks_pilot
   --source tc --curate --limit 3` against the S22 pilot tree → 3 fresh-skipped docs now appear as
   `admitted: 3` in the manifest (pre-fix would have been 0).
-**Left (resume pointer):**
-- **WS-F full destructive run** (multi-hour, drops live 64,440-pt Qdrant collection) — Haiku/user kickoff
-  per `NEXT_SESSION.md` §3a→3d. Manifest is now safe; corrupt-PDF tool is in place.
+**Partial kickoff (user-directed mid-session, then queued for next session):**
+- **3a APPLIED:** quarantine scan found **16** broken PDFs (not 15 — S22 was TC-only; +1 is
+  `fr/tsb/a01p0127.pdf` "Unknown filter"). All moved to `data/corpus_quarantine/` + `manifest.csv`.
+- **3b APPLIED:** `data/chunks/` → `data/chunks_pre_ws0_20260604/`; fresh `data/chunks/` ready.
+- **3c + 3d queued for Haiku/Sonnet** (user redirect): Docker Desktop was found stopped (recurring;
+  noted in NEXT_SESSION §3c pre-flight). Opus shouldn't sit on a multi-hour batch — handoff is clean
+  because the carry-record manifest makes resume safe and the corpus is already clean.
+**Left (resume pointer → Haiku/Sonnet):**
+- **WS-F 3c** (curated ingest, ~2.5–4 h) → **3d** (`embed --recreate`, ~1–2 h, **destroys live
+  64,440-pt collection**). Exact commands in `docs/NEXT_SESSION.md` §3c/§3d.
 - Smaller open: ZH bbox browser click-through screenshot; About tab; Qwen3-8B generator bake-off.
 
 ---

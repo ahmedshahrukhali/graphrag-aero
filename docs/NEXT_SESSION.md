@@ -32,47 +32,55 @@ Current sample = 10 zh docs. If the overlap demo needs more, add TTSB/CAAC seeds
 (`acquisition.run --source ttsb|caac`), then process `--curate`. Keep the v2 balance band in mind
 (ZH : EN_TC admitted within 0.5–2.0×; manifest logs a `balance_warning`).
 
-### 3. WS-F — the curated re-ingest (multi-hour, Haiku-monitored per REINGEST §10)
+### 3. WS-F — the curated re-ingest (multi-hour, Haiku/Sonnet-monitored per REINGEST §10)
 
 **S23 prep landed** (opus-4.7, 2026-06-04): manifest is now resume-safe (fresh-skipped docs
-carry-recorded; manifest flushed every 25 docs atomically) and a quarantine tool is in place
-for the 15 corrupt TC PDFs. Run in order:
+carry-recorded; manifest flushed every 25 docs atomically) and a quarantine tool is in place.
 
-#### 3a. (One-time) Quarantine unopenable PDFs
-```
-python -m ingestion.maintenance.quarantine_corrupt_pdfs --dry-run
-# Eyeball the list (~15 expected; "No /Root object" under data/corpus/en/tc/), then:
-python -m ingestion.maintenance.quarantine_corrupt_pdfs --apply
-```
-Broken files move to `data/corpus_quarantine/{lang}/{source}/` + `manifest.csv`. Reversible.
+**S23 partial kickoff** (opus-4.7, 2026-06-04): 3a + 3b are already DONE on disk. The next
+session starts at 3c.
 
-#### 3b. (Destructive) Clear stale pre-WS-0 chunks
-Existing EN/FR chunks are pre-WS-0 (missing `page_bboxes`/`corpus`/`kind`) and mtime-fresh,
-so `--curate` alone no-ops them. Move them aside so `--force` reprocesses cleanly:
-```
-# PowerShell:
-Move-Item data\chunks "data\chunks_pre_ws0_$(Get-Date -Format yyyyMMdd)"
-mkdir data\chunks
-# bash:
-mv data/chunks data/chunks_pre_ws0_$(date +%Y%m%d)
-mkdir data/chunks
-```
-(`data/chunks_pilot/` is the S22 scratch — leave it.)
+#### 3a. ☑ DONE (S23, 2026-06-04) — Quarantine unopenable PDFs
+Scan found **16** broken PDFs (S22 estimate was 15; the +1 is `fr/tsb/a01p0127.pdf` with a
+different pdfminer "Unknown filter" error — same quarantine outcome). All moved to
+`data/corpus_quarantine/{lang}/{source}/` with `manifest.csv`. Distribution:
+- `en/tc/`: 6 (No /Root)
+- `fr/tc/`: 9 (No /Root)
+- `fr/tsb/`: 1 (Unknown filter — `a01p0127.pdf`)
 
-#### 3c. Curated ingest (multi-hour; GPU OCR; incremental manifest is safe now)
+Reversible if needed (manifest.csv has both paths).
+
+#### 3b. ☑ DONE (S23, 2026-06-04) — Cleared stale pre-WS-0 chunks
+Old chunks tree moved to `data/chunks_pre_ws0_20260604/`. Fresh empty `data/chunks/` ready.
+(`data/chunks_pilot/` left in place as S22 scratch.)
+
+#### 3c. ⮕ NEXT — Curated ingest (multi-hour; GPU OCR; incremental manifest is safe now)
+
+**Pre-flight check:** Docker Desktop may not be running (S22 + S23 both hit this).
+Verify with `docker info`; if it fails, start Docker Desktop and wait until the daemon
+responds before launching.
+
 ```
 docker compose --profile ingest run --rm ingestion \
   --in /app/data/corpus --out /app/data/chunks --curate --force -v
 ```
 `data/chunks/curation_manifest.json` is rewritten atomically every 25 docs — eyeball it mid-run
 to confirm admitted/rejected per corpus+lang and the reject-reason histogram. Idempotent on
-chunk_hash; safe to resume.
+chunk_hash; safe to resume (carry-record now works).
+
+Expected scale (rough, from S22 pilot extrapolation): ~2,876 docs (2,892 pre-quarantine − 16)
+at ~3.0 s/doc on CPU pdfplumber + GPU OCR on the image-only TC pages → **~2.5–4 h wall**.
+NB the WS-F bottleneck is **not** the GPU — see "Performance note" below.
 
 #### 3d. Re-embed into a fresh Qdrant collection (DESTROYS the live 64,440-pt index)
 ```
 docker compose --profile embed run --rm embed --recreate
 ```
-This is the irreversible step. Only proceed once 3c looks healthy.
+This is the irreversible step. Only proceed once 3c looks healthy (admitted count plausible,
+no abnormal reject-reason spike). Expect ~1–2 h on GPU.
+
+**Owner:** Haiku or Sonnet (mechanical run + monitoring). Per CLAUDE.md, Opus shouldn't sit on
+a multi-hour batch — both 3c and 3d are pure execution of existing code.
 
 ### 4. Re-verify after the run
 - `python -m eval.run --json` (Recall@k / nDCG / MRR) — NB the eval dataset has **no ZH queries**;

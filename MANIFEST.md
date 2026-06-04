@@ -154,9 +154,21 @@ sequence (3a quarantine → 3b clear `data/chunks` → 3c `--curate --force` ing
 --recreate`; 3d is the destructive 64,440-pt collection drop). Suite **431 → 436 passed** (+5 new),
 1 skipped, offline. Smoke verified the carry-record on `data/chunks_pilot/`.
 
-**⮕ NEXT — WS-F full destructive run (Haiku/user, multi-hour):** follow `docs/NEXT_SESSION.md`
-§3a→3d in order. Kickoff = `python -m ingestion.maintenance.quarantine_corrupt_pdfs --dry-run`
-(read-only); proceed once the list looks right (~15 expected, all under `data/corpus/en/tc/`).
+**☑ S23 partial kickoff (S23, opus-4.7, 2026-06-04): 3a + 3b DONE on disk.**
+- **3a quarantine APPLIED:** 16 broken PDFs moved to `data/corpus_quarantine/` (15 "No /Root object"
+  under `en/tc/` + `fr/tc/`, plus `fr/tsb/a01p0127.pdf` with a different "Unknown filter" pdfminer
+  error — same quarantine outcome). `manifest.csv` written. Reversible.
+- **3b chunks cleared:** old `data/chunks/` moved to `data/chunks_pre_ws0_20260604/`; fresh empty
+  `data/chunks/` ready. `data/chunks_pilot/` left as S22 scratch.
+- Docker Desktop was found stopped pre-3c (recurring across S19/S22/S23) — flag in NEXT_SESSION §3c
+  pre-flight.
+
+**⮕ NEXT — WS-F 3c+3d (Haiku or Sonnet, multi-hour mechanical run, NOT Opus).** Follow
+`docs/NEXT_SESSION.md` §3c → §3d. 3c is `docker compose --profile ingest run --rm ingestion
+--in /app/data/corpus --out /app/data/chunks --curate --force -v` (~2.5–4 h on ~2,876 docs);
+3d is `docker compose --profile embed run --rm embed --recreate` (~1–2 h GPU; **destroys the
+live 64,440-pt Qdrant collection**, irreversible). Eyeball `curation_manifest.json` mid-3c
+(rewritten every 25 docs) before kicking off 3d.
 
 **S22 — curated re-ingest, WS-F: PILOT DONE, full run HELD by user (S22, opus-4.8).**
 **CRITICAL prerequisite found:** existing EN/FR chunks are **pre-WS-0** (dated 05-28, missing
