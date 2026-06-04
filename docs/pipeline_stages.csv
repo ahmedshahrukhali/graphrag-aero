@@ -1,0 +1,33 @@
+phase,type,stage,responsibility,component,model_or_tool,thread_model,speed_observed,speed_estimated,bottleneck,notes
+P1b Acquire,offline-batch,Scrape index,Fetch HTML report index pages,acquisition/scrape.py,httpx + BeautifulSoup,,~1–3 s/page (rate-limited),,Network / politeness,Respects robots.txt; rate-limited
+P1b Acquire,offline-batch,PDF download,Download EN + FR + ZH PDFs to data/corpus/,acquisition/scrape.py,httpx,,~1–5 s/PDF (~500 KB–5 MB),,Network bandwidth,~2931 PDFs total; ~1–2 hr with polite limits
+P1b Acquire,offline-batch,Corpus organise,Write to data/corpus/{lang}/{source}/{id}.pdf,filesystem,,Main thread,< 1 ms/file,,I/O,Deterministic layout; idempotent
+P1 Ingest,offline-batch,PDF discovery,Glob corpus dirs — deterministic sort,ingestion/processing/run.py,,Main thread,2931 paths < 1 s,,None,iter_corpus_pdfs()
+P1 Ingest,offline-batch,pdfplumber extract,Open PDF + pull text and char bboxes per page,ingestion/processing/pdf.py,pdfplumber,Worker ×4,~3–5 s/doc (text PDFs) — observed,,CPU — parallelised,49 docs/min with 4 workers observed live
+P1 Ingest,offline-batch,Page render,Render image-only page → BGR numpy array,ingestion/processing/ocr.py,pdfplumber + Pillow,Worker ×4,,~0.5 s/page,CPU — parallelised,Only fires for image-only pages
+P1 Ingest,offline-batch,OCR inference (old — serial),predict(arr) × 1 page per call,ingestion/processing/ocr.py,PaddleOCR PP-OCRv5,OCR thread ×1 serialised,,~2–8 s/page (ZH scans),GPU idle between calls,Replaced by batched approach
+P1 Ingest,offline-batch,OCR inference (new — batched),predict([arr1…arr8]) per call via OcrBatchQueue,ingestion/processing/ocr.py,PaddleOCR PP-OCRv5,OCR thread ×1 batched,,~0.4–1 s/page effective (~4–8× gain),GPU busy; single bottleneck remains,commit b47cde8
+P1 Ingest,offline-batch,Chunking,Tokenise + fixed 512-token / 64-overlap sliding window,ingestion/processing/chunk.py,BAAI/bge-m3 tokenizer,Worker ×4,,< 50 ms/doc,None,
+P1 Ingest,offline-batch,Dedup,SHA-256 hash lookup in thread-safe set,ingestion/processing/dedup.py,,Worker ×4,,< 1 ms/chunk,None,First-occurrence-wins across all docs
+P1 Ingest,offline-batch,Curation,Admission criteria — lang / min-tokens / cover-only,ingestion/processing/curation.py,,Worker ×4,,< 5 ms/doc,None,Rejected docs skip JSONL write
+P1 Ingest,offline-batch,JSONL write,Atomic .part → rename per doc,ingestion/processing/run.py,,Worker ×4,,< 5 ms/doc,None,Safe on crash / interrupt
+P1 Ingest,offline-batch,Manifest flush,Incremental curation_manifest.json (every 25 docs),ingestion/processing/run.py,,Main thread,,< 10 ms/flush,None,Atomic rename; bounds crash loss
+P2 Embed,offline-batch,JSONL read,Stream chunks from data/chunks/ into memory,embed/run.py,,Main thread,,~1 GB/min I/O,None,
+P2 Embed,offline-batch,BGE-M3 encode,Dense embedding → 1024-dim float32 vectors,embed/bge_m3.py,BAAI/bge-m3 (FlagEmbedding),GPU batch 128,,~500–2000 chunks/min,GPU-bound,batch_size raised 32→128 this session; ~30–50K chunks total
+P2 Embed,offline-batch,Qdrant upsert,HTTP batch insert into aerospace_dense collection,embed/run.py,Qdrant,Main thread,,~1000 vecs/batch,Network / serialisation,Point ID = UUID(chunk_hash[:128 bits])
+P3 Retrieve,online-query,Query embed,Embed user query → 1024-dim dense vector,retrieve/search.py,BAAI/bge-m3 (FlagEmbedding),Main (sequential VRAM),,~50–100 ms/query,GPU — model load amortised,ModelSession keeps model resident across hops
+P3 Retrieve,online-query,Qdrant ANN search,HNSW approximate nearest-neighbour over ~30–50K points,retrieve/search.py,Qdrant,,~5–20 ms/query,,None,lang + source payload filters applied
+P3 Retrieve,online-query,Cross-encoder rerank,Score top-k candidates with bi-directional attention,retrieve/reranker.py,BAAI/bge-reranker-v2-m3,GPU (sequential VRAM),,~100–500 ms for top-20,GPU-bound,Multilingual; unloaded before LLM generation
+P4 Agent,online-query,LangGraph state machine,Multi-hop reasoning graph with interrupt node,agent/graph.py,LangGraph,,< 10 ms/node overhead,,None,PostgresSaver checkpointer; HITL before finalize
+P4 Agent,online-query,Neo4j graph query,Cypher lookup — Occurrence→Aircraft→Finding→Recommendation,graph/,Neo4j 5 + APOC,,~5–50 ms/query,,None,Used for structured entity hops
+P4 Agent,online-query,Postgres checkpoint,Read/write LangGraph state,backend/,PostgreSQL 16 (LangGraph PostgresSaver),,~5–20 ms/op,,None,Thread-safe; one entry per thread_id
+P4 Agent,online-query,LLM generation,Draft final answer from retrieved context,agent/nodes/synthesize.py,gemma2:9b Q4_K_M via Ollama,,~1–3 tokens/sec → ~5–30 s/response,GPU-bound (~5.5 GB VRAM),Sequential VRAM: retrieval models unloaded first
+P4 Agent,online-query,HITL gate,Interrupt + expose draft for human review before delivery,agent/graph.py,LangGraph interrupt,Human (async),,human latency,Human-in-the-loop,User can edit draft before resuming graph
+P5 Eval,offline-batch,Query runner,Run retrieve_and_rerank against live Qdrant for each eval query,eval/run.py,Qdrant + BGE-M3 + reranker,,~200–600 ms/query × N queries,,None,7 queries in dataset.jsonl (EN + FR + ZH)
+P5 Eval,offline-batch,Metrics compute,Recall@k / RR / nDCG@k per query and per language,eval/metrics.py,,,< 1 ms/query,,None,Binary relevance; doc_id-level
+P6 Backend,online-query,FastAPI routing,/retrieve /query /resume /{thread_id} /healthz,backend/main.py,FastAPI + uvicorn (1 worker),,~1 ms/request overhead,,None,Single worker enforces sequential VRAM discipline
+P6 Backend,online-query,OTel tracing,Span emission per request and agent node,backend/,OpenTelemetry → OTLP gRPC,,< 1 ms/span,,None,Collector → local receiver; no prod exporter yet
+P7 Frontend,online-query,Next.js UI,QueryForm → AgentTrace + ChunkCard + DraftEditor → FinalAnswer,frontend/,Next.js 14 App Router,,~100 ms SSR; sub-second interactions,,None,PDF highlight via react-pdf + bbox-to-percent overlay
+P7 Frontend,online-query,PDF highlight,Render page + draw bbox overlay at correct zoom,frontend/components/PdfPreview.tsx,react-pdf (dynamic import),,< 100 ms/render,,None,bbox coords → percent; tracks zoom
+P8 HF Space,online-query,Gradio interface,Multimodal chat — EN + FR; server-side PDF render with bbox,hf_space/,Gradio Blocks + httpx,,~2–5 s Gradio load; same backend latency,,None,No models in Space — all calls go to $BACKEND_URL
+P8 HF Space,online-query,Server-side PDF render,pdfplumber → PIL + bbox rectangle drawn,hf_space/pdf_render.py,pdfplumber + Pillow,,~200–500 ms/page,,None,LRU-cached per (path + page + bbox)
