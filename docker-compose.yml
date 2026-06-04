@@ -68,6 +68,7 @@ services:
     profiles: ["ingest"]   # one-shot; doesn't auto-start with infra
     volumes:
       - ./data:/app/data
+      - paddle_ocr_models:/root/.paddleocr
     deploy:                # GPU PaddleOCR (paddlepaddle-gpu); idle when no OCR fires
       resources:
         reservations:
@@ -174,3 +175,4 @@ volumes:
   neo4j_data:
   postgres_data:
   ollama_models:
+  paddle_ocr_models:

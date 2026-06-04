@@ -36,7 +36,7 @@ class BGE_M3Embedder:
         *,
         use_fp16: bool = True,
         max_length: int = DEFAULT_MAX_LENGTH,
-        batch_size: int = 32,
+        batch_size: int = 128,
     ) -> None:
         # Lazy import — keeps ``import embed.bge_m3`` cheap and offline-safe.
         from FlagEmbedding import BGEM3FlagModel  # type: ignore

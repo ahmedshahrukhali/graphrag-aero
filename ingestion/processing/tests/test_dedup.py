@@ -30,3 +30,27 @@ def test_dedup_independent_across_instances():
     assert d1.is_new(h) is True
     # A fresh Dedup hasn't seen it.
     assert d2.is_new(h) is True
+
+
+def test_dedup_thread_safe_exactly_one_winner():
+    """Concurrent is_new calls for the same hash: exactly one thread sees True."""
+    import threading
+
+    d = Dedup()
+    h = chunk_hash("shared boilerplate")
+    winners: list[bool] = []
+    lock = threading.Lock()
+
+    def _probe():
+        result = d.is_new(h)
+        with lock:
+            winners.append(result)
+
+    threads = [threading.Thread(target=_probe) for _ in range(20)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    assert winners.count(True) == 1
+    assert winners.count(False) == 19

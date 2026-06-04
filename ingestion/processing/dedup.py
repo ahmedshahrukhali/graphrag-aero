@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+import threading
 
 
 _WS = re.compile(r"\s+")
@@ -28,13 +29,15 @@ class Dedup:
 
     def __init__(self) -> None:
         self._seen: set[str] = set()
+        self._lock = threading.Lock()
 
     def __len__(self) -> int:
         return len(self._seen)
 
     def is_new(self, h: str) -> bool:
         """Return True the first time ``h`` is seen; False every subsequent call."""
-        if h in self._seen:
-            return False
-        self._seen.add(h)
-        return True
+        with self._lock:
+            if h in self._seen:
+                return False
+            self._seen.add(h)
+            return True

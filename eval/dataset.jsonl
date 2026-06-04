@@ -2,3 +2,6 @@
 {"id": "q02", "query": "Keystone Air Service Piper PA-31 fuel starvation water froze flapper valve", "expected": ["tsb/a00c0260"], "lang": "en"}
 {"id": "q03", "query": "Select Aviation College Cessna 150M mid-air collision Gatineau Airport", "expected": ["tsb/a23q0069"], "lang": "en"}
 {"id": "q04", "query": "Saint-Rémi Cessna 150G décrochage et collision avec le relief", "expected": ["tsb/a23q0041"], "lang": "fr"}
+{"id": "q05", "query": "安捷飛航訓練中心 DA-40NG 發動機失效迫降高雄外海", "expected": ["ttsb/3287_ttsb-aor-19-11-001"], "lang": "zh"}
+{"id": "q06", "query": "直昇機吊掛作業組員受傷致死 AS365N3", "expected": ["ttsb/3292_ttsb-aor-19-11-002"], "lang": "zh"}
+{"id": "q07", "query": "民用航空器维修计划和控制 CCAR-121", "expected": ["caac/P020151103346484825446"], "lang": "zh"}

@@ -44,7 +44,7 @@ def _make_corpus(tmp: Path) -> Path:
     return corpus
 
 
-def _fake_extract_pages_with_ocr(path: Path, ocr_lang: str = "latin") -> list[PageExtract]:
+def _fake_extract_pages_with_ocr(path: Path, ocr_lang: str = "latin", ocr_lock=None) -> list[PageExtract]:
     # Deterministic content keyed off filename + lang, with enough words to chunk.
     text = f"Findings the engine failed at altitude on {path.parent.parent.name}"
     return [PageExtract(page=1, text=text, chars=[])]
@@ -78,7 +78,7 @@ def test_run_is_idempotent_skips_fresh_outputs(tmp_path: Path):
     out = tmp_path / "chunks"
     call_count = {"n": 0}
 
-    def counting_extract(path: Path, ocr_lang: str = "latin"):
+    def counting_extract(path: Path, ocr_lang: str = "latin", ocr_lock=None):
         call_count["n"] += 1
         return _fake_extract_pages_with_ocr(path)
 
@@ -97,7 +97,7 @@ def test_run_force_reprocesses(tmp_path: Path):
     corpus = _make_corpus(tmp_path)
     out = tmp_path / "chunks"
 
-    def fake_extract(path: Path, ocr_lang: str = "latin"):
+    def fake_extract(path: Path, ocr_lang: str = "latin", ocr_lock=None):
         return _fake_extract_pages_with_ocr(path)
 
     with patch.object(run_mod, "extract_pages_with_ocr", side_effect=fake_extract), \
@@ -117,7 +117,7 @@ def test_run_limit_caps_doc_count(tmp_path: Path):
     out = tmp_path / "chunks"
     seen: list[Path] = []
 
-    def trace_extract(path: Path, ocr_lang: str = "latin"):
+    def trace_extract(path: Path, ocr_lang: str = "latin", ocr_lock=None):
         seen.append(path)
         return _fake_extract_pages_with_ocr(path)
 
@@ -134,13 +134,14 @@ def test_run_dedup_drops_duplicate_chunks_across_docs(tmp_path: Path):
     # Same text in both EN and FR docs -> identical chunk_hash -> 2nd one drops the chunk.
     same_text = "shared boilerplate paragraph that appears in both docs"
 
-    def same_extract(path: Path, ocr_lang: str = "latin"):
+    def same_extract(path: Path, ocr_lang: str = "latin", ocr_lock=None):
         return [PageExtract(page=1, text=same_text, chars=[])]
 
     with patch.object(run_mod, "extract_pages_with_ocr", side_effect=same_extract), \
          patch.object(run_mod, "default_tokenizer",
                       return_value=_WhitespaceTokenizer()):
-        run_mod.main(["--in", str(corpus), "--out", str(out)])
+        # workers=1 keeps ordering deterministic: EN wins the dedup race.
+        run_mod.main(["--in", str(corpus), "--out", str(out), "--workers", "1"])
 
     en_lines = (out / "en" / "tsb" / "a23h0001.jsonl").read_text(encoding="utf-8").splitlines()
     fr_path = out / "fr" / "tsb" / "a23h0001.jsonl"
@@ -261,7 +262,7 @@ def test_process_doc_routes_zh_caac_to_ch_model(tmp_path: Path):
     src.write_bytes(b"x")
     seen: dict[str, str] = {}
 
-    def capture(path: Path, ocr_lang: str = "latin"):
+    def capture(path: Path, ocr_lang: str = "latin", ocr_lock=None):
         seen["ocr_lang"] = ocr_lang
         return _fake_extract_pages_with_ocr(path)
 
@@ -269,3 +270,38 @@ def test_process_doc_routes_zh_caac_to_ch_model(tmp_path: Path):
     with patch.object(run_mod, "extract_pages_with_ocr", side_effect=capture):
         run_mod.process_doc(src, tmp_path / "chunks", _WhitespaceTokenizer(), Dedup())
     assert seen["ocr_lang"] == "ch"
+
+
+def test_parallel_workers_produces_same_output_as_sequential(tmp_path: Path):
+    """--workers N must produce the same chunk files as --workers 1."""
+    corpus = tmp_path / "corpus"
+    for lang in ("en", "fr"):
+        (corpus / lang / "tsb").mkdir(parents=True)
+        for stem in ("a01", "a02", "a03"):
+            (corpus / lang / "tsb" / f"{stem}.pdf").write_bytes(b"x")
+
+    def make_extract(prefix: str):
+        def _extract(path: Path, ocr_lang: str = "latin", ocr_lock=None):
+            text = f"{prefix} engine stall altitude findings report {path.stem}"
+            return [PageExtract(page=1, text=text, chars=[])]
+        return _extract
+
+    out_seq = tmp_path / "seq"
+    out_par = tmp_path / "par"
+    tok = _WhitespaceTokenizer()
+
+    with patch.object(run_mod, "extract_pages_with_ocr", side_effect=make_extract("seq")), \
+         patch.object(run_mod, "default_tokenizer", return_value=tok):
+        run_mod.main(["--in", str(corpus), "--out", str(out_seq), "--workers", "1"])
+
+    with patch.object(run_mod, "extract_pages_with_ocr", side_effect=make_extract("par")), \
+         patch.object(run_mod, "default_tokenizer", return_value=tok):
+        run_mod.main(["--in", str(corpus), "--out", str(out_par), "--workers", "4"])
+
+    seq_files = {p.relative_to(out_seq) for p in out_seq.rglob("*.jsonl")}
+    par_files = {p.relative_to(out_par) for p in out_par.rglob("*.jsonl")}
+    assert seq_files == par_files
+    for rel in seq_files:
+        seq_chunks = (out_seq / rel).read_text(encoding="utf-8").splitlines()
+        par_chunks = (out_par / rel).read_text(encoding="utf-8").splitlines()
+        assert len(seq_chunks) == len(par_chunks), f"chunk count mismatch for {rel}"

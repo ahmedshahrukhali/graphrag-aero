@@ -68,7 +68,7 @@ def main(
     p.add_argument("--lang", choices=["en", "fr", "zh", "all"], default="all")
     p.add_argument("--limit", type=int, default=None,
                    help="Cap on number of chunks (smoke runs).")
-    p.add_argument("--batch-size", type=int, default=32)
+    p.add_argument("--batch-size", type=int, default=128)
     p.add_argument("--recreate", action="store_true",
                    help="Drop and rebuild the collection before upserting.")
     p.add_argument("-v", "--verbose", action="store_true")

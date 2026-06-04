@@ -14,6 +14,9 @@ import argparse
 import json
 import logging
 import sys
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from contextlib import nullcontext
 from pathlib import Path
 from typing import Iterable
 
@@ -43,11 +46,16 @@ def default_tokenizer() -> Tokenizer:
 
 # ─── per-doc extraction (text + OCR fallback) ────────────────────────────────
 
-def extract_pages_with_ocr(path: Path, ocr_lang: str = "latin") -> list[pdf_mod.PageExtract]:
+def extract_pages_with_ocr(
+    path: Path,
+    ocr_lang: str = "latin",
+    ocr_lock: threading.Lock | None = None,
+) -> list[pdf_mod.PageExtract]:
     """Open ``path`` once; use pdfplumber per page, OCR-fall-back on image-only pages.
 
-    ``ocr_lang`` is the PaddleOCR ``lang`` code (see :func:`paddle_lang`) — selects
-    the Latin vs Simplified vs Traditional Chinese model for the OCR fallback.
+    ``ocr_lang`` selects the PaddleOCR model (see :func:`paddle_lang`).
+    ``ocr_lock`` serialises GPU OCR calls when running under a thread pool so
+    only one worker drives the GPU at a time.
     """
     out: list[pdf_mod.PageExtract] = []
     with pdf_mod.open_pdf(path) as pdfdoc:
@@ -56,7 +64,8 @@ def extract_pages_with_ocr(path: Path, ocr_lang: str = "latin") -> list[pdf_mod.
             if extracted.image_only:
                 logger.info("ocr fallback: %s page %d (%s)", path.name, i, ocr_lang)
                 try:
-                    extracted = ocr_page(page, i, ocr_lang)
+                    with ocr_lock if ocr_lock is not None else nullcontext():
+                        extracted = ocr_page(page, i, ocr_lang)
                 except Exception as e:
                     logger.warning("ocr failed for %s page %d: %s", path.name, i, e)
             out.append(extracted)
@@ -118,6 +127,7 @@ def process_doc(
     force: bool = False,
     curate: bool = False,
     manifest: CurationManifest | None = None,
+    ocr_lock: threading.Lock | None = None,
 ) -> int:
     """Process one PDF. Returns number of chunks written (0 if skipped/fresh/rejected)."""
     ref = doc_ref_for_path(src)
@@ -133,7 +143,7 @@ def process_doc(
         logger.info("skip (fresh): %s", dest)
         return 0
 
-    pages = extract_pages_with_ocr(src, paddle_lang(ref.lang, ref.source))
+    pages = extract_pages_with_ocr(src, paddle_lang(ref.lang, ref.source), ocr_lock=ocr_lock)
     chunks = chunk_pages(pages, tokenizer)
 
     if curate:
@@ -203,6 +213,9 @@ def main(argv: list[str] | None = None) -> int:
                    help="Reprocess even if the destination is fresh.")
     p.add_argument("--curate", action="store_true",
                    help="Apply admission criteria (curation.py); write curation_manifest.json.")
+    p.add_argument("--workers", type=int, default=4,
+                   help="Parallel worker threads for PDF extraction. OCR GPU calls are "
+                        "still serialised internally. Use 1 to disable parallelism.")
     p.add_argument("-v", "--verbose", action="store_true")
     args = p.parse_args(argv)
 
@@ -225,19 +238,31 @@ def main(argv: list[str] | None = None) -> int:
     dedup = Dedup()
     manifest = CurationManifest() if args.curate else None
     manifest_path = args.out_root / "curation_manifest.json"
+    ocr_lock = threading.Lock()
+
+    def _do_one(src: Path) -> int:
+        return process_doc(
+            src, args.out_root, tokenizer, dedup,
+            force=args.force, curate=args.curate, manifest=manifest,
+            ocr_lock=ocr_lock,
+        )
+
     total_chunks = 0
-    for i, src in enumerate(paths, start=1):
-        try:
-            total_chunks += process_doc(
-                src, args.out_root, tokenizer, dedup,
-                force=args.force, curate=args.curate, manifest=manifest,
-            )
-        except Exception as e:
-            logger.exception("failed: %s: %s", src, e)
-        # Flush the manifest periodically so an interrupted overnight run
-        # (SIGINT / OOM / power) doesn't lose its tally.
-        if manifest is not None and i % INCREMENTAL_MANIFEST_EVERY == 0:
-            _write_manifest(manifest, manifest_path)
+    completed = 0
+    with ThreadPoolExecutor(max_workers=args.workers) as executor:
+        futures = {executor.submit(_do_one, src): src for src in paths}
+        for future in as_completed(futures):
+            src = futures[future]
+            completed += 1
+            try:
+                total_chunks += future.result()
+            except Exception as e:
+                logger.exception("failed: %s: %s", src, e)
+            # Flush manifest periodically; to_dict() holds its own lock so this
+            # is safe while other workers are still calling manifest.record().
+            if manifest is not None and completed % INCREMENTAL_MANIFEST_EVERY == 0:
+                _write_manifest(manifest, manifest_path)
+
     logger.info(
         "done: %d chunks across %d docs (%d unique hashes)",
         total_chunks, len(paths), len(dedup),

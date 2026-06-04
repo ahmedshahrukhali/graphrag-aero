@@ -12,6 +12,7 @@ lang_misdetect  — declared ZH doc whose text is >80 % ASCII letters
 from __future__ import annotations
 
 import re
+import threading
 from collections import defaultdict
 from dataclasses import dataclass, field
 from enum import Enum
@@ -141,6 +142,7 @@ class CurationManifest:
     )
     by_corpus: dict[str, dict] = field(default_factory=dict)
     by_lang: dict[str, dict] = field(default_factory=dict)
+    _lock: threading.Lock = field(default_factory=threading.Lock, init=False, repr=False, compare=False)
 
     def _bucket(self, d: dict, key: str) -> dict:
         if key not in d:
@@ -150,13 +152,14 @@ class CurationManifest:
     def record(self, ref: DocRef, result: Admission) -> None:
         """Register one document's admission result."""
         slot = "admitted" if result.admitted else "rejected"
-        if result.admitted:
-            self.admitted += 1
-        else:
-            self.rejected += 1
-            self.reject_reasons[result.reason.value] += 1  # type: ignore[index]
-        self._bucket(self.by_corpus, ref.corpus)[slot] += 1
-        self._bucket(self.by_lang, ref.lang)[slot] += 1
+        with self._lock:
+            if result.admitted:
+                self.admitted += 1
+            else:
+                self.rejected += 1
+                self.reject_reasons[result.reason.value] += 1  # type: ignore[index]
+            self._bucket(self.by_corpus, ref.corpus)[slot] += 1
+            self._bucket(self.by_lang, ref.lang)[slot] += 1
 
     def balance_warning(self) -> str | None:
         """Non-None if the ZH:EN_TC admitted ratio is outside the target band."""
@@ -176,15 +179,16 @@ class CurationManifest:
         return None
 
     def to_dict(self) -> dict:
-        d: dict = {
-            "curation_version": VERSION,
-            "admitted": self.admitted,
-            "rejected": self.rejected,
-            "total": self.admitted + self.rejected,
-            "reject_reasons": dict(self.reject_reasons),
-            "by_corpus": dict(self.by_corpus),
-            "by_lang": dict(self.by_lang),
-        }
+        with self._lock:
+            d: dict = {
+                "curation_version": VERSION,
+                "admitted": self.admitted,
+                "rejected": self.rejected,
+                "total": self.admitted + self.rejected,
+                "reject_reasons": dict(self.reject_reasons),
+                "by_corpus": dict(self.by_corpus),
+                "by_lang": dict(self.by_lang),
+            }
         warning = self.balance_warning()
         if warning:
             d["balance_warning"] = warning
