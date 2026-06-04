@@ -14,9 +14,7 @@ import argparse
 import json
 import logging
 import sys
-import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from contextlib import nullcontext
 from pathlib import Path
 from typing import Iterable
 
@@ -25,7 +23,7 @@ from .chunk import Chunk, Tokenizer, chunk_pages
 from .curation import ADMITTED, Admission, CurationManifest, admit
 from .dedup import Dedup
 from .doc_id import DocRef, doc_ref_for_path
-from .ocr import ocr_page, paddle_lang
+from .ocr import OcrBatchQueue, ocr_page, paddle_lang, render_page_to_array
 
 logger = logging.getLogger(__name__)
 
@@ -49,13 +47,13 @@ def default_tokenizer() -> Tokenizer:
 def extract_pages_with_ocr(
     path: Path,
     ocr_lang: str = "latin",
-    ocr_lock: threading.Lock | None = None,
+    ocr_queue: OcrBatchQueue | None = None,
 ) -> list[pdf_mod.PageExtract]:
     """Open ``path`` once; use pdfplumber per page, OCR-fall-back on image-only pages.
 
     ``ocr_lang`` selects the PaddleOCR model (see :func:`paddle_lang`).
-    ``ocr_lock`` serialises GPU OCR calls when running under a thread pool so
-    only one worker drives the GPU at a time.
+    ``ocr_queue`` batches GPU OCR calls across concurrent workers so the GPU
+    runs multiple pages per inference call rather than one-at-a-time.
     """
     out: list[pdf_mod.PageExtract] = []
     with pdf_mod.open_pdf(path) as pdfdoc:
@@ -64,7 +62,12 @@ def extract_pages_with_ocr(
             if extracted.image_only:
                 logger.info("ocr fallback: %s page %d (%s)", path.name, i, ocr_lang)
                 try:
-                    with ocr_lock if ocr_lock is not None else nullcontext():
+                    if ocr_queue is not None:
+                        # Render here (CPU, in worker thread); GPU inference is
+                        # batched by the queue across all concurrent workers.
+                        arr = render_page_to_array(page)
+                        extracted = ocr_queue.submit(arr, i, ocr_lang)
+                    else:
                         extracted = ocr_page(page, i, ocr_lang)
                 except Exception as e:
                     logger.warning("ocr failed for %s page %d: %s", path.name, i, e)
@@ -127,7 +130,7 @@ def process_doc(
     force: bool = False,
     curate: bool = False,
     manifest: CurationManifest | None = None,
-    ocr_lock: threading.Lock | None = None,
+    ocr_queue: OcrBatchQueue | None = None,
 ) -> int:
     """Process one PDF. Returns number of chunks written (0 if skipped/fresh/rejected)."""
     ref = doc_ref_for_path(src)
@@ -143,7 +146,7 @@ def process_doc(
         logger.info("skip (fresh): %s", dest)
         return 0
 
-    pages = extract_pages_with_ocr(src, paddle_lang(ref.lang, ref.source), ocr_lock=ocr_lock)
+    pages = extract_pages_with_ocr(src, paddle_lang(ref.lang, ref.source), ocr_queue=ocr_queue)
     chunks = chunk_pages(pages, tokenizer)
 
     if curate:
@@ -238,13 +241,13 @@ def main(argv: list[str] | None = None) -> int:
     dedup = Dedup()
     manifest = CurationManifest() if args.curate else None
     manifest_path = args.out_root / "curation_manifest.json"
-    ocr_lock = threading.Lock()
+    ocr_queue = OcrBatchQueue(batch_size=8)
 
     def _do_one(src: Path) -> int:
         return process_doc(
             src, args.out_root, tokenizer, dedup,
             force=args.force, curate=args.curate, manifest=manifest,
-            ocr_lock=ocr_lock,
+            ocr_queue=ocr_queue,
         )
 
     total_chunks = 0
@@ -262,6 +265,7 @@ def main(argv: list[str] | None = None) -> int:
             # is safe while other workers are still calling manifest.record().
             if manifest is not None and completed % INCREMENTAL_MANIFEST_EVERY == 0:
                 _write_manifest(manifest, manifest_path)
+    ocr_queue.shutdown()
 
     logger.info(
         "done: %d chunks across %d docs (%d unique hashes)",

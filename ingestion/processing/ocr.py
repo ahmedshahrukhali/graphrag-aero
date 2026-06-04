@@ -11,7 +11,10 @@ from __future__ import annotations
 
 import logging
 import os
+import queue
 import sys
+import threading
+from concurrent.futures import Future
 from typing import Any
 
 import numpy as np
@@ -120,33 +123,15 @@ OCR_RESOLUTION = 200  # DPI used when rendering pages for PaddleOCR
 _PTS_PER_PIXEL = 72.0 / OCR_RESOLUTION  # pixels → PDF points (top-left origin)
 
 
-def ocr_page(page: Any, page_no: int, ocr_lang: str = "latin") -> PageExtract:
-    """OCR a pdfplumber page (assumed image-only) and return a :class:`PageExtract`.
-
-    ``ocr_lang`` is a PaddleOCR ``lang`` code ("latin" | "ch" | "chinese_cht");
-    derive it with :func:`paddle_lang` from the doc's (lang, source).
-
-    PaddleOCR 3.x ``predict()`` returns a list of one ``OCRResult`` (dict-like)
-    per input image. We passed one image, so ``results[0]`` carries parallel
-    lists: ``rec_texts`` (one string per detected line) and ``rec_polys`` (the
-    line's 4-point polygon in pixel space). We collapse each polygon to a
-    rectangle and synthesize one Char *per glyph* (not per line) so the chunker's
-    glyph-by-glyph bbox alignment works.
-
-    Bbox coordinates are stored in **PDF point space** (top-left origin, 72 pts/inch)
-    so they are consistent with pdfplumber's text-extraction coordinates and can be
-    passed directly to ``hf_space.pdf_render.bbox_to_pixels``.
-    """
-    ocr = _get_ocr(ocr_lang)
-    # Render the page to an image (pdfplumber API). Resolution=200 balances
-    # OCR accuracy with memory; tune later if needed.
+def render_page_to_array(page: Any) -> np.ndarray:
+    """Render a pdfplumber page to a BGR uint8 array for PaddleOCR. CPU-only."""
     img = page.to_image(resolution=OCR_RESOLUTION)
-    # ``.original`` is a PIL.Image; PaddleOCR wants an ndarray and treats it as
-    # BGR (OpenCV convention). Convert RGB→BGR into a contiguous array.
     pil = img.original.convert("RGB")
-    arr = np.asarray(pil)[:, :, ::-1].copy()
-    results = ocr.predict(arr)
-    res = results[0] if results else None
+    return np.asarray(pil)[:, :, ::-1].copy()
+
+
+def _parse_ocr_result(res: Any, page_no: int) -> PageExtract:
+    """Convert one PaddleOCR 3.x result dict into a PageExtract."""
     texts = list(res["rec_texts"]) if res else []
     polys = list(res["rec_polys"]) if res else []
     chars: list[Char] = []
@@ -154,18 +139,10 @@ def ocr_page(page: Any, page_no: int, ocr_lang: str = "latin") -> PageExtract:
     for text, polygon in zip(texts, polys):
         xs = [float(p[0]) for p in polygon]
         ys = [float(p[1]) for p in polygon]
-        # PaddleOCR coords are pixels in the rendered image. Convert to PDF
-        # point space so all bboxes across text and OCR pages share a coordinate
-        # system that pdf_render.bbox_to_pixels understands.
-        x0  = min(xs) * _PTS_PER_PIXEL
-        x1  = max(xs) * _PTS_PER_PIXEL
-        top = min(ys) * _PTS_PER_PIXEL
+        x0     = min(xs) * _PTS_PER_PIXEL
+        x1     = max(xs) * _PTS_PER_PIXEL
+        top    = min(ys) * _PTS_PER_PIXEL
         bottom = max(ys) * _PTS_PER_PIXEL
-        # Emit ONE Char per glyph (not per line): the chunker aligns chunk text to
-        # char bboxes glyph-by-glyph (``ch == next_char.text``), so a per-line Char
-        # whose .text is the whole line never matches and the chunk bbox is lost.
-        # Region-level grounding only needs the union, so subdivide the line's
-        # width evenly across its glyphs and share the line's y-extent.
         n = len(text)
         for j, glyph in enumerate(text):
             gx0 = x0 + (x1 - x0) * j / n if n else x0
@@ -178,5 +155,105 @@ def ocr_page(page: Any, page_no: int, ocr_lang: str = "latin") -> PageExtract:
                 page=page_no,
             ))
         text_parts.append(text)
-    page_text = "\n".join(text_parts)
-    return PageExtract(page=page_no, text=page_text, chars=chars, image_only=False)
+    return PageExtract(page=page_no, text="\n".join(text_parts), chars=chars, image_only=False)
+
+
+def ocr_page(page: Any, page_no: int, ocr_lang: str = "latin") -> PageExtract:
+    """OCR one pdfplumber page synchronously (no batching).
+
+    Prefer :class:`OcrBatchQueue` for multi-worker runs — it groups pages from
+    concurrent workers into a single ``predict()`` call, keeping the GPU busy.
+    """
+    arr = render_page_to_array(page)
+    ocr = _get_ocr(ocr_lang)
+    results = ocr.predict(arr)
+    return _parse_ocr_result(results[0] if results else None, page_no)
+
+
+class OcrBatchQueue:
+    """Routes rendered page arrays to a single GPU thread for batched inference.
+
+    Workers call :meth:`submit` with an already-rendered numpy array (CPU work
+    stays in the worker thread).  The OCR thread collects up to ``batch_size``
+    arrays per language model and fires them in one ``predict()`` call, keeping
+    the GPU busy without concurrent VRAM contention.
+
+    Usage::
+
+        q = OcrBatchQueue(batch_size=8)
+        extract = q.submit(arr, page_no, ocr_lang)   # blocks until result ready
+        q.shutdown()                                  # after all workers finish
+    """
+
+    def __init__(self, batch_size: int = 8, drain_timeout: float = 0.2) -> None:
+        self._batch_size = batch_size
+        self._drain_timeout = drain_timeout
+        self._q: queue.Queue = queue.Queue()
+        self._shutdown_flag = threading.Event()
+        self._thread = threading.Thread(target=self._worker, daemon=True, name="ocr-batch")
+        self._thread.start()
+
+    def submit(self, arr: np.ndarray, page_no: int, ocr_lang: str) -> PageExtract:
+        """Submit one rendered page for GPU OCR. Blocks until the result is ready."""
+        fut: Future[PageExtract] = Future()
+        self._q.put((fut, arr, page_no, ocr_lang))
+        return fut.result()
+
+    def shutdown(self, wait: bool = True) -> None:
+        """Signal the OCR thread to drain remaining items and exit."""
+        self._shutdown_flag.set()
+        if wait:
+            self._thread.join()
+
+    # ── internal ──────────────────────────────────────────────────────────────
+
+    def _worker(self) -> None:
+        while True:
+            items: list = []
+            try:
+                item = self._q.get(timeout=self._drain_timeout)
+                items.append(item)
+            except queue.Empty:
+                if self._shutdown_flag.is_set() and self._q.empty():
+                    break
+                continue
+            # Drain up to batch_size without blocking so we don't wait forever.
+            while len(items) < self._batch_size:
+                try:
+                    items.append(self._q.get_nowait())
+                except queue.Empty:
+                    break
+            self._process(items)
+        # Final drain: flush anything that arrived just before shutdown.
+        while not self._q.empty():
+            items = []
+            while not self._q.empty() and len(items) < self._batch_size:
+                try:
+                    items.append(self._q.get_nowait())
+                except queue.Empty:
+                    break
+            if items:
+                self._process(items)
+
+    def _process(self, items: list) -> None:
+        from collections import defaultdict
+        by_lang: dict[str, list] = defaultdict(list)
+        for fut, arr, page_no, ocr_lang in items:
+            by_lang[ocr_lang].append((fut, arr, page_no))
+
+        for ocr_lang, group in by_lang.items():
+            arrs = [arr for _, arr, _ in group]
+            try:
+                ocr = _get_ocr(ocr_lang)
+                # PaddleOCR 3.x predict() accepts a list of arrays and returns
+                # one result dict per image — same as single-image but batched.
+                results = ocr.predict(arrs)
+                for (fut, _, page_no), res in zip(group, results):
+                    try:
+                        fut.set_result(_parse_ocr_result(res, page_no))
+                    except Exception as exc:  # noqa: BLE001
+                        fut.set_exception(exc)
+            except Exception as exc:  # noqa: BLE001
+                for fut, _, _ in group:
+                    if not fut.done():
+                        fut.set_exception(exc)

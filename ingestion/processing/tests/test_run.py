@@ -44,7 +44,7 @@ def _make_corpus(tmp: Path) -> Path:
     return corpus
 
 
-def _fake_extract_pages_with_ocr(path: Path, ocr_lang: str = "latin", ocr_lock=None) -> list[PageExtract]:
+def _fake_extract_pages_with_ocr(path: Path, ocr_lang: str = "latin", ocr_queue=None) -> list[PageExtract]:
     # Deterministic content keyed off filename + lang, with enough words to chunk.
     text = f"Findings the engine failed at altitude on {path.parent.parent.name}"
     return [PageExtract(page=1, text=text, chars=[])]
@@ -78,7 +78,7 @@ def test_run_is_idempotent_skips_fresh_outputs(tmp_path: Path):
     out = tmp_path / "chunks"
     call_count = {"n": 0}
 
-    def counting_extract(path: Path, ocr_lang: str = "latin", ocr_lock=None):
+    def counting_extract(path: Path, ocr_lang: str = "latin", ocr_queue=None):
         call_count["n"] += 1
         return _fake_extract_pages_with_ocr(path)
 
@@ -97,7 +97,7 @@ def test_run_force_reprocesses(tmp_path: Path):
     corpus = _make_corpus(tmp_path)
     out = tmp_path / "chunks"
 
-    def fake_extract(path: Path, ocr_lang: str = "latin", ocr_lock=None):
+    def fake_extract(path: Path, ocr_lang: str = "latin", ocr_queue=None):
         return _fake_extract_pages_with_ocr(path)
 
     with patch.object(run_mod, "extract_pages_with_ocr", side_effect=fake_extract), \
@@ -117,7 +117,7 @@ def test_run_limit_caps_doc_count(tmp_path: Path):
     out = tmp_path / "chunks"
     seen: list[Path] = []
 
-    def trace_extract(path: Path, ocr_lang: str = "latin", ocr_lock=None):
+    def trace_extract(path: Path, ocr_lang: str = "latin", ocr_queue=None):
         seen.append(path)
         return _fake_extract_pages_with_ocr(path)
 
@@ -134,7 +134,7 @@ def test_run_dedup_drops_duplicate_chunks_across_docs(tmp_path: Path):
     # Same text in both EN and FR docs -> identical chunk_hash -> 2nd one drops the chunk.
     same_text = "shared boilerplate paragraph that appears in both docs"
 
-    def same_extract(path: Path, ocr_lang: str = "latin", ocr_lock=None):
+    def same_extract(path: Path, ocr_lang: str = "latin", ocr_queue=None):
         return [PageExtract(page=1, text=same_text, chars=[])]
 
     with patch.object(run_mod, "extract_pages_with_ocr", side_effect=same_extract), \
@@ -262,7 +262,7 @@ def test_process_doc_routes_zh_caac_to_ch_model(tmp_path: Path):
     src.write_bytes(b"x")
     seen: dict[str, str] = {}
 
-    def capture(path: Path, ocr_lang: str = "latin", ocr_lock=None):
+    def capture(path: Path, ocr_lang: str = "latin", ocr_queue=None):
         seen["ocr_lang"] = ocr_lang
         return _fake_extract_pages_with_ocr(path)
 
@@ -281,7 +281,7 @@ def test_parallel_workers_produces_same_output_as_sequential(tmp_path: Path):
             (corpus / lang / "tsb" / f"{stem}.pdf").write_bytes(b"x")
 
     def make_extract(prefix: str):
-        def _extract(path: Path, ocr_lang: str = "latin", ocr_lock=None):
+        def _extract(path: Path, ocr_lang: str = "latin", ocr_queue=None):
             text = f"{prefix} engine stall altitude findings report {path.stem}"
             return [PageExtract(page=1, text=text, chars=[])]
         return _extract
