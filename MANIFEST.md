@@ -142,15 +142,35 @@ tests (incl. a guard that the committed seed parses to ≥15 deduped URLs). Full
   preferred, CPU fallback, **printed to stderr** so unattended runs never silently drop to CPU);
   `text_rec_score_thresh=0.5`; ingestion compose GPU reservation. Live-verified GPU (sampler 7894 MiB/100%),
   output correct 中文, re-embedded → **64,440** pts. Host suite **430 passed**. embed image torch GPU confirmed.
-**⮕ NEXT (S22 — curated re-ingest, WS-F): now UNBLOCKED** (criteria frozen v2, OCR proven + GPU-accelerated,
-10-doc zh sample indexed). Scale TTSB/CAAC + re-fold EN/TC with `--curate` (multi-hour, Haiku-monitored per
-REINGEST §7/§10). **Non-GPU WS-F bottleneck = CPU pdfplumber (page rasterization + text extract) + single-
-process serial orchestration** — GPU OCR won't saturate until ingestion parallelizes across docs.
+**⮕ NEXT (S22 — curated re-ingest, WS-F): PILOT DONE, full run HELD by user (S22, opus-4.8).**
+**CRITICAL prerequisite found:** existing EN/FR chunks are **pre-WS-0** (dated 05-28, missing
+`page_bboxes`/`corpus`/`kind`) AND their mtime ≥ source → a plain `--curate` run **SKIPS them all
+(no-op, empty manifest)**. Correct WS-F therefore needs a **clean rebuild**: clear `data/chunks/` →
+`--curate --force` full reprocess → `embed --recreate` (this **destroys the live 64,440-pt index**;
+~overnight). **Pilot (TC slice, 505 docs, scratch `data/chunks_pilot/`) validated it:** ~3.0s/doc
+(→ full EN+FR ≈2,892 docs ≈2.5–4h + embed ~1–2h); new chunks carry page_bboxes/corpus/kind ✅;
+`en` OCR fired+parsed on a true image-only page (2422 p.44). **Findings:** (1) curation rejects only
+**2/490 = 0.4%** on TC (both sub_threshold; cover_only/lang_misdetect never fire on EN/FR — those
+target broken TTSB CID PDFs) → curation ≈no-op for EN/FR, reconsider before committing hours; (2)
+**15/505 TC PDFs are corrupt** ("No /Root object" non-PDFs) — fail gracefully, skipped; (3) image-only
+detection is **process-state-dependent** (pdfminer cmap cache: borderline pages take the text layer in
+a long run, only true image-only OCR) — fine, text>OCR when available, curation catches garbage.
+**Interruptibility (verified from code):** data fully interrupt/resume-safe (atomic per-doc `.part`→rename
++ chunk_hash-UUID idempotent embed); ONLY caveat = `curation_manifest.json` under-counts after a resume
+(written once at end, skipped-fresh docs unrecorded) — small fix queued (record-on-skip + incremental write).
+**Scale TTSB/CAAC + re-fold EN/TC** (Haiku-monitored per REINGEST §7/§10). **Non-GPU WS-F bottleneck = CPU
+pdfplumber + single-process serial orchestration** — GPU OCR won't saturate until ingestion parallelizes.
 **latin OCR path FIXED** (paddle 3.x dropped the 2.x shared `latin` model): `paddle_lang` now maps
-en→`en`, fr→`fr` (valid PP-OCRv5 codes, construction-verified in-image; predict→parse proven on `ch`).
-**Forward plan: [docs/NEXT_SESSION.md](docs/NEXT_SESSION.md)** (WS-F steps, EN-image smoke, bottleneck +
+en→`en`, fr→`fr` (valid PP-OCRv5 codes). **☑ `en` PREDICT-VERIFIED (S22, opus-4.8) on real EN image-only
+pages** — `en_PP-OCRv5_mobile_rec` loads on GPU, `predict()`→`rec_texts` recovers correct English with
+per-glyph bboxes in PDF point space (TC `ac_605_002.pdf` p.2 → "Transport/Transports Canada" + TOC, 81
+glyphs; `2422.pdf` p.44 → "ISBN 978-92-9249-232-8"). **Corpus fact:** EN **TSB is 100% born-digital**
+(0/1199 image-only) — EN image-only pages live only in **TC** scanned inserts/covers (3 found: `ac_605_002`,
+`2422`, `rdims_13006123_…aerial_applicators`). Minor: a near-empty region can slip past
+`text_rec_score_thresh=0.5` as a full-page bbox glyph (harmless for region grounding).
+**Forward plan: [docs/NEXT_SESSION.md](docs/NEXT_SESSION.md)** (WS-F steps, bottleneck +
 speedups, VRAM discipline). NB: pre-2018 ASC TTSB PDFs have broken CID text layers — v2 lang_misdetect
-rejects them automatically. Also open: predict-verify `en` on a real EN image-only page before WS-F;
+rejects them automatically. Still open:
 browser click-through of the ZH bbox highlight at :7860; About tab. Wikipedia/HTML idea: DROPPED.
 
 ---

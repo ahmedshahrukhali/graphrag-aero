@@ -4,6 +4,37 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 
 ---
 
+## Session 22 — 2026-06-03 — opus-4.8
+**Commits:** (docs only — MANIFEST.md + NEXT_SESSION.md; no source change)
+**Achieved (closed the last WS-F open item: `en` OCR predict-verify):**
+- **`en` OCR path PREDICT-VERIFIED on real EN image-only pages.** Ran the OCR fallback in the GPU
+  ingestion container: `en_PP-OCRv5_mobile_rec` loads on GPU, `predict()`→`rec_texts` recovers correct
+  English with per-glyph PDF-point bboxes. `ac_605_002.pdf` p.2 → "Transport/Transports Canada" + TOC
+  (81 glyphs); `2422.pdf` p.44 → "ISBN 978-92-9249-232-8". No code change — `en`/`fr` mapping confirmed live.
+- **Corpus fact found:** EN **TSB is 100% born-digital** (0/1199 image-only) — `--source tsb` never fires
+  OCR. EN image-only pages live only in **TC** scanned inserts/covers (3: `ac_605_002`, `2422`,
+  `rdims_13006123_…aerial_applicators`). Updated NEXT_SESSION §1 accordingly so WS-F doesn't chase TSB.
+- Minor obs: a near-empty region can pass `text_rec_score_thresh=0.5` as a full-page-bbox glyph — harmless
+  for region-level grounding.
+- **Infra:** Docker Desktop had stopped mid-session; restarted it to run the container.
+- **WS-F bounded pilot DONE (user-directed) — full run HELD by user.** Ran `--force --curate` on the TC
+  slice (505 docs: 251 EN + 254 FR) → scratch `data/chunks_pilot/` (non-destructive). **~3.0s/doc (1516s).**
+  490 curated (488 admit / **2 reject, both sub_threshold**) + **15 corrupt PDFs** ("No /Root object",
+  skipped gracefully). New chunks carry `page_bboxes`/`corpus`/`kind` ✅. `en` OCR fired on 2422 p.44.
+- **Key WS-F prereq surfaced:** existing EN/FR chunks are pre-WS-0 (missing the WS-0 fields) + mtime-fresh,
+  so a plain `--curate` no-ops (skips all). Correct WS-F = clear chunks → `--curate --force` → `embed
+  --recreate` = **destroys the live 64,440-pt index, ~overnight.** User chose to HOLD (not run yet).
+- **Findings:** curation ≈no-op for EN/FR (0.4% reject); image-only detection is pdfminer-cmap-state-dependent
+  (borderline pages take text layer in a long run — fine). Manifest is NOT resume-safe (under-counts on
+  resume) — small fix queued.
+**Left:**
+- **WS-F full run** (destructive) pending user go. Decisions open: make manifest resume-safe first?
+  reconsider curation for EN/FR (0.4% reject)? clean the 15 corrupt TC PDFs? Plan: `docs/NEXT_SESSION.md` §3.
+- Uncommitted: MANIFEST.md + SESSIONS.md + NEXT_SESSION.md doc edits (en predict-verify + pilot). Offer to commit.
+- Smaller open: ZH bbox highlight browser click-through at :7860; About tab.
+
+---
+
 ## Session 21 — 2026-06-02 — sonnet-4.6
 **Commits:** `23f4307`, `5af18de`, `98f59b0`, `15a50d8`, `c1dd3ce`, `bfb079a`, `e809319`, `893a979`
 **Achieved (cleared the S20 Sonnet queue D→B→A; A is the live capstone):**

@@ -18,12 +18,14 @@ resume pointer + `docs/REINGEST_PLAN.md` §3 (FROZEN v2 curation) / §7 (run seq
 
 ## Do, in order
 
-### 1. (Quick, before the big run) EN-image OCR smoke
-A born-digital-heavy corpus rarely OCRs, but ~670 image-heavy PDFs exist. Confirm the `en` path
-produces sane text on one real EN image-only page (predict, not just construct):
-`docker compose --profile ingest run --rm ingestion --in /app/data/corpus --out /app/data/chunks --source tsb --limit <a scanned one> -v`
-— watch for `ocr fallback … (en)` + sane Latin text in the chunk. (Only `ch`/`chinese_cht` are
-predict-verified so far.)
+### 1. (Quick, before the big run) EN-image OCR smoke — ☑ DONE (S22, opus-4.8)
+`en` path predict-verified on real EN image-only pages. **Finding: EN TSB is 100% born-digital**
+(0/1199 image-only), so `--source tsb` never exercises OCR — EN image-only pages live only in **TC**
+scanned inserts/covers. Verified by running the OCR fallback directly on `data/corpus/en/tc/ac_605_002.pdf`
+p.2 and `2422.pdf` p.44: `en_PP-OCRv5_mobile_rec` loads on GPU, `predict()`→`rec_texts` recovers correct
+English ("Transport/Transports Canada" + TOC; "ISBN 978-92-9249-232-8") with per-glyph PDF-point bboxes.
+Minor: a near-empty region can slip past `text_rec_score_thresh=0.5` as a full-page-bbox glyph (harmless
+for region-level grounding). No code change needed — the `en`/`fr` mapping in `ocr.py` is confirmed live.
 
 ### 2. Scale the ZH corpus (optional, for balance)
 Current sample = 10 zh docs. If the overlap demo needs more, add TTSB/CAAC seeds and pull
