@@ -142,7 +142,23 @@ tests (incl. a guard that the committed seed parses to ≥15 deduped URLs). Full
   preferred, CPU fallback, **printed to stderr** so unattended runs never silently drop to CPU);
   `text_rec_score_thresh=0.5`; ingestion compose GPU reservation. Live-verified GPU (sampler 7894 MiB/100%),
   output correct 中文, re-embedded → **64,440** pts. Host suite **430 passed**. embed image torch GPU confirmed.
-**⮕ NEXT (S22 — curated re-ingest, WS-F): PILOT DONE, full run HELD by user (S22, opus-4.8).**
+**☑ S23 PREP LANDED (S23, opus-4.7, 2026-06-04): WS-F unblocked. Commits: `df4890b` (S22 docs), `1fa31d2`
+(resume-safe manifest + quarantine tool + NEXT_SESSION rewrite).** Two known blockers from S22 fixed:
+(1) `process_doc` now carry-records fresh-skipped admissions into `CurationManifest` and
+`curation_manifest.json` is flushed atomically every `INCREMENTAL_MANIFEST_EVERY=25` docs — interrupted
+runs no longer lose their tally. (2) New `ingestion/maintenance/quarantine_corrupt_pdfs.py` CLI moves
+the 15 unopenable "No /Root object" PDFs to `data/corpus_quarantine/` mirror layout + CSV manifest
+(`--dry-run` default; `--apply` destructive but reversible). Tool lives under `ingestion/maintenance/`
+because `scripts/` is gitignored. `docs/NEXT_SESSION.md` §3 rewritten as the exact WS-F kickoff
+sequence (3a quarantine → 3b clear `data/chunks` → 3c `--curate --force` ingest → 3d `embed
+--recreate`; 3d is the destructive 64,440-pt collection drop). Suite **431 → 436 passed** (+5 new),
+1 skipped, offline. Smoke verified the carry-record on `data/chunks_pilot/`.
+
+**⮕ NEXT — WS-F full destructive run (Haiku/user, multi-hour):** follow `docs/NEXT_SESSION.md`
+§3a→3d in order. Kickoff = `python -m ingestion.maintenance.quarantine_corrupt_pdfs --dry-run`
+(read-only); proceed once the list looks right (~15 expected, all under `data/corpus/en/tc/`).
+
+**S22 — curated re-ingest, WS-F: PILOT DONE, full run HELD by user (S22, opus-4.8).**
 **CRITICAL prerequisite found:** existing EN/FR chunks are **pre-WS-0** (dated 05-28, missing
 `page_bboxes`/`corpus`/`kind`) AND their mtime ≥ source → a plain `--curate` run **SKIPS them all
 (no-op, empty manifest)**. Correct WS-F therefore needs a **clean rebuild**: clear `data/chunks/` →

@@ -4,6 +4,38 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 
 ---
 
+## Session 23 — 2026-06-04 — opus-4.7
+**Commits:** `df4890b`, `1fa31d2`
+**Achieved (WS-F destructive run unblocked — prep landed, kickoff queued for Haiku/user):**
+- `df4890b` (docs): committed the S22 doc edits left dirty at end of S22 (MANIFEST + SESSIONS + NEXT_SESSION
+  — S22 WS-F pilot result + `en`-OCR predict-verify + hold-on-full-run). Drafted by opus-4.8 in S22, trailer
+  reflects this commit's author (opus-4.7).
+- `1fa31d2` (feat, two fixes + one new tool + plan rewrite):
+  - **Manifest is now resume-safe.** Bug: `process_doc` returned 0 on `_is_fresh` *before* the curate
+    branch, so a resumed run never recorded fresh-skipped (already-admitted) docs → systematic under-count.
+    And `curation_manifest.json` was written only at end-of-loop → SIGINT/OOM left no manifest at all. Fix:
+    on fresh-skip with `curate`, carry-record `curation.ADMITTED` (a fresh `dest` implies prior admission —
+    rejected docs return before `write_jsonl`); also flush the manifest atomically every
+    `INCREMENTAL_MANIFEST_EVERY=25` docs. Promoted `_ADMITTED` → `ADMITTED`. +3 tests.
+  - **`ingestion/maintenance/quarantine_corrupt_pdfs.py`** — CLI that scans `data/corpus/`, probes
+    `pdfplumber.open`, and moves the 15 (S22-observed) unopenable "No /Root object" PDFs into
+    `data/corpus_quarantine/{lang}/{source}/` + CSV manifest. `--dry-run` default; `--apply` does the move.
+    Reversible. Lives under `ingestion/maintenance/` (new sub-package) because `scripts/` is gitignored;
+    `__init__.py` force-added past the `_*` ignore (matches existing repo convention for other Python pkgs).
+    +2 tests via a mocked open-probe.
+  - **`docs/NEXT_SESSION.md` §3** rewritten as the exact WS-F sequence (3a quarantine → 3b clear chunks →
+    3c curated ingest → 3d `embed --recreate`). 3d is the destructive step.
+  - Suite **431 → 436 passed** (+5 new), 1 skipped. Offline.
+- **Smoke (carry-record):** `python -m ingestion.processing.run --in data/corpus --out data/chunks_pilot
+  --source tc --curate --limit 3` against the S22 pilot tree → 3 fresh-skipped docs now appear as
+  `admitted: 3` in the manifest (pre-fix would have been 0).
+**Left (resume pointer):**
+- **WS-F full destructive run** (multi-hour, drops live 64,440-pt Qdrant collection) — Haiku/user kickoff
+  per `NEXT_SESSION.md` §3a→3d. Manifest is now safe; corrupt-PDF tool is in place.
+- Smaller open: ZH bbox browser click-through screenshot; About tab; Qwen3-8B generator bake-off.
+
+---
+
 ## Session 22 — 2026-06-03 — opus-4.8
 **Commits:** (docs only — MANIFEST.md + NEXT_SESSION.md; no source change)
 **Achieved (closed the last WS-F open item: `en` OCR predict-verify):**
