@@ -4,6 +4,25 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 
 ---
 
+## Session 25 — 2026-06-04 — opus-4.8
+**Commits:** _(this commit — docs only)_
+**Achieved (design-only; NO source/logic changed):**
+- Code-walkthrough review with the user surfaced concrete, file-anchored defects (not vibes):
+  fake multi-hop (`agent/nodes.py` re-runs the identical query → identical hits; `CONFIDENCE_THRESHOLD`
+  uncalibrated), useless single-user HITL gate (`agent/graph.py interrupt_before`), dense-only retrieval
+  (weak on jargon/identifiers), TSB/TC-locked graph (`{occ_id}:...` identity, `Aircraft` dead/"reserved").
+- Wrote **[docs/REDESIGN_PLAN.md](docs/REDESIGN_PLAN.md)** — 6-part program: (1) hybrid dense+sparse
+  retrieval, (2) real query-reformulation loop, (3) remove HITL → negative-feedback `unaccepted_qa`
+  store + temperature-raised retry, (4) Document-rooted graph schema seam (admit manuals later),
+  (5) LLM → Qwen3-8B + `temperature` pass-through, (6) eval IN-SCOPE measuring every change.
+- Accepted/deferred: 1-chunk-1-cite looseness kept; OCR-first multimodal for manuals deferred (needs
+  Qwen3-VL figure-tier wiring) — §4 lands only the schema seam.
+**Left (resume pointer → S26):** execute REDESIGN_PLAN in sequence — §5 (LLM swap, small, unblocks §3),
+then §1 hybrid + §6 eval baseline. NB: WS-F re-ingest is DONE (S24, 77,173 vectors); S24's open eval run
+is now subsumed by REDESIGN_PLAN §6.
+
+---
+
 ## Session 24 — 2026-06-04 — sonnet-4.6
 **Commits:** `f583273`, `b47cde8`, `b21e130`, session-close
 **Achieved:**
