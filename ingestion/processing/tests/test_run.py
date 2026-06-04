@@ -171,6 +171,88 @@ def test_iter_corpus_pdfs_includes_zh_sources(tmp_path: Path):
     assert [p.name for p in run_mod.iter_corpus_pdfs(corpus, source="caac")] == ["ac01.pdf"]
 
 
+def test_process_doc_fresh_skip_carries_admission_in_manifest(tmp_path: Path):
+    """A fresh dest means a prior run admitted the doc — the manifest must
+    reflect that on resume rather than silently under-counting."""
+    from ingestion.processing.curation import CurationManifest
+    from ingestion.processing.dedup import Dedup
+
+    corpus = _make_corpus(tmp_path)
+    out = tmp_path / "chunks"
+    src = corpus / "en" / "tsb" / "a23h0001.pdf"
+    dest = out / "en" / "tsb" / "a23h0001.jsonl"
+    dest.parent.mkdir(parents=True)
+    dest.write_text("[]", encoding="utf-8")  # any content; mtime is what _is_fresh checks
+    # Ensure dest is newer than src.
+    import os, time
+    future = time.time() + 10
+    os.utime(dest, (future, future))
+
+    manifest = CurationManifest()
+    n = run_mod.process_doc(
+        src, out, _WhitespaceTokenizer(), Dedup(),
+        curate=True, manifest=manifest,
+    )
+    assert n == 0
+    assert manifest.admitted == 1
+    assert manifest.rejected == 0
+    assert manifest.by_corpus.get("tsb", {}).get("admitted") == 1
+    assert manifest.by_lang.get("en", {}).get("admitted") == 1
+
+
+def test_process_doc_fresh_skip_no_manifest_does_not_crash(tmp_path: Path):
+    """curate=False path: manifest is None, skip must still return cleanly."""
+    from ingestion.processing.dedup import Dedup
+
+    corpus = _make_corpus(tmp_path)
+    out = tmp_path / "chunks"
+    src = corpus / "en" / "tsb" / "a23h0001.pdf"
+    dest = out / "en" / "tsb" / "a23h0001.jsonl"
+    dest.parent.mkdir(parents=True)
+    dest.write_text("[]", encoding="utf-8")
+    import os, time
+    future = time.time() + 10
+    os.utime(dest, (future, future))
+
+    n = run_mod.process_doc(
+        src, out, _WhitespaceTokenizer(), Dedup(),
+        curate=False, manifest=None,
+    )
+    assert n == 0
+
+
+def test_main_writes_manifest_incrementally(tmp_path: Path, monkeypatch):
+    """An interrupted long run must leave a partial manifest on disk. Force
+    INCREMENTAL_MANIFEST_EVERY=1 so we can observe the mid-loop write."""
+    corpus = _make_corpus(tmp_path)
+    out = tmp_path / "chunks"
+    monkeypatch.setattr(run_mod, "INCREMENTAL_MANIFEST_EVERY", 1)
+
+    manifest_path = out / "curation_manifest.json"
+    seen_mtimes: list[float] = []
+
+    real_process_doc = run_mod.process_doc
+
+    def observing_process_doc(*args, **kwargs):
+        n = real_process_doc(*args, **kwargs)
+        # After process_doc returns, main() will flush the manifest (every=1)
+        # before the next iteration. We observe state at flush points below.
+        return n
+
+    with patch.object(run_mod, "extract_pages_with_ocr",
+                      side_effect=_fake_extract_pages_with_ocr), \
+         patch.object(run_mod, "default_tokenizer",
+                      return_value=_WhitespaceTokenizer()), \
+         patch.object(run_mod, "process_doc", side_effect=observing_process_doc):
+        rc = run_mod.main(["--in", str(corpus), "--out", str(out), "--curate"])
+    assert rc == 0
+    assert manifest_path.exists()
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert payload["admitted"] + payload["rejected"] == 2  # en + fr docs
+    assert payload["curation_version"] >= 2
+    assert not manifest_path.with_suffix(".json.part").exists()  # atomic clean-up
+
+
 def test_process_doc_routes_zh_caac_to_ch_model(tmp_path: Path):
     """The (lang, source) of a zh/caac doc must select PaddleOCR's 'ch' model."""
     corpus = tmp_path / "corpus"

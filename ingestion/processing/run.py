@@ -19,12 +19,18 @@ from typing import Iterable
 
 from . import pdf as pdf_mod
 from .chunk import Chunk, Tokenizer, chunk_pages
-from .curation import Admission, CurationManifest, admit
+from .curation import ADMITTED, Admission, CurationManifest, admit
 from .dedup import Dedup
 from .doc_id import DocRef, doc_ref_for_path
 from .ocr import ocr_page, paddle_lang
 
 logger = logging.getLogger(__name__)
+
+#: How often (in docs processed) to flush the curation manifest to disk.
+#: Bounds loss on crash; small enough to be effectively continuous, large
+#: enough that the atomic-rename cost stays trivial over a multi-thousand-doc
+#: run. Test code patches this to 1 for determinism.
+INCREMENTAL_MANIFEST_EVERY: int = 25
 
 
 # ─── tokenizer factory ───────────────────────────────────────────────────────
@@ -118,6 +124,12 @@ def process_doc(
     # Output mirrors corpus layout but under out_root and with .jsonl: {lang}/{source}/{stem}.jsonl
     dest = out_root / ref.lang / ref.source / f"{ref.stem}.jsonl"
     if not force and _is_fresh(dest, src):
+        # Resume-safety: a fresh dest means a prior run wrote it, which (since
+        # rejected docs return before write_jsonl below) implies admission.
+        # Carry-record without re-extracting so the manifest reflects the full
+        # admitted set after resumes, not just docs processed *this* run.
+        if curate and manifest is not None:
+            manifest.record(ref, ADMITTED)
         logger.info("skip (fresh): %s", dest)
         return 0
 
@@ -140,6 +152,25 @@ def process_doc(
         n, len(chunks), dest,
     )
     return n
+
+
+# ─── manifest write (atomic, used both incrementally and at end-of-run) ─────
+
+def _write_manifest(manifest: CurationManifest, path: Path) -> None:
+    """Atomic write: `<path>.part` then rename. Crash mid-write never leaves
+    a half-JSON manifest."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".part")
+    try:
+        tmp.write_text(
+            json.dumps(manifest.to_dict(), indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        tmp.replace(path)
+    except BaseException:
+        if tmp.exists():
+            tmp.unlink()
+        raise
 
 
 # ─── CLI ─────────────────────────────────────────────────────────────────────
@@ -193,8 +224,9 @@ def main(argv: list[str] | None = None) -> int:
     tokenizer = default_tokenizer()
     dedup = Dedup()
     manifest = CurationManifest() if args.curate else None
+    manifest_path = args.out_root / "curation_manifest.json"
     total_chunks = 0
-    for src in paths:
+    for i, src in enumerate(paths, start=1):
         try:
             total_chunks += process_doc(
                 src, args.out_root, tokenizer, dedup,
@@ -202,18 +234,16 @@ def main(argv: list[str] | None = None) -> int:
             )
         except Exception as e:
             logger.exception("failed: %s: %s", src, e)
+        # Flush the manifest periodically so an interrupted overnight run
+        # (SIGINT / OOM / power) doesn't lose its tally.
+        if manifest is not None and i % INCREMENTAL_MANIFEST_EVERY == 0:
+            _write_manifest(manifest, manifest_path)
     logger.info(
         "done: %d chunks across %d docs (%d unique hashes)",
         total_chunks, len(paths), len(dedup),
     )
     if manifest is not None:
-        manifest_path = args.out_root / "curation_manifest.json"
-        manifest_path.parent.mkdir(parents=True, exist_ok=True)
-        import json as _json
-        manifest_path.write_text(
-            _json.dumps(manifest.to_dict(), indent=2, ensure_ascii=False),
-            encoding="utf-8",
-        )
+        _write_manifest(manifest, manifest_path)
         logger.info("curation manifest -> %s", manifest_path)
         warning = manifest.balance_warning()
         if warning:

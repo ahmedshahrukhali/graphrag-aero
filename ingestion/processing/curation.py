@@ -80,7 +80,10 @@ class Admission:
     reason: RejectReason | None = None  # None when admitted
 
 
-_ADMITTED = Admission(admitted=True)
+#: Public sentinel — also used by the run orchestrator to carry-record a
+#: fresh-skipped doc without re-running ``admit`` (the prior run admitted it,
+#: which we know because rejected docs never write a JSONL).
+ADMITTED = Admission(admitted=True)
 
 
 # ── Per-chunk helper ─────────────────────────────────────────────────────────
@@ -122,7 +125,7 @@ def admit(ref: DocRef, chunks: list[Chunk]) -> Admission:
             if cjk_frac < MIN_ZH_CJK_FRACTION:
                 return Admission(False, RejectReason.LANG_MISDETECT)
 
-    return _ADMITTED
+    return ADMITTED
 
 
 # ── Manifest accumulator ──────────────────────────────────────────────────────

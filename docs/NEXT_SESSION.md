@@ -33,11 +33,46 @@ Current sample = 10 zh docs. If the overlap demo needs more, add TTSB/CAAC seeds
 (ZH : EN_TC admitted within 0.5–2.0×; manifest logs a `balance_warning`).
 
 ### 3. WS-F — the curated re-ingest (multi-hour, Haiku-monitored per REINGEST §10)
-`docker compose --profile ingest run --rm ingestion --in /app/data/corpus --out /app/data/chunks --curate -v`
-then `docker compose --profile embed run --rm embed`.
-- Writes `data/chunks/curation_manifest.json` — eyeball admitted/rejected per corpus+lang and the
-  reject-reason histogram before trusting the index.
-- Idempotent (chunk_hash point IDs); safe to resume.
+
+**S23 prep landed** (opus-4.7, 2026-06-04): manifest is now resume-safe (fresh-skipped docs
+carry-recorded; manifest flushed every 25 docs atomically) and a quarantine tool is in place
+for the 15 corrupt TC PDFs. Run in order:
+
+#### 3a. (One-time) Quarantine unopenable PDFs
+```
+python -m ingestion.maintenance.quarantine_corrupt_pdfs --dry-run
+# Eyeball the list (~15 expected; "No /Root object" under data/corpus/en/tc/), then:
+python -m ingestion.maintenance.quarantine_corrupt_pdfs --apply
+```
+Broken files move to `data/corpus_quarantine/{lang}/{source}/` + `manifest.csv`. Reversible.
+
+#### 3b. (Destructive) Clear stale pre-WS-0 chunks
+Existing EN/FR chunks are pre-WS-0 (missing `page_bboxes`/`corpus`/`kind`) and mtime-fresh,
+so `--curate` alone no-ops them. Move them aside so `--force` reprocesses cleanly:
+```
+# PowerShell:
+Move-Item data\chunks "data\chunks_pre_ws0_$(Get-Date -Format yyyyMMdd)"
+mkdir data\chunks
+# bash:
+mv data/chunks data/chunks_pre_ws0_$(date +%Y%m%d)
+mkdir data/chunks
+```
+(`data/chunks_pilot/` is the S22 scratch — leave it.)
+
+#### 3c. Curated ingest (multi-hour; GPU OCR; incremental manifest is safe now)
+```
+docker compose --profile ingest run --rm ingestion \
+  --in /app/data/corpus --out /app/data/chunks --curate --force -v
+```
+`data/chunks/curation_manifest.json` is rewritten atomically every 25 docs — eyeball it mid-run
+to confirm admitted/rejected per corpus+lang and the reject-reason histogram. Idempotent on
+chunk_hash; safe to resume.
+
+#### 3d. Re-embed into a fresh Qdrant collection (DESTROYS the live 64,440-pt index)
+```
+docker compose --profile embed run --rm embed --recreate
+```
+This is the irreversible step. Only proceed once 3c looks healthy.
 
 ### 4. Re-verify after the run
 - `python -m eval.run --json` (Recall@k / nDCG / MRR) — NB the eval dataset has **no ZH queries**;
