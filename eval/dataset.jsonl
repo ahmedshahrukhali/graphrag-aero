@@ -5,3 +5,7 @@
 {"id": "q05", "query": "安捷飛航訓練中心 DA-40NG 發動機失效迫降高雄外海", "expected": ["ttsb/3287_ttsb-aor-19-11-001"], "lang": "zh"}
 {"id": "q06", "query": "直昇機吊掛作業組員受傷致死 AS365N3", "expected": ["ttsb/3292_ttsb-aor-19-11-002"], "lang": "zh"}
 {"id": "q07", "query": "民用航空器维修计划和控制 CCAR-121", "expected": ["caac/P020151103346484825446"], "lang": "zh"}
+{"id": "q08", "query": "CAR 605.38 fuel quantity required Piper PA-31 fuel starvation", "expected": ["tsb/a00c0260"], "lang": "en", "tags": ["jargon-id"]}
+{"id": "q09", "query": "C-FHGR C-FXLQ mid-air collision Gatineau Select Aviation Cessna 150M", "expected": ["tsb/a23q0069"], "lang": "en", "tags": ["jargon-id"]}
+{"id": "q10", "query": "CCAR-121 飞行机组成员训练计划和检查要求 民用航空规章", "expected": ["caac/P020151103346484825446"], "lang": "zh", "tags": ["jargon-id"]}
+{"id": "q11", "query": "CAR 602.01 VFR de nuit décrochage Cessna Saint-Rémi", "expected": ["tsb/a23q0041"], "lang": "fr", "tags": ["jargon-id"]}

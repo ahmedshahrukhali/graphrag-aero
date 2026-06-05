@@ -20,12 +20,12 @@ from qdrant_client import QdrantClient
 
 from embed.bge_m3 import DENSE_DIM
 from embed.ids import point_id_for
-from embed.qdrant import count_points
+from embed.qdrant import SPARSE_VECTOR_NAME, count_points
 from embed.run import main
 
 
 class StubEmbedder:
-    """Returns a deterministic 1024-vector per input text."""
+    """Returns deterministic dense vectors per input text."""
 
     def __init__(self, batch_size: int = 32) -> None:
         self.batch_size = batch_size
@@ -33,12 +33,15 @@ class StubEmbedder:
 
     def embed(self, texts):
         self.calls.append(list(texts))
-        # vector deterministic from text length + first char
         return [
             [float(((len(t) + (ord(t[0]) if t else 0) + i) % 7)) / 7.0
              for i in range(DENSE_DIM)]
             for t in texts
         ]
+
+    def embed_sparse(self, texts):
+        """Return minimal non-empty sparse weights for each text."""
+        return [{i: float(len(t) % 5 + 1) / 5.0} for i, t in enumerate(texts)]
 
 
 def _write_chunk_jsonl(path: Path, records: list[dict]) -> None:
@@ -168,6 +171,20 @@ def test_limit_caps_records(chunks_dir: Path):
         client=client,
     )
     assert count_points(client, "test_dense") == 4
+
+
+def test_sparse_flag_creates_hybrid_collection(chunks_dir: Path):
+    """--sparse creates a collection with both dense and named sparse vectors."""
+    client = QdrantClient(":memory:")
+    rc = main(
+        ["--in", str(chunks_dir), "--sparse", "--recreate"],
+        embedder_factory=lambda bs: StubEmbedder(),
+        client=client,
+    )
+    assert rc == 0
+    assert count_points(client, "test_dense") == 9
+    info = client.get_collection("test_dense")
+    assert SPARSE_VECTOR_NAME in info.config.params.sparse_vectors
 
 
 def test_filter_zh_ttsb_source(tmp_path: Path):

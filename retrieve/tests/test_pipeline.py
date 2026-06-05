@@ -12,8 +12,8 @@ pytest.importorskip("qdrant_client")
 from qdrant_client import QdrantClient
 
 from embed.jsonl import ChunkRecord
-from embed.qdrant import DENSE_DIM, ensure_collection, upsert_batch
-from retrieve.pipeline import anchored_retrieve, retrieve_and_rerank
+from embed.qdrant import DENSE_DIM, ensure_collection, upsert_batch, upsert_hybrid_batch
+from retrieve.pipeline import anchored_retrieve, hybrid_retrieve_and_rerank, retrieve_and_rerank
 
 
 COLL = "test_pipeline"
@@ -231,5 +231,62 @@ def test_anchored_empty_seed_returns_empty(client: QdrantClient):
         embedder=StubEmbedder(0),
         reranker=StubReranker({}),
         client=client, collection=COLL, ann_k=10, top_k=5,
+    )
+    assert out == []
+
+
+# ─── hybrid_retrieve_and_rerank ──────────────────────────────────────────────
+
+HYBRID_COLL = "test_pipeline_hybrid"
+
+
+class StubHybridEmbedder(StubEmbedder):
+    """Adds ``embed_sparse`` so hybrid pipeline can use it."""
+
+    def embed_sparse(self, texts):
+        return [{i: 0.5} for i, _ in enumerate(texts)]
+
+
+@pytest.fixture
+def hybrid_client() -> QdrantClient:
+    c = QdrantClient(":memory:")
+    ensure_collection(c, HYBRID_COLL, with_sparse=True)
+    return c
+
+
+def test_hybrid_returns_reranked_results(hybrid_client: QdrantClient):
+    records = [_record(t, idx=i) for i, t in enumerate(["a", "b", "c"])]
+    dense = [_unit_vec(i) for i in range(3)]
+    sparse = [{i: 0.9} for i in range(3)]
+    upsert_hybrid_batch(hybrid_client, HYBRID_COLL, records, dense, sparse)
+    out = hybrid_retrieve_and_rerank(
+        "CAR 605.38",
+        embedder=StubHybridEmbedder(query_vec_axis=0),
+        reranker=StubReranker({"a": 0.3, "b": 0.9, "c": 0.1}),
+        client=hybrid_client, collection=HYBRID_COLL, ann_k=3, top_k=3,
+    )
+    assert out[0].record.text == "b"
+
+
+def test_hybrid_falls_back_to_dense_on_empty_sparse(hybrid_client: QdrantClient):
+    records = [_record(t, idx=i) for i, t in enumerate(["x", "y"])]
+    dense = [_unit_vec(i) for i in range(2)]
+    upsert_hybrid_batch(hybrid_client, HYBRID_COLL, records, dense,
+                        [{}, {}])  # empty sparse weights → no sparse hits
+    out = hybrid_retrieve_and_rerank(
+        "q",
+        embedder=StubHybridEmbedder(query_vec_axis=0),
+        reranker=StubReranker({"x": 0.8, "y": 0.3}),
+        client=hybrid_client, collection=HYBRID_COLL, ann_k=5, top_k=2,
+    )
+    assert len(out) == 2
+
+
+def test_hybrid_empty_query_returns_empty(hybrid_client: QdrantClient):
+    out = hybrid_retrieve_and_rerank(
+        "   ",
+        embedder=StubHybridEmbedder(0),
+        reranker=StubReranker({}),
+        client=hybrid_client, collection=HYBRID_COLL, ann_k=5, top_k=5,
     )
     assert out == []

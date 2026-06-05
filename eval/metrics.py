@@ -37,6 +37,23 @@ def reciprocal_rank(actual: Sequence[str], expected: Sequence[str]) -> float:
     return 0.0
 
 
+def reformulation_lift(
+    hop1_recall10: float,
+    hop1_mrr: float,
+    hop2_recall10: float,
+    hop2_mrr: float,
+) -> dict[str, float]:
+    """Delta between hop-1 and hop-2 (reformulated) retrieval.
+
+    Positive values mean the reformulated query retrieved better results.
+    Used by §2 reformulation eval to verify the loop adds value.
+    """
+    return {
+        "recall10_lift": hop2_recall10 - hop1_recall10,
+        "mrr_lift": hop2_mrr - hop1_mrr,
+    }
+
+
 def ndcg_at_k(actual: Sequence[str], expected: Sequence[str], k: int) -> float:
     """Calculate Normalized Discounted Cumulative Gain at k (nDCG@k).
 

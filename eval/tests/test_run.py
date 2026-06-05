@@ -170,3 +170,38 @@ def test_main_drives_real_pipeline_with_stubs(tmp_path: Path, capsys):
     assert report["overall"]["n"] == 2
     assert report["overall"]["recall_at_5"] == pytest.approx(1.0)
     assert report["overall"]["mrr"] == pytest.approx(1.0)
+
+
+def test_evaluate_mode_field_in_report():
+    dataset = [EvalItem(id="q1", query="x", expected=["d1"], lang="en")]
+    report = evaluate(lambda q, _: ["d1"], dataset, mode="hybrid")
+    assert report["mode"] == "hybrid"
+
+
+def test_evaluate_default_mode_is_dense():
+    dataset = [EvalItem(id="q1", query="x", expected=["d1"], lang="en")]
+    report = evaluate(lambda q, _: ["d1"], dataset)
+    assert report["mode"] == "dense"
+
+
+def test_main_mode_flag_accepted(tmp_path: Path, capsys):
+    ds = tmp_path / "ds.jsonl"
+    ds.write_text('{"id": "q1", "query": "x", "expected": ["d1"], "lang": "en"}\n',
+                  encoding="utf-8")
+    # Inject a stub runner so no real Qdrant is needed.
+    rc = main(["--dataset", str(ds), "--mode", "hybrid", "--json"],
+              query_runner=lambda q, l: ["d1"])
+    assert rc == 0
+    report = json.loads(capsys.readouterr().out)
+    assert report["mode"] == "hybrid"
+
+
+def test_load_dataset_ignores_unknown_fields(tmp_path: Path):
+    """Dataset items may carry extra fields (e.g. 'tags') — load must not fail."""
+    p = tmp_path / "ds.jsonl"
+    p.write_text(
+        '{"id": "q1", "query": "x", "expected": ["d1"], "lang": "en", "tags": ["jargon-id"]}\n',
+        encoding="utf-8",
+    )
+    items = load_dataset(p)
+    assert items[0].id == "q1"

@@ -26,6 +26,7 @@ from .qdrant import (
     ensure_collection,
     make_client,
     upsert_batch,
+    upsert_hybrid_batch,
 )
 
 logger = logging.getLogger(__name__)
@@ -44,13 +45,22 @@ def embed_and_upsert(
     collection: str,
     *,
     batch_size: int,
+    sparse_embedder=None,
 ) -> int:
-    """Stream ``records`` through ``embedder`` in batches, upsert into Qdrant."""
+    """Stream ``records`` through ``embedder`` in batches, upsert into Qdrant.
+
+    When ``sparse_embedder`` is provided (an object with ``embed_sparse(texts)``),
+    upsert both dense and sparse vectors via ``upsert_hybrid_batch``.
+    """
     total = 0
     for batch in _batched(records, batch_size):
         texts = [r.text for r in batch]
         vectors = embedder.embed(texts)
-        n = upsert_batch(client, collection, batch, vectors)
+        if sparse_embedder is not None:
+            sw = sparse_embedder.embed_sparse(texts)
+            n = upsert_hybrid_batch(client, collection, batch, vectors, sw)
+        else:
+            n = upsert_batch(client, collection, batch, vectors)
         total += n
         logger.info("upserted batch: +%d  (total: %d)", n, total)
     return total
@@ -71,6 +81,9 @@ def main(
     p.add_argument("--batch-size", type=int, default=128)
     p.add_argument("--recreate", action="store_true",
                    help="Drop and rebuild the collection before upserting.")
+    p.add_argument("--sparse", action="store_true",
+                   help="Also embed and upsert BGE-M3 sparse (lexical) weights. "
+                        "Requires --recreate when switching from dense-only (schema change).")
     p.add_argument("-v", "--verbose", action="store_true")
     args = p.parse_args(argv)
 
@@ -82,7 +95,7 @@ def main(
     cfg = QdrantConfig.from_env()
     if client is None:
         client = make_client(cfg)
-    ensure_collection(client, cfg.collection, recreate=args.recreate)
+    ensure_collection(client, cfg.collection, recreate=args.recreate, with_sparse=args.sparse)
 
     source = None if args.source == "all" else args.source
     lang = None if args.lang == "all" else args.lang
@@ -90,9 +103,11 @@ def main(
 
     factory = embedder_factory or _default_embedder
     embedder = factory(args.batch_size)
+    sparse_embedder = embedder if args.sparse else None
 
     total = embed_and_upsert(
-        records, embedder, client, cfg.collection, batch_size=args.batch_size,
+        records, embedder, client, cfg.collection,
+        batch_size=args.batch_size, sparse_embedder=sparse_embedder,
     )
     final = count_points(client, cfg.collection)
     logger.info("done: %d upserted this run; %d total points in '%s'",

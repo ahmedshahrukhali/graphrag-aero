@@ -1,4 +1,4 @@
-"""Tests for dense_search — real qdrant-client in :memory: mode."""
+"""Tests for dense_search, sparse_search, rrf_fuse — real qdrant-client :memory:."""
 import hashlib
 
 import pytest
@@ -8,8 +8,9 @@ pytest.importorskip("qdrant_client")
 from qdrant_client import QdrantClient
 
 from embed.jsonl import ChunkRecord
-from embed.qdrant import DENSE_DIM, ensure_collection, upsert_batch
-from retrieve.search import _build_filter, dense_search, scroll_doc_chunks
+from embed.qdrant import DENSE_DIM, ensure_collection, upsert_batch, upsert_hybrid_batch
+from retrieve.reranker import ScoredChunk
+from retrieve.search import _build_filter, dense_search, rrf_fuse, scroll_doc_chunks, sparse_search
 
 
 COLL = "test_search"
@@ -175,3 +176,89 @@ def test_scroll_doc_chunks_paginates(client: QdrantClient):
     upsert_batch(client, COLL, recs, [_unit_vec(i % DENSE_DIM) for i in range(10)])
     out = scroll_doc_chunks(client, COLL, ["tsb/doc000"], page_size=3)
     assert len(out) == 10
+
+
+# ─── sparse_search ───────────────────────────────────────────────────────────
+
+HYBRID_COLL = "test_search_hybrid"
+
+
+@pytest.fixture
+def hybrid_client() -> QdrantClient:
+    c = QdrantClient(":memory:")
+    ensure_collection(c, HYBRID_COLL, with_sparse=True)
+    return c
+
+
+def test_sparse_search_returns_hits(hybrid_client: QdrantClient):
+    rec = _record("CAR 605.38 fuel", idx=0)
+    dense = _unit_vec(0)
+    # token 5 (e.g. "fuel") has high weight → sparse query on token 5 should score high
+    upsert_hybrid_batch(hybrid_client, HYBRID_COLL, [rec], [dense], [{5: 0.9, 10: 0.3}])
+    hits = sparse_search(hybrid_client, HYBRID_COLL, {5: 1.0}, k=5)
+    assert len(hits) == 1
+    assert hits[0].record.text == "CAR 605.38 fuel"
+    assert hits[0].ann_score > 0
+
+
+def test_sparse_search_empty_weights_returns_empty(hybrid_client: QdrantClient):
+    assert sparse_search(hybrid_client, HYBRID_COLL, {}, k=5) == []
+
+
+def test_sparse_search_graceful_on_dense_only_collection(client: QdrantClient):
+    # dense-only collection: sparse_search degrades to empty, not an exception
+    results = sparse_search(client, COLL, {0: 1.0}, k=5)
+    assert results == []
+
+
+# ─── rrf_fuse ────────────────────────────────────────────────────────────────
+
+def _scored(text: str, idx: int, score: float) -> ScoredChunk:
+    h = hashlib.sha256(f"rrf:{idx}:{text}".encode()).hexdigest()
+    rec = ChunkRecord(
+        doc_id=f"tsb/doc{idx:03d}", source_url=None, section_title="",
+        page=idx + 1, bbox=[0.0, 0.0, 0.0, 0.0], chunk_hash=h, lang="en", text=text,
+    )
+    return ScoredChunk(record=rec, ann_score=score)
+
+
+def test_rrf_fuse_chunk_in_both_ranks_highest():
+    # c1 is in dense at rank 1, sparse at rank 2 → highest RRF
+    # c2 is in dense at rank 2, sparse at rank 1 → also high
+    # c3 is dense-only at rank 3
+    c1 = _scored("both-1", 1, 0.9)
+    c2 = _scored("both-2", 2, 0.7)
+    c3 = _scored("dense-only", 3, 0.5)
+    c4 = _scored("both-2-sparse", 2, 0.8)  # same chunk_hash as c2
+
+    # share chunk_hash between c2 and c4
+    c4 = ScoredChunk(record=c2.record, ann_score=0.8)
+
+    dense = [c1, c2, c3]
+    sparse = [c4, c1]  # c2 rank 1, c1 rank 2
+
+    fused = rrf_fuse(dense, sparse)
+    # c1 appears at dense rank 1 + sparse rank 2; c2 appears at dense rank 2 + sparse rank 1
+    # RRF(c1) = 1/(60+1) + 1/(60+2); RRF(c2) = 1/(60+2) + 1/(60+1)
+    # They tie by symmetry; c3 is dense-only → lower
+    assert fused[0].record.chunk_hash in {c1.record.chunk_hash, c2.record.chunk_hash}
+    assert fused[-1].record.chunk_hash == c3.record.chunk_hash
+
+
+def test_rrf_fuse_dense_only_input():
+    c1 = _scored("only-dense", 1, 0.9)
+    c2 = _scored("only-dense-2", 2, 0.7)
+    fused = rrf_fuse([c1, c2], [])
+    # With no sparse hits, sparse rank is len(sparse)+1 = 1 for all
+    assert fused[0].record.chunk_hash == c1.record.chunk_hash
+
+
+def test_rrf_fuse_empty_both():
+    assert rrf_fuse([], []) == []
+
+
+def test_rrf_fuse_preserves_all_unique_chunks():
+    dense = [_scored(f"d{i}", i, 0.9 - i * 0.1) for i in range(3)]
+    sparse = [_scored(f"s{i}", i + 10, 0.8 - i * 0.1) for i in range(3)]
+    fused = rrf_fuse(dense, sparse)
+    assert len(fused) == 6  # 3 dense-only + 3 sparse-only, no overlap

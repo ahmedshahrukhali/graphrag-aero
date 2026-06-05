@@ -1,11 +1,11 @@
-"""BGE-M3 dense embedder wrapper.
+"""BGE-M3 dense + sparse embedder wrapper.
 
-CLAUDE.md locks the architecture: dense only, BGE-M3 via FlagEmbedding,
-1024-dim, multilingual EN+FR. This module owns model loading; ``embed/run.py``
-streams chunks through it.
+CLAUDE.md locks: BGE-M3 (BAAI/bge-m3) via FlagEmbedding, dense dim=1024,
+multilingual EN+FR+ZH. Sparse output (lexical weights) can be requested
+alongside dense for hybrid Qdrant collections.
 
 Real model loading is lazy and import-guarded so the test suite stays offline.
-``DenseEmbedder`` is a Protocol — tests pass a stub with the same shape.
+``DenseEmbedder`` Protocol is unchanged — tests pass a stub with the same shape.
 """
 from __future__ import annotations
 
@@ -20,6 +20,9 @@ logger = logging.getLogger(__name__)
 DENSE_DIM = 1024
 DEFAULT_MAX_LENGTH = 8192
 
+# Sparse weight type: {token_id: importance_score}
+SparseWeights = dict[int, float]
+
 
 class DenseEmbedder(Protocol):
     """Anything with ``embed(texts) -> list of 1024-vectors`` satisfies this."""
@@ -28,7 +31,7 @@ class DenseEmbedder(Protocol):
 
 
 class BGE_M3Embedder:
-    """Wraps ``FlagEmbedding.BGEM3FlagModel`` for dense-only encoding."""
+    """Wraps ``FlagEmbedding.BGEM3FlagModel`` for dense + optional sparse encoding."""
 
     def __init__(
         self,
@@ -61,3 +64,23 @@ class BGE_M3Embedder:
         # ``out["dense_vecs"]`` is a numpy array of shape (N, 1024).
         vecs = out["dense_vecs"]
         return [list(map(float, row)) for row in vecs]
+
+    def embed_sparse(self, texts: Sequence[str]) -> list[SparseWeights]:
+        """Return BGE-M3 lexical weights (sparse) for each text.
+
+        ``out["lexical_weights"]`` from FlagEmbedding is a list of dicts
+        ``{token_id: score}``. Scores are float32 importance weights; zero
+        entries are omitted, so the dict is already sparse.
+        """
+        if not texts:
+            return []
+        out = self._model.encode(
+            list(texts),
+            batch_size=self._batch_size,
+            max_length=self._max_length,
+            return_dense=False,
+            return_sparse=True,
+            return_colbert_vecs=False,
+        )
+        raw: list[dict] = out["lexical_weights"]
+        return [{int(k): float(v) for k, v in w.items()} for w in raw]

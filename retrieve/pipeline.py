@@ -14,7 +14,7 @@ from qdrant_client import QdrantClient
 from embed.bge_m3 import DenseEmbedder
 
 from .reranker import CrossEncoderReranker, ScoredChunk, rerank
-from .search import dense_search, scroll_doc_chunks
+from .search import dense_search, rrf_fuse, scroll_doc_chunks, sparse_search
 
 
 logger = logging.getLogger(__name__)
@@ -56,6 +56,50 @@ def retrieve_and_rerank(
     logger.debug("ANN returned %d candidates", len(candidates))
     if not candidates:
         return []
+    return rerank(query, candidates, reranker, top_k=top_k)
+
+
+def hybrid_retrieve_and_rerank(
+    query: str,
+    *,
+    embedder,
+    reranker: CrossEncoderReranker,
+    client: QdrantClient,
+    collection: str,
+    ann_k: int = DEFAULT_ANN_K,
+    top_k: int = DEFAULT_TOP_K,
+    lang: str | None = None,
+    source: str | None = None,
+    rrf_k: int = 60,
+) -> list[ScoredChunk]:
+    """Dense + sparse hybrid retrieval fused with RRF, then reranked.
+
+    ``embedder`` must expose both ``embed(texts)`` and ``embed_sparse(texts)``
+    (i.e. ``BGE_M3Embedder``). Falls back silently to dense-only if sparse
+    search returns no results (e.g. dense-only collection).
+    """
+    if ann_k < top_k:
+        raise ValueError(f"ann_k ({ann_k}) must be ≥ top_k ({top_k})")
+    if not query.strip():
+        return []
+
+    [q_dense] = embedder.embed([query])
+    [q_sparse] = embedder.embed_sparse([query])
+
+    dense_hits = dense_search(client, collection, q_dense, k=ann_k, lang=lang, source=source)
+    sparse_hits = sparse_search(client, collection, q_sparse, k=ann_k, lang=lang, source=source)
+
+    if not dense_hits and not sparse_hits:
+        return []
+    if not sparse_hits:
+        candidates = dense_hits
+    else:
+        candidates = rrf_fuse(dense_hits, sparse_hits, k=rrf_k)
+
+    logger.debug(
+        "hybrid: %d dense + %d sparse → %d fused",
+        len(dense_hits), len(sparse_hits), len(candidates),
+    )
     return rerank(query, candidates, reranker, top_k=top_k)
 
 

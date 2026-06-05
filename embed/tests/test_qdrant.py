@@ -18,11 +18,13 @@ from embed.jsonl import ChunkRecord
 from embed.qdrant import (
     DENSE_DIM,
     DENSE_DISTANCE,
+    SPARSE_VECTOR_NAME,
     QdrantConfig,
     chunks,
     count_points,
     ensure_collection,
     upsert_batch,
+    upsert_hybrid_batch,
 )
 
 
@@ -152,3 +154,49 @@ def test_chunks_remainder():
 
 def test_chunks_empty():
     assert list(chunks([], 3)) == []
+
+
+# ─── sparse / hybrid collection ──────────────────────────────────────────────
+
+def test_ensure_collection_with_sparse(client: QdrantClient):
+    ensure_collection(client, "c_sp", with_sparse=True)
+    info = client.get_collection("c_sp")
+    assert SPARSE_VECTOR_NAME in info.config.params.sparse_vectors
+
+
+def test_ensure_collection_dense_only_has_no_sparse(client: QdrantClient):
+    ensure_collection(client, "c_dn")
+    info = client.get_collection("c_dn")
+    sv = info.config.params.sparse_vectors
+    assert sv is None or SPARSE_VECTOR_NAME not in sv
+
+
+def test_upsert_hybrid_batch_writes_and_searchable(client: QdrantClient):
+    ensure_collection(client, "c_hy", with_sparse=True)
+    records = [_record(i) for i in range(2)]
+    dense = [_vec(i) for i in range(2)]
+    sparse: list[dict] = [{0: 0.9, 5: 0.3}, {1: 0.8, 10: 0.2}]
+    n = upsert_hybrid_batch(client, "c_hy", records, dense, sparse)
+    assert n == 2
+    assert count_points(client, "c_hy") == 2
+
+
+def test_upsert_hybrid_batch_idempotent(client: QdrantClient):
+    ensure_collection(client, "c_hi2", with_sparse=True)
+    records = [_record(i) for i in range(3)]
+    dense = [_vec(i) for i in range(3)]
+    sparse = [{0: float(i)} for i in range(3)]
+    upsert_hybrid_batch(client, "c_hi2", records, dense, sparse)
+    upsert_hybrid_batch(client, "c_hi2", records, dense, sparse)
+    assert count_points(client, "c_hi2") == 3
+
+
+def test_upsert_hybrid_batch_len_mismatch(client: QdrantClient):
+    ensure_collection(client, "c_hi3", with_sparse=True)
+    with pytest.raises(ValueError):
+        upsert_hybrid_batch(client, "c_hi3", [_record(0)], [_vec(0)], [])
+
+
+def test_upsert_hybrid_batch_empty(client: QdrantClient):
+    ensure_collection(client, "c_hi4", with_sparse=True)
+    assert upsert_hybrid_batch(client, "c_hi4", [], [], []) == 0

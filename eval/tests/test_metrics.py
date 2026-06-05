@@ -2,7 +2,10 @@
 from __future__ import annotations
 
 import math
-from eval.metrics import ndcg_at_k, recall_at_k, reciprocal_rank
+
+import pytest
+
+from eval.metrics import ndcg_at_k, recall_at_k, reciprocal_rank, reformulation_lift
 
 
 def test_recall_at_k():
@@ -41,6 +44,24 @@ def test_ndcg_at_k():
 
     # Empty expected:
     assert ndcg_at_k(actual, [], k=3) == 0.0
+
+
+def test_reformulation_lift_positive():
+    r = reformulation_lift(0.4, 0.5, 0.8, 0.9)
+    assert r["recall10_lift"] == pytest.approx(0.4)
+    assert r["mrr_lift"] == pytest.approx(0.4)
+
+
+def test_reformulation_lift_zero():
+    r = reformulation_lift(0.6, 0.7, 0.6, 0.7)
+    assert r["recall10_lift"] == pytest.approx(0.0)
+    assert r["mrr_lift"] == pytest.approx(0.0)
+
+
+def test_reformulation_lift_negative():
+    r = reformulation_lift(0.8, 0.9, 0.4, 0.5)
+    assert r["recall10_lift"] == pytest.approx(-0.4)
+    assert r["mrr_lift"] == pytest.approx(-0.4)
 
 
 def test_ndcg_at_k_dedupes_repeated_docids():

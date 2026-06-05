@@ -7,7 +7,8 @@ chunk counts as a hit if its ``doc_id`` is in the item's ``expected`` set.
 
 CLI::
 
-    python -m eval.run                        # real Qdrant
+    python -m eval.run                        # dense (default)
+    python -m eval.run --mode hybrid          # dense+sparse RRF fused
     python -m eval.run --json                 # machine-readable
     python -m eval.run --dataset path/to.jsonl
 
@@ -111,7 +112,7 @@ def _aggregate(items: Iterable[ItemResult]) -> dict[str, float]:
     }
 
 
-def evaluate(query_runner: QueryRunner, dataset: Sequence[EvalItem]) -> dict:
+def evaluate(query_runner: QueryRunner, dataset: Sequence[EvalItem], *, mode: str = "dense") -> dict:
     """Run ``query_runner`` over ``dataset`` and return a metrics report.
 
     Report shape::
@@ -136,18 +137,28 @@ def evaluate(query_runner: QueryRunner, dataset: Sequence[EvalItem]) -> dict:
         "overall": _aggregate(results),
         "by_lang": by_lang,
         "items": [asdict(r) for r in results],
+        "mode": mode,
     }
 
 
-def _real_query_runner(*, top_k: int = 10, ann_k: int = 50) -> QueryRunner:
+def _real_query_runner(
+    *,
+    top_k: int = 10,
+    ann_k: int = 50,
+    mode: str = "dense",
+) -> QueryRunner:
     """Build a runner that hits the real BGE-M3 + reranker + Qdrant stack.
+
+    ``mode`` selects the retrieval strategy:
+      "dense"  — ANN over the dense vector only (default, original behaviour).
+      "hybrid" — dense + sparse RRF fusion, then rerank (§1).
 
     Imports the heavy deps lazily so test runs (which inject a stub runner)
     never pay the import cost or trigger weight downloads.
     """
     from embed.bge_m3 import BGE_M3Embedder
     from embed.qdrant import QdrantConfig, make_client
-    from retrieve.pipeline import retrieve_and_rerank
+    from retrieve.pipeline import hybrid_retrieve_and_rerank, retrieve_and_rerank
     from retrieve.reranker import BGE_RerankerV2M3
     from retrieve.vram import ModelSession
 
@@ -158,16 +169,28 @@ def _real_query_runner(*, top_k: int = 10, ann_k: int = 50) -> QueryRunner:
     def run(query: str, lang: str | None) -> list[str]:
         with ModelSession(BGE_M3Embedder, name="bge-m3") as embedder, \
              ModelSession(BGE_RerankerV2M3, name="bge-reranker-v2-m3") as reranker:
-            results = retrieve_and_rerank(
-                query,
-                embedder=embedder,
-                reranker=reranker,
-                client=client,
-                collection=cfg.collection,
-                ann_k=ann_k,
-                top_k=top_k,
-                lang=lang,
-            )
+            if mode == "hybrid":
+                results = hybrid_retrieve_and_rerank(
+                    query,
+                    embedder=embedder,
+                    reranker=reranker,
+                    client=client,
+                    collection=cfg.collection,
+                    ann_k=ann_k,
+                    top_k=top_k,
+                    lang=lang,
+                )
+            else:
+                results = retrieve_and_rerank(
+                    query,
+                    embedder=embedder,
+                    reranker=reranker,
+                    client=client,
+                    collection=cfg.collection,
+                    ann_k=ann_k,
+                    top_k=top_k,
+                    lang=lang,
+                )
         return [r.record.doc_id for r in results]
 
     return run
@@ -176,7 +199,8 @@ def _real_query_runner(*, top_k: int = 10, ann_k: int = 50) -> QueryRunner:
 def _format_text(report: dict) -> str:
     lines: list[str] = []
     overall = report["overall"]
-    lines.append(f"Eval over {overall['n']} queries")
+    mode = report.get("mode", "dense")
+    lines.append(f"Eval over {overall['n']} queries  [mode={mode}]")
     lines.append("=" * 40)
     lines.append(f"  Recall@5:  {overall['recall_at_5']:.4f}")
     lines.append(f"  Recall@10: {overall['recall_at_10']:.4f}")
@@ -198,6 +222,8 @@ def main(argv: list[str] | None = None, *, query_runner: QueryRunner | None = No
                    help="JSONL of {id, query, expected, lang} items.")
     p.add_argument("--ann-k", type=int, default=50)
     p.add_argument("--top-k", type=int, default=10)
+    p.add_argument("--mode", choices=["dense", "hybrid"], default="dense",
+                   help="Retrieval mode: dense (default) or hybrid (dense+sparse RRF).")
     p.add_argument("--json", action="store_true", dest="as_json",
                    help="Emit the full report as JSON.")
     p.add_argument("-v", "--verbose", action="store_true")
@@ -209,8 +235,10 @@ def main(argv: list[str] | None = None, *, query_runner: QueryRunner | None = No
     )
 
     dataset = load_dataset(args.dataset)
-    runner = query_runner or _real_query_runner(top_k=args.top_k, ann_k=args.ann_k)
-    report = evaluate(runner, dataset)
+    runner = query_runner or _real_query_runner(
+        top_k=args.top_k, ann_k=args.ann_k, mode=args.mode,
+    )
+    report = evaluate(runner, dataset, mode=args.mode)
 
     if args.as_json:
         print(json.dumps(report, ensure_ascii=False, indent=2))
