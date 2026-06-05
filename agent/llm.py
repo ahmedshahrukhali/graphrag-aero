@@ -48,7 +48,7 @@ class OllamaLLM:
         # Lazy import. Resolved at first .chat() call so tests can monkeypatch
         # the ``ollama`` module before any real network call.
         self._host = host or os.environ.get("OLLAMA_HOST", "http://localhost:11434")
-        self._model = model or os.environ.get("OLLAMA_MODEL", "gemma2:9b")
+        self._model = model or os.environ.get("OLLAMA_MODEL", "qwen3:8b")
         self._options = options if options is not None else _default_options()
         self._client = None
 

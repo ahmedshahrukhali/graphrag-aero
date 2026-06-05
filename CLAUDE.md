@@ -4,15 +4,15 @@ Read MANIFEST.md first. Follow the resume pointer. Work one phase at a time.
 After each phase: run tests, mark ☑ in MANIFEST.md, move resume pointer, pause for human review.
 
 ## Locked architecture
-- **Vector store:** Qdrant — dense vectors only (no sparse)
-- **Embeddings:** BGE-M3 dense (BAAI/bge-m3) via FlagEmbedding
+- **Vector store:** Qdrant — dense + named sparse (BGE-M3 lexical weights); `--sparse` flag in embed
+- **Embeddings:** BGE-M3 dense+sparse (BAAI/bge-m3) via FlagEmbedding; dense dim=1024
 - **Reranker:** BAAI/bge-reranker-v2-m3 (multilingual cross-encoder)
 - **Chunking:** fixed-size 512 tokens, 64 overlap; capture metadata: doc_id, section_title, page, bbox
 - **Ingestion:** pdfplumber primary; PaddleOCR fallback for image-only pages only; no unstructured.io
 - **Checkpointer:** Postgres (LangGraph PostgresSaver) — not Neo4j
 - **Graph:** Neo4j — Occurrence→Aircraft→Finding→Recommendation→Regulation→AC
 - **Agents:** LangGraph; HITL interrupt before final answer delivery; surface full checkpoint trace
-- **LLM:** gemma2:9b via Ollama (Q4_K_M, sequential VRAM loading)
+- **LLM:** qwen3:8b via Ollama (sequential VRAM loading; 6.2 GB measured S19, fits 3060Ti)
 - **Languages:** EN + FR (BGE-M3 + reranker-v2-m3 both multilingual)
 - **Tracing:** OpenTelemetry
 

@@ -88,6 +88,14 @@ def test_num_ctx_env_override(monkeypatch: pytest.MonkeyPatch):
     assert holder["client"].calls[0]["options"]["num_ctx"] == 16384
 
 
+def test_default_model_is_qwen3(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv("OLLAMA_MODEL", raising=False)
+    holder = _install_fake_ollama(monkeypatch)
+    llm = OllamaLLM()
+    llm.chat("s", "u")
+    assert holder["client"].calls[0]["model"] == "qwen3:8b"
+
+
 def test_client_lazy_imported(monkeypatch: pytest.MonkeyPatch):
     """Importing OllamaLLM must not import ollama; only .chat() triggers the import."""
     monkeypatch.delitem(sys.modules, "ollama", raising=False)

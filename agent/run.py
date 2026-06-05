@@ -187,7 +187,7 @@ def main(argv: list[str] | None = None) -> int:
     up = sub.add_parser("upsert-graph")
     up.add_argument("--in", dest="in_root", default="data/chunks")
     up.add_argument("--extract", action="store_true",
-                    help="Use HybridExtractor (regex + gemma2:9b LLM). "
+                    help="Use HybridExtractor (regex + qwen3:8b LLM). "
                          "Omit to use RegexExtractor only (faster, no Ollama needed).")
 
     q = sub.add_parser("query")
