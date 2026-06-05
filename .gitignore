@@ -7,6 +7,9 @@ node_modules/
 data/corpus/*
 !data/corpus/.gitkeep
 data/chunks/
+data/chunks_pilot/
+data/chunks_pre_ws0_20260604/
+data/corpus_quarantine/
 data/recon/
 data/*.log
 data/hf-cache/
