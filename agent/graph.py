@@ -9,13 +9,13 @@ Topology::
                                 ↓                            ↓
                             retrieve                     synthesize
                                                               ↓
-                                                       (INTERRUPT) ← HITL
-                                                              ↓
                                                           finalize → END
 
-``compile(interrupt_before=["finalize"])`` pauses the graph after synthesize.
-The caller inspects ``draft``, optionally calls ``graph.update_state`` to
-edit it, then resumes with ``graph.invoke(None, config)``.
+§3 (S27): HITL interrupt removed.  ``graph.invoke`` runs to END in one call
+and returns the complete answer.  Rejected answers are recorded in the
+``unaccepted_qa`` feedback store (see ``agent/feedback.py``) and applied to
+the next similar query via ``excluded_chunk_hashes`` / ``rejected_prior`` in
+``AgentState``.
 """
 from __future__ import annotations
 
@@ -56,4 +56,4 @@ def build_graph(deps: AgentDeps, *, checkpointer: Any) -> Any:
     g.add_edge("synthesize", "finalize")
     g.add_edge("finalize", END)
 
-    return g.compile(checkpointer=checkpointer, interrupt_before=["finalize"])
+    return g.compile(checkpointer=checkpointer)

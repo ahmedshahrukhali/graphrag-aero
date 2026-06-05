@@ -167,11 +167,51 @@ def test_retrieve_node_merges_across_hops(qclient):
     state = initial_state("q")
     state.update(node(state))  # hop 1
     assert state["hop"] == 1
-    state.update(node(state))  # hop 2 — same query, deduplicated
+    state.update(node(state))  # hop 2 — reformulated query, deduplicated
     assert state["hop"] == 2
     # No dupes despite two retrievals.
     hashes = [c["chunk_hash"] for c in state["candidates"]]
     assert len(hashes) == len(set(hashes))
+
+
+def test_retrieve_node_reformulates_query_on_hop_2(qclient):
+    """§2: trace must record reformulated=True on hop 2."""
+    rec = _rec("flapper valve froze fuel starvation", idx=0)
+    upsert_batch(qclient, COLL, [rec], [_unit_vec(0)])
+    deps = _make_deps(
+        qclient, embedder=StubEmbedder(0),
+        reranker=StubReranker({"flapper valve froze fuel starvation": 0.6}),
+    )
+    node = make_retrieve_node(deps)
+    state = initial_state("fuel starvation")
+    state.update(node(state))  # hop 1 — no reformulation (hop==0 at entry)
+    assert state["trace"][-1].get("reformulated") is False
+    assert state.get("reformulated_query") is None
+
+    state.update(node(state))  # hop 2 — reformulation fires
+    assert state["trace"][-1].get("reformulated") is True
+    # reformulated_query should be set and contain the original + novel tokens
+    ref_q = state.get("reformulated_query")
+    assert ref_q is not None
+    assert ref_q.startswith("fuel starvation")
+    assert len(ref_q) > len("fuel starvation")
+
+
+def test_retrieve_node_honours_excluded_hashes(qclient):
+    """§3: chunks in excluded_chunk_hashes must not appear in candidates."""
+    r1 = _rec("fuel exhaustion alpha", idx=0)
+    r2 = _rec("fuel exhaustion beta", idx=1)
+    upsert_batch(qclient, COLL, [r1, r2], [_unit_vec(0), _unit_vec(0)])
+    deps = _make_deps(
+        qclient, embedder=StubEmbedder(0),
+        reranker=StubReranker({r1.text: 0.9, r2.text: 0.8}),
+    )
+    node = make_retrieve_node(deps)
+    state = initial_state("fuel exhaustion", excluded_chunk_hashes=[r1.chunk_hash])
+    update = node(state)
+    returned_hashes = {c["chunk_hash"] for c in update["candidates"]}
+    assert r1.chunk_hash not in returned_hashes, "excluded hash must not appear"
+    assert r2.chunk_hash in returned_hashes, "non-excluded hash must still appear"
 
 
 # ─── retrieve_node (anchored) ─────────────────────────────────────────────────

@@ -248,6 +248,11 @@ def _register_routes(app: FastAPI) -> None:
 
     @app.post("/resume/{thread_id}", response_model=ResumeResponse)
     def resume(thread_id: str, body: ResumeRequest, request: Request) -> ResumeResponse:
+        """§3: interrupt removed — the graph is already at END after /query.
+        Calling resume returns the existing final answer.  If a draft override
+        is supplied, we update both draft and final in the checkpoint so the
+        stored answer reflects the edit.
+        """
         from agent.graph import build_graph
         from agent.trace import trace_from_history
 
@@ -260,9 +265,13 @@ def _register_routes(app: FastAPI) -> None:
         with tracer.start_as_current_span("agent.resume") as span:
             span.set_attribute("thread_id", thread_id)
             span.set_attribute("edited_draft", body.draft is not None)
+            snap = graph.get_state(config)
             if body.draft is not None:
-                graph.update_state(config, {"draft": body.draft})
-            done = graph.invoke(None, config=config)
+                # Override: write both draft and final so the checkpoint reflects
+                # the human edit (the graph is at END; no re-run happens).
+                graph.update_state(config, {"draft": body.draft, "final": body.draft})
+                snap = graph.get_state(config)
+            done = snap.values
 
         return ResumeResponse(
             thread_id=thread_id,

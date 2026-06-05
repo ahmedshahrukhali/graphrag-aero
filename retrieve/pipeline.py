@@ -37,11 +37,14 @@ def retrieve_and_rerank(
     top_k: int = DEFAULT_TOP_K,
     lang: str | None = None,
     source: str | None = None,
+    exclude_hashes: list[str] | None = None,
 ) -> list[ScoredChunk]:
     """Embed ``query``, ANN-search the dense collection, rerank, return top-K.
 
     ``ann_k`` is how many candidates the reranker sees; ``top_k`` is how many
     we return after reranking. ``ann_k >= top_k`` (caller's responsibility).
+    ``exclude_hashes`` skips specific chunks (used by the feedback loop to avoid
+    chunks that produced a previously rejected answer).
     """
     if ann_k < top_k:
         raise ValueError(f"ann_k ({ann_k}) must be ≥ top_k ({top_k})")
@@ -52,6 +55,7 @@ def retrieve_and_rerank(
     logger.debug("ANN search: k=%d lang=%s source=%s", ann_k, lang, source)
     candidates = dense_search(
         client, collection, q_vec, k=ann_k, lang=lang, source=source,
+        exclude_hashes=exclude_hashes,
     )
     logger.debug("ANN returned %d candidates", len(candidates))
     if not candidates:
@@ -70,6 +74,7 @@ def hybrid_retrieve_and_rerank(
     top_k: int = DEFAULT_TOP_K,
     lang: str | None = None,
     source: str | None = None,
+    exclude_hashes: list[str] | None = None,
     rrf_k: int = 60,
 ) -> list[ScoredChunk]:
     """Dense + sparse hybrid retrieval fused with RRF, then reranked.
@@ -77,6 +82,7 @@ def hybrid_retrieve_and_rerank(
     ``embedder`` must expose both ``embed(texts)`` and ``embed_sparse(texts)``
     (i.e. ``BGE_M3Embedder``). Falls back silently to dense-only if sparse
     search returns no results (e.g. dense-only collection).
+    ``exclude_hashes`` skips specific chunks (used by the feedback loop).
     """
     if ann_k < top_k:
         raise ValueError(f"ann_k ({ann_k}) must be ≥ top_k ({top_k})")
@@ -86,8 +92,14 @@ def hybrid_retrieve_and_rerank(
     [q_dense] = embedder.embed([query])
     [q_sparse] = embedder.embed_sparse([query])
 
-    dense_hits = dense_search(client, collection, q_dense, k=ann_k, lang=lang, source=source)
-    sparse_hits = sparse_search(client, collection, q_sparse, k=ann_k, lang=lang, source=source)
+    dense_hits = dense_search(
+        client, collection, q_dense, k=ann_k, lang=lang, source=source,
+        exclude_hashes=exclude_hashes,
+    )
+    sparse_hits = sparse_search(
+        client, collection, q_sparse, k=ann_k, lang=lang, source=source,
+        exclude_hashes=exclude_hashes,
+    )
 
     if not dense_hits and not sparse_hits:
         return []
@@ -127,6 +139,7 @@ def anchored_retrieve(
     char_budget: int = DEFAULT_CHAR_BUDGET,
     lang: str | None = None,
     source: str | None = None,
+    exclude_hashes: list[str] | None = None,
 ) -> list[ScoredChunk]:
     """Document-anchored retrieval.
 
@@ -141,6 +154,7 @@ def anchored_retrieve(
     seed = retrieve_and_rerank(
         query, embedder=embedder, reranker=reranker, client=client,
         collection=collection, ann_k=ann_k, top_k=top_k, lang=lang, source=source,
+        exclude_hashes=exclude_hashes,
     )
     if not seed:
         return []
@@ -148,6 +162,10 @@ def anchored_retrieve(
     logger.debug("anchored to %d docs: %s", len(anchor_docs), anchor_docs)
 
     pool = scroll_doc_chunks(client, collection, anchor_docs)
+    # §3: remove chunks explicitly excluded by the feedback loop.
+    if exclude_hashes:
+        excl = set(exclude_hashes)
+        pool = [c for c in pool if c.record.chunk_hash not in excl]
     # doc_id is lang-agnostic by design, so the expansion pool contains
     # EN+FR chunks for any TSB doc whose stem appears in both corpora.
     # Without a lang filter, the synthesiser would receive a bilingual

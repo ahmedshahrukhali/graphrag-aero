@@ -1,7 +1,9 @@
-"""End-to-end test of the compiled LangGraph + HITL interrupt + resume.
+"""End-to-end test of the compiled LangGraph agent (§3: no HITL interrupt).
 
 Uses MemorySaver (no Postgres) + stubbed deps (no real models, no real Qdrant
-collection beyond the in-memory one).
+collection beyond the in-memory one).  Since interrupt_before was removed in
+§3, a single graph.invoke() runs retrieve→graph_expand→synthesize→finalize
+and returns the completed state with both draft and final set.
 """
 import hashlib
 
@@ -94,37 +96,19 @@ def _make_deps(qclient, *, llm=None, reranker_scores=None):
     )
 
 
-# ─── end-to-end: pause at HITL, then resume ──────────────────────────────────
+# ─── end-to-end: single invoke completes fully (§3: no HITL) ─────────────────
 
-def test_runs_to_interrupt_then_resumes(qclient):
+def test_runs_to_completion_in_one_invoke(qclient):
+    """§3: no interrupt_before — a single invoke returns draft AND final."""
     cp = make_memory_saver()
     graph = build_graph(_make_deps(qclient), checkpointer=cp)
     config = {"configurable": {"thread_id": "t1"}}
 
-    # First invoke runs to the interrupt and returns paused state.
-    paused = graph.invoke(initial_state("q"), config=config)
-    assert paused.get("draft") == "DRAFT ANSWER"
-    assert paused.get("final") is None  # gate not crossed yet
-
-    # Inspect snapshot: next should be ("finalize",).
-    snap = graph.get_state(config)
-    assert tuple(snap.next) == ("finalize",)
-
-    # Resume — finalize runs, copying draft → final.
-    done = graph.invoke(None, config=config)
-    assert done["final"] == "DRAFT ANSWER"
+    done = graph.invoke(initial_state("q"), config=config)
+    assert done.get("draft") == "DRAFT ANSWER"
+    assert done.get("final") == "DRAFT ANSWER"
+    # Graph is at END — no pending nodes.
     assert tuple(graph.get_state(config).next) == ()
-
-
-def test_caller_can_edit_draft_before_resume(qclient):
-    cp = make_memory_saver()
-    graph = build_graph(_make_deps(qclient), checkpointer=cp)
-    config = {"configurable": {"thread_id": "t2"}}
-
-    graph.invoke(initial_state("q"), config=config)  # → pause
-    graph.update_state(config, {"draft": "EDITED"})
-    done = graph.invoke(None, config=config)
-    assert done["final"] == "EDITED"
 
 
 # ─── multi-hop ───────────────────────────────────────────────────────────────
@@ -144,17 +128,13 @@ def test_low_confidence_triggers_another_retrieve_hop(qclient):
 # ─── trace ───────────────────────────────────────────────────────────────────
 
 def test_in_band_trace_records_each_node(qclient):
+    """§3: single invoke → all four nodes appear in trace."""
     cp = make_memory_saver()
     graph = build_graph(_make_deps(qclient), checkpointer=cp)
     config = {"configurable": {"thread_id": "t4"}}
-    paused = graph.invoke(initial_state("q"), config=config)
-    nodes_seen = [t["node"] for t in paused["trace"]]
-    # We pause BEFORE finalize, so trace at this point has retrieve, graph_expand,
-    # synthesize (and maybe more retrieves if multi-hop kicked in).
+    done = graph.invoke(initial_state("q"), config=config)
+    nodes_seen = [t["node"] for t in done["trace"]]
     assert "retrieve" in nodes_seen
     assert "graph_expand" in nodes_seen
     assert "synthesize" in nodes_seen
-    assert "finalize" not in nodes_seen
-    # After resume, finalize lands in the trace.
-    done = graph.invoke(None, config=config)
-    assert "finalize" in [t["node"] for t in done["trace"]]
+    assert "finalize" in nodes_seen

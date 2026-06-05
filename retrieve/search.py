@@ -28,7 +28,12 @@ from .reranker import ScoredChunk
 logger = logging.getLogger(__name__)
 
 
-def _build_filter(*, lang: str | None, source: str | None) -> qm.Filter | None:
+def _build_filter(
+    *,
+    lang: str | None,
+    source: str | None,
+    exclude_hashes: list[str] | None = None,
+) -> qm.Filter | None:
     must: list[qm.FieldCondition] = []
     if lang is not None:
         must.append(qm.FieldCondition(key="lang", match=qm.MatchValue(value=lang)))
@@ -39,9 +44,18 @@ def _build_filter(*, lang: str | None, source: str | None) -> qm.Filter | None:
         must.append(qm.FieldCondition(
             key="doc_id", match=qm.MatchText(text=f"{source}/"),
         ))
-    if not must:
+    must_not: list[qm.FieldCondition] = []
+    if exclude_hashes:
+        for h in exclude_hashes:
+            must_not.append(qm.FieldCondition(
+                key="chunk_hash", match=qm.MatchValue(value=h),
+            ))
+    if not must and not must_not:
         return None
-    return qm.Filter(must=must)
+    return qm.Filter(
+        must=must if must else None,
+        must_not=must_not if must_not else None,
+    )
 
 
 def _hydrate(payload: dict) -> ChunkRecord:
@@ -56,9 +70,10 @@ def dense_search(
     k: int = 50,
     lang: str | None = None,
     source: str | None = None,
+    exclude_hashes: list[str] | None = None,
 ) -> list[ScoredChunk]:
     """Top-``k`` ANN over ``collection`` with optional payload filters."""
-    q_filter = _build_filter(lang=lang, source=source)
+    q_filter = _build_filter(lang=lang, source=source, exclude_hashes=exclude_hashes)
     resp = client.query_points(
         collection_name=collection,
         query=list(query_vector),
@@ -86,6 +101,7 @@ def sparse_search(
     k: int = 50,
     lang: str | None = None,
     source: str | None = None,
+    exclude_hashes: list[str] | None = None,
 ) -> list[ScoredChunk]:
     """Top-``k`` sparse ANN over the named "sparse" vector with optional filters.
 
@@ -98,7 +114,7 @@ def sparse_search(
     indices = sorted(sparse_weights.keys())
     values = [sparse_weights[i] for i in indices]
     q_vec = qm.SparseVector(indices=indices, values=values)
-    q_filter = _build_filter(lang=lang, source=source)
+    q_filter = _build_filter(lang=lang, source=source, exclude_hashes=exclude_hashes)
     try:
         resp = client.query_points(
             collection_name=collection,

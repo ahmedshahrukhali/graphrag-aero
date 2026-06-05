@@ -32,14 +32,17 @@ from retrieve.reranker import CrossEncoderReranker
 
 from .llm import LLM
 from .prompts import SYSTEM_PROMPT, build_user_prompt
+from .reformulate import reformulate
 from .state import AgentState, scored_chunk_to_dict
 
 
 logger = logging.getLogger(__name__)
 
 
-# Threshold below which we trigger another retrieval hop. Tunable.
-CONFIDENCE_THRESHOLD = 0.5
+# Calibrated S27 (2026-06-04): jargon-id eval queries (q08-q11) score <0.4 on
+# hop 1; well-matched queries score >0.85.  The gap [0.4, 0.85] is clean;
+# 0.65 is the midpoint.  Re-calibrate from live eval after corpus changes.
+CONFIDENCE_THRESHOLD = 0.65
 
 
 def _anchored_default() -> bool:
@@ -122,9 +125,18 @@ def _occurrence_ids_from(candidates: list[dict]) -> list[str]:
 def make_retrieve_node(deps: AgentDeps) -> Callable[[AgentState], dict]:
     def retrieve_node(state: AgentState) -> dict:
         started = time.time()
-        query = state["query"]
+        current_hop = state.get("hop", 0)
         lang = state.get("lang")
         source = state.get("source")
+        exclude_hashes = state.get("excluded_chunk_hashes") or []
+
+        # §2: on hop N>1 expand the query with novel terms from prior candidates.
+        if current_hop > 0 and state.get("candidates"):
+            query = reformulate(state["query"], state["candidates"])
+            logger.debug("reformulated query (hop %d): %r", current_hop + 1, query[:120])
+        else:
+            query = state["query"]
+
         if deps.anchored:
             # Anchored mode pools whole documents and lets the char budget +
             # reading-order sort govern, so we replace candidates wholesale
@@ -142,6 +154,7 @@ def make_retrieve_node(deps: AgentDeps) -> Callable[[AgentState], dict]:
                 char_budget=deps.char_budget,
                 lang=lang,
                 source=source,
+                exclude_hashes=exclude_hashes if exclude_hashes else None,
             )
             merged = [scored_chunk_to_dict(r) for r in results]
             n_new = len(merged)
@@ -156,20 +169,25 @@ def make_retrieve_node(deps: AgentDeps) -> Callable[[AgentState], dict]:
                 top_k=deps.top_k,
                 lang=lang,
                 source=source,
+                exclude_hashes=exclude_hashes if exclude_hashes else None,
             )
             new = [scored_chunk_to_dict(r) for r in results]
             merged = _merge_candidates(state.get("candidates", []), new, top_k=deps.top_k)
             n_new = len(new)
+
         trace = list(state.get("trace", []))
         trace.append(_trace_entry(
             "retrieve", started,
             anchored=deps.anchored,
+            hop=current_hop + 1,
+            reformulated=(query != state["query"]),
             n_new=n_new, n_merged=len(merged),
             best_rerank=max((c["rerank_score"] or 0.0) for c in merged) if merged else None,
         ))
         return {
             "candidates": merged,
-            "hop": state.get("hop", 0) + 1,
+            "hop": current_hop + 1,
+            "reformulated_query": query if query != state["query"] else None,
             "trace": trace,
         }
     return retrieve_node
@@ -240,17 +258,31 @@ def make_synthesize_node(deps: AgentDeps) -> Callable[[AgentState], dict]:
             deps.embedder.unload()
         if hasattr(deps.reranker, "unload"):
             deps.reranker.unload()
+
+        system = SYSTEM_PROMPT
+        # §3: if a prior similar answer was rejected, tell the model to avoid
+        # the same framing and cite different evidence.
+        rejected_prior = state.get("rejected_prior")
+        if rejected_prior:
+            system = (
+                f"{SYSTEM_PROMPT}\n\n"
+                "NOTE: A previous answer to a similar question was explicitly "
+                "rejected by the user. Avoid the same framing and cite "
+                "different evidence than: " + rejected_prior[:400]
+            )
+
         user = build_user_prompt(
             state["query"],
             state.get("candidates", []),
             state.get("graph_context", []),
             state.get("recurring_context", []),
         )
-        draft = deps.llm.chat(SYSTEM_PROMPT, user)
+        draft = deps.llm.chat(system, user)
         trace = list(state.get("trace", []))
         trace.append(_trace_entry(
             "synthesize", started,
             prompt_chars=len(user), draft_chars=len(draft),
+            has_rejected_prior=bool(rejected_prior),
         ))
         return {"draft": draft, "trace": trace}
     return synthesize_node

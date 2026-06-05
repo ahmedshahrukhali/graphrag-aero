@@ -61,11 +61,21 @@ class AgentState(TypedDict, total=False):
     draft: str | None
     final: str | None
     trace: list[dict]
+    # §2: reformulated query used for hop N>1
+    reformulated_query: str | None
+    # §3: feedback-loop exclusions set when a prior similar answer was rejected
+    excluded_chunk_hashes: list[str]
+    rejected_prior: str | None
 
 
 def initial_state(
-    query: str, *, max_hops: int = 2,
-    lang: str | None = None, source: str | None = None,
+    query: str,
+    *,
+    max_hops: int = 2,
+    lang: str | None = None,
+    source: str | None = None,
+    excluded_chunk_hashes: list[str] | None = None,
+    rejected_prior: str | None = None,
 ) -> AgentState:
     return AgentState(
         query=query,
@@ -79,4 +89,7 @@ def initial_state(
         draft=None,
         final=None,
         trace=[],
+        reformulated_query=None,
+        excluded_chunk_hashes=excluded_chunk_hashes or [],
+        rejected_prior=rejected_prior,
     )
