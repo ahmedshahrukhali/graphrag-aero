@@ -4,6 +4,17 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 
 ---
 
+## Session 33 — 2026-06-05 — sonnet-4.6
+**Commits:** `eddbeb2`
+**Achieved:**
+- VL model downloaded: Qwen2.5-VL-7B-Instruct (15.46 GB, all 5 shards on D:\) via per-shard `hf_hub_download`
+- Fixed `figures.py`: `Qwen2VLForConditionalGeneration` → `Qwen2_5_VLForConditionalGeneration`; `torch_dtype=` → `dtype=`; `.to(model.device)` → `.to(next(model.parameters()).device)`
+- Committed Docker `vl` stage (CUDA torch cu124 + requirements-vl.txt) that was left uncommitted from S31
+- Diagnosed: real VL inference blocked on host — `torch 2.12.0+cpu` crashes during `Qwen2_5_VL.from_pretrained` init (SIGSEGV/exit-5 regardless of device_map or dtype); safetensors per-shard direct load works fine
+**Left:** Run `--figures` with real Qwen VL inside the Docker `vl` container (CUDA torch) once Docker image is built; then upsert-graph --figures + confirm :Figure/:HAS_FIGURE with real captions.
+
+---
+
 ## Session 32 — 2026-06-05 — sonnet-4.6
 **Commits:** (this session)
 **Achieved:**

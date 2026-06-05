@@ -87,7 +87,12 @@ MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, o
     - graph/schema.py: :Figure constraint; graph/upsert.py: upsert_figures() + HAS_FIGURE edges
     - agent/run.py: --figures flag on upsert-graph
     - 39 new tests (27 figures + 10 upsert + 2 schema); 570 passed, 1 skipped
-**Next (S33):** Wait for Qwen2.5-VL-7B-Instruct download to complete on D:\.cache\huggingface\hub → run `python -m ingestion.processing.run --in data/corpus --out data/chunks --source tsb --limit 5 --figures` with FIGURE_VL_MODEL pointing to local path → verify captions+OCR in {stem}_figures.jsonl → run `python -m agent.run upsert-graph --figures` → confirm :Figure/:HAS_FIGURE with real captions in Neo4j → fold into WS-F.
+☑ S33 VL model download + class fix (by sonnet-4.6, S33) — `eddbeb2`
+    - Qwen2.5-VL-7B-Instruct: 15.46 GB on D:\, all 5 shards present
+    - figures.py: correct class (Qwen2_5_VLForConditionalGeneration), dtype fix, .device fix
+    - Docker vl stage committed (CUDA torch cu124 — resolves host CPU-only crash)
+    - Host blocker: torch 2.12.0+cpu segfaults during Qwen2_5_VL init regardless of device_map/dtype
+**Next (S34):** Build `docker compose --profile ingest build` → run `--figures` inside the vl container to get real captions → `upsert-graph --figures` → confirm :Figure/:HAS_FIGURE with real captions in Neo4j → fold into WS-F.
 ☑ §6 eval/tests/test_feedback_eval.py (by sonnet-4.6, S30) — `6548edd`; 3 pytest wrappers for the standalone feedback_eval audit runner; last open verification item from REDESIGN_PLAN §6.
 ☑ §1 hybrid index re-embed (by sonnet-4.6) — 77,173 chunks, dense+sparse. A/B: R@5=0.727 MRR=0.682 nDCG@5=0.694 (n=11); hybrid parity confirmed (sparse fires, reranker normalises at n=11).
 ☑ §2 query reformulation loop (by sonnet-4.6) — `b246329`
