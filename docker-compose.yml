@@ -65,10 +65,12 @@ services:
     build:
       context: .
       dockerfile: ingestion/processing/Dockerfile
+      target: vl           # WS-C: includes torch + transformers for Qwen2.5-VL figure captioning
     profiles: ["ingest"]   # one-shot; doesn't auto-start with infra
     volumes:
       - ./data:/app/data
       - paddle_ocr_models:/root/.paddleocr
+      - "D:/.cache/huggingface/hub:/opt/hf-cache/hub"  # VL model weights (Qwen2.5-VL-7B-Instruct)
     deploy:                # GPU PaddleOCR (paddlepaddle-gpu); idle when no OCR fires
       resources:
         reservations:

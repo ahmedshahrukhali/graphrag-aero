@@ -101,12 +101,12 @@ class QwenVLCaptioner:
 
     def _load(self) -> None:
         import torch
-        from transformers import AutoProcessor, Qwen2VLForConditionalGeneration
+        from transformers import AutoProcessor, Qwen2_5_VLForConditionalGeneration
 
         logger.info("loading VL model %s (this may take a minute)…", self.model_name)
-        self._model = Qwen2VLForConditionalGeneration.from_pretrained(
+        self._model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
             self.model_name,
-            torch_dtype=torch.bfloat16,
+            dtype=torch.bfloat16,
             device_map="auto",
             trust_remote_code=True,
         )
@@ -169,7 +169,7 @@ class QwenVLCaptioner:
             videos=video_inputs,
             padding=True,
             return_tensors="pt",
-        ).to(self._model.device)
+        ).to(next(self._model.parameters()).device)
 
         with torch.no_grad():
             generated_ids = self._model.generate(
