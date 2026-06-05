@@ -266,6 +266,92 @@ def test_hybrid_llm_findings_override_regex_list_items():
     assert not any("Short list item" in t for t in texts)
 
 
+# ─── Aircraft extraction ─────────────────────────────────────────────────────
+
+def test_aircraft_bombardier_dhc8_with_series():
+    rx = RegexExtractor()
+    ents = rx.extract(_rec("The DHC-8-402 departed runway 28."))
+    assert "aircraft" in ents
+    assert "DHC-8-402" in ents["aircraft"]
+
+def test_aircraft_q400_normalises_to_dhc8():
+    rx = RegexExtractor()
+    ents = rx.extract(_rec("A Q400 operated by the carrier stalled on approach."))
+    assert "DHC-8-402" in ents["aircraft"]
+
+def test_aircraft_dash8_generic():
+    rx = RegexExtractor()
+    ents = rx.extract(_rec("The Dash 8 was on a scheduled flight."))
+    assert "DHC-8" in ents["aircraft"]
+
+def test_aircraft_crj_with_series():
+    rx = RegexExtractor()
+    ents = rx.extract(_rec("The CRJ-200 was cleared for takeoff."))
+    assert "CRJ-200" in ents["aircraft"]
+
+def test_aircraft_crj_bare():
+    rx = RegexExtractor()
+    ents = rx.extract(_rec("The CRJ was involved in a runway excursion."))
+    assert "CRJ" in ents["aircraft"]
+
+def test_aircraft_challenger():
+    rx = RegexExtractor()
+    ents = rx.extract(_rec("A Bombardier Challenger 604 suffered an engine failure."))
+    assert "Challenger-604" in ents["aircraft"]
+
+def test_aircraft_global():
+    rx = RegexExtractor()
+    ents = rx.extract(_rec("The Global 5000 was en route to Vancouver."))
+    assert "Global-5000" in ents["aircraft"]
+
+def test_aircraft_learjet():
+    rx = RegexExtractor()
+    ents = rx.extract(_rec("The Learjet 45 overran the runway."))
+    assert "Learjet-45" in ents["aircraft"]
+
+def test_aircraft_twin_otter():
+    rx = RegexExtractor()
+    ents = rx.extract(_rec("The Twin Otter was operating on floats."))
+    assert "DHC-6" in ents["aircraft"]
+
+def test_aircraft_competitor_atr():
+    rx = RegexExtractor()
+    ents = rx.extract(_rec("The ATR-72 was on a charter flight."))
+    assert "ATR-72" in ents["aircraft"]
+
+def test_aircraft_competitor_erj():
+    rx = RegexExtractor()
+    ents = rx.extract(_rec("An ERJ-145 was involved in a hard landing."))
+    assert "ERJ-145" in ents["aircraft"]
+
+def test_aircraft_king_air():
+    rx = RegexExtractor()
+    ents = rx.extract(_rec("The King Air 200 was conducting a medevac flight."))
+    assert "King-Air-200" in ents["aircraft"]
+
+def test_aircraft_canadian_registration():
+    rx = RegexExtractor()
+    ents = rx.extract(_rec("Aircraft C-FABC departed at 0900Z."))
+    assert "C-FABC" in ents["aircraft"]
+
+def test_aircraft_multiple_in_chunk():
+    rx = RegexExtractor()
+    ents = rx.extract(_rec("The CRJ-200 collided with a DHC-8-311 on the taxiway."))
+    assert "CRJ-200" in ents["aircraft"]
+    assert "DHC-8-311" in ents["aircraft"]
+
+def test_aircraft_deduplicates():
+    rx = RegexExtractor()
+    ents = rx.extract(_rec("The Q400 (DHC-8-402) departed. The Q400 returned."))
+    # Q400 maps to DHC-8-402; DHC-8-402 explicit — should appear only once
+    assert ents["aircraft"].count("DHC-8-402") == 1
+
+def test_aircraft_absent_returns_no_key():
+    rx = RegexExtractor()
+    ents = rx.extract(_rec("The weather was clear with good visibility."))
+    assert "aircraft" not in ents
+
+
 def test_hybrid_no_llm_call_on_nonsection_chunk():
     llm = StubLLM()
     ex = HybridExtractor(llm)

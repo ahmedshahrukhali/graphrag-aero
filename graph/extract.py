@@ -21,7 +21,7 @@ ExtractedEntities structure
                       category: "cause" | "risk" | "safety_action"
   recommendations:  list[dict]  {id: str|None, text: str, lang: str}
                       id is a TSB rec id (e.g. "A19-01") when present
-  aircraft:         list[str]   (reserved — not populated yet)
+  aircraft:         list[str]   canonical type IDs, e.g. "DHC-8-402", "CRJ-200"
 """
 from __future__ import annotations
 
@@ -98,6 +98,94 @@ _LIST_ITEM = re.compile(r"(?:^|\n)\s*(?:\d+\.|•|-|\*)\s+(.+?)(?=\n\s*(?:\d+\.|
                         re.S)
 
 
+# ─── aircraft patterns ───────────────────────────────────────────────────────
+# Each entry: (compiled_pattern, canonical)
+# canonical is a plain string or a callable(re.Match) -> str.
+# Order matters: more-specific patterns first so DHC-8-402 beats DHC-8.
+
+def _c(s: str):
+    """Wrap a string canonical so the dispatch loop is uniform."""
+    return lambda _m: s
+
+
+_AIRCRAFT_PATTERNS: list[tuple[re.Pattern, object]] = [
+    # ── Bombardier: DHC-8 / Dash 8 / Q-series ────────────────────────────────
+    (re.compile(r"\bDHC[-\s]?8[-\s][-\s]?(\d{3})[A-Z]?\b", re.I),
+     lambda m: f"DHC-8-{m.group(1)}"),
+    (re.compile(r"\bQ\s*(400|300|200|100)\b", re.I),
+     lambda m: {"400": "DHC-8-402", "300": "DHC-8-311",
+                "200": "DHC-8-202", "100": "DHC-8-102"}[m.group(1)]),
+    (re.compile(r"\bDash[-\s]?8\b|\bDHC[-\s]?8\b", re.I), _c("DHC-8")),
+    # ── Bombardier: CRJ ───────────────────────────────────────────────────────
+    (re.compile(r"\bCRJ[-\s]?(1000|900|705|700|200|100)\b", re.I),
+     lambda m: f"CRJ-{m.group(1)}"),
+    (re.compile(r"\bCanadair\s+Regional\s+Jet\s*(\d{3})?\b", re.I),
+     lambda m: f"CRJ-{m.group(1)}" if m.group(1) else "CRJ"),
+    (re.compile(r"\bCRJ\b", re.I), _c("CRJ")),
+    # ── Bombardier: Learjet ───────────────────────────────────────────────────
+    (re.compile(r"\bLearjet\s*(\d{2}[A-Z]?)\b", re.I),
+     lambda m: f"Learjet-{m.group(1).upper()}"),
+    # ── Bombardier: Challenger ────────────────────────────────────────────────
+    (re.compile(r"\bChallenger\s*(\d{3})\b", re.I),
+     lambda m: f"Challenger-{m.group(1)}"),
+    (re.compile(r"\bCL[-\s]?(6\d{2})\b", re.I),
+     lambda m: f"CL-{m.group(1)}"),
+    # ── Bombardier: Global ────────────────────────────────────────────────────
+    (re.compile(r"\bGlobal\s*(Express|XRS|8000|7500|6500|6000|5500|5000)\b", re.I),
+     lambda m: f"Global-{m.group(1).title().replace(' ', '')}"),
+    (re.compile(r"\bBD[-\s]?700\b", re.I), _c("BD-700")),
+    # ── de Havilland Canada (pre-Bombardier) ──────────────────────────────────
+    (re.compile(r"\bTwin\s+Otter\b|\bDHC[-\s]?6\b", re.I), _c("DHC-6")),
+    (re.compile(r"\bDHC[-\s]?2\b|\bBeaver\b", re.I), _c("DHC-2")),
+    (re.compile(r"\bDHC[-\s]?3\b|\bSingle\s+Otter\b", re.I), _c("DHC-3")),
+    (re.compile(r"\bDHC[-\s]?([2-9])\b", re.I), lambda m: f"DHC-{m.group(1)}"),
+    # ── Competitors: ATR ──────────────────────────────────────────────────────
+    (re.compile(r"\bATR[-\s]?(72|42)(?:[-\s]\d{3})?\b", re.I),
+     lambda m: f"ATR-{m.group(1)}"),
+    # ── Competitors: Embraer ──────────────────────────────────────────────────
+    (re.compile(r"\bERJ[-\s]?(\d{3})\b", re.I),
+     lambda m: f"ERJ-{m.group(1)}"),
+    (re.compile(r"\bE[-\s]?(170|175|190|195)(?:[-\s]E2)?\b", re.I),
+     lambda m: f"E{m.group(1)}"),
+    # ── Competitors: Beechcraft ───────────────────────────────────────────────
+    (re.compile(r"\bKing\s+Air\s+([A-Z]?\d{2,3}[A-Z]*)\b", re.I),
+     lambda m: f"King-Air-{m.group(1).upper()}"),
+    (re.compile(r"\bBeech(?:craft)?\s+1900[A-Z]?|\b1900[CD]\b", re.I),
+     _c("Beechcraft-1900")),
+    # ── Piper ─────────────────────────────────────────────────────────────────
+    (re.compile(r"\bPA[-\s](\d{2}[A-Z]?)\b", re.I),
+     lambda m: f"PA-{m.group(1).upper()}"),
+    # ── Cessna ────────────────────────────────────────────────────────────────
+    (re.compile(r"\bCessna\s+(\d{3}[A-Z]?)\b", re.I),
+     lambda m: f"Cessna-{m.group(1).upper()}"),
+    # ── Pilatus ───────────────────────────────────────────────────────────────
+    (re.compile(r"\bPC[-\s]?(12|24)\b", re.I),
+     lambda m: f"PC-{m.group(1)}"),
+    # ── Gulfstream ────────────────────────────────────────────────────────────
+    (re.compile(r"\bGulfstream\s+G(\d{3,4})\b", re.I),
+     lambda m: f"G{m.group(1)}"),
+    # ── Dassault Falcon ───────────────────────────────────────────────────────
+    (re.compile(r"\bFalcon\s*(\d{3,4}[A-Z]?)\b", re.I),
+     lambda m: f"Falcon-{m.group(1)}"),
+    # ── Canadian registration ─────────────────────────────────────────────────
+    (re.compile(r"\bC-([A-Z]{4})\b"),
+     lambda m: f"C-{m.group(1)}"),
+]
+
+
+def _extract_aircraft_types(text: str) -> list[str]:
+    """Return deduplicated canonical aircraft identifiers found in *text*."""
+    found: list[str] = []
+    seen: set[str] = set()
+    for pattern, canonical in _AIRCRAFT_PATTERNS:
+        for match in pattern.finditer(text):
+            key = canonical(match) if callable(canonical) else canonical
+            if key not in seen:
+                seen.add(key)
+                found.append(key)
+    return found
+
+
 # ─── regex extractor ─────────────────────────────────────────────────────────
 
 class RegexExtractor:
@@ -139,6 +227,11 @@ class RegexExtractor:
         if rec_ids:
             ents["recommendations"] = [{"id": rid, "text": "", "lang": chunk.lang}
                                         for rid in rec_ids]
+
+        # Aircraft types and registrations
+        aircraft = _extract_aircraft_types(text)
+        if aircraft:
+            ents["aircraft"] = aircraft
 
         return ents
 

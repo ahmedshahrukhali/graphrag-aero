@@ -192,6 +192,19 @@ MATCH (a:AC {id: row.ac_id})
 MERGE (reg)-[:GUIDED_BY]->(a)
 """.strip()
 
+_UPSERT_AIRCRAFT = """
+UNWIND $rows AS row
+MERGE (a:Aircraft {id: row.id})
+SET a.type_family = row.type_family
+""".strip()
+
+_LINK_OCC_AIRCRAFT = """
+UNWIND $rows AS row
+MATCH (o:Occurrence {id: row.occ_id})
+MATCH (a:Aircraft {id: row.aircraft_id})
+MERGE (o)-[:INVOLVES]->(a)
+""".strip()
+
 
 def _finding_id(occ_id: str, text: str) -> str:
     h = hashlib.sha256(f"{occ_id}:{text}".encode()).hexdigest()[:12]
@@ -220,9 +233,11 @@ def upsert_entities_from_chunks(
     rec_rows: list[dict] = []
     reg_ids: set[str] = set()
     ac_ids: set[str] = set()
+    aircraft_ids: set[str] = set()
     finding_reg_links: list[dict] = []
     occ_reg_links: list[dict] = []
     occ_ac_links: list[dict] = []
+    occ_aircraft_links: list[dict] = []
     chunks_processed = 0
 
     for rec in iter_records(chunks_root):
@@ -250,6 +265,12 @@ def upsert_entities_from_chunks(
             ac_ids.add(ac)
             if is_tsb:
                 occ_ac_links.append({"occ_id": occ_id, "ac_id": ac})
+
+        # Aircraft
+        for ac_type in ents.get("aircraft") or []:
+            aircraft_ids.add(ac_type)
+            if is_tsb:
+                occ_aircraft_links.append({"occ_id": occ_id, "aircraft_id": ac_type})
 
         # Findings (TSB only — TC ACs don't have safety findings)
         if is_tsb:
@@ -289,6 +310,11 @@ def upsert_entities_from_chunks(
                    _dedup_link_rows(occ_reg_links), batch_size)
         _batch_run(session, _LINK_OCC_AC,
                    _dedup_link_rows(occ_ac_links), batch_size)
+        _batch_run(session, _UPSERT_AIRCRAFT,
+                   [{"id": a, "type_family": a.split("-")[0]} for a in aircraft_ids],
+                   batch_size)
+        _batch_run(session, _LINK_OCC_AIRCRAFT,
+                   _dedup_link_rows(occ_aircraft_links), batch_size)
 
     counts = {
         "chunks": chunks_processed,
@@ -296,6 +322,7 @@ def upsert_entities_from_chunks(
         "acs": len(ac_ids),
         "findings": len(finding_rows),
         "recommendations": len(rec_rows),
+        "aircraft": len(aircraft_ids),
     }
     logger.info("upsert_entities_from_chunks: %s", counts)
     return counts
