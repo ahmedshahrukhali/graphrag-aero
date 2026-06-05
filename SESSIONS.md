@@ -4,6 +4,18 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 
 ---
 
+## Session 31 — 2026-06-05 — sonnet-4.6
+**Commits:** `33b3c90`
+**Achieved:**
+- WS-C figures tier: `ingestion/processing/figures.py` — FigureRecord, FigureCaptioner protocol, QwenVLCaptioner (HF transformers, Qwen2.5-VL-7B-Instruct, configurable via FIGURE_VL_MODEL), detect_figures/extract_figures, figure_to_chunk_dict (kind=figure chunk)
+- `--figures` flag in run.py: sequential VL pass after OCR (VRAM discipline); writes `{stem}_figures.jsonl`
+- `graph/schema.py`: :Figure constraint; `graph/upsert.py`: upsert_figures() + HAS_FIGURE edges for TSB occurrences
+- `agent/run.py`: --figures on upsert-graph, _load_figure_records_from_chunks
+- 570 passed, 1 skipped (+43 new tests, 0 regressions)
+**Left:** WS-C live verification (run --figures on 5 TSB docs, confirm crops+JSONL); then WS-F fold-in.
+
+---
+
 ## Session 30 — 2026-06-05 — sonnet-4.6
 **Commits:** `6548edd`
 **Achieved:**

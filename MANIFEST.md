@@ -77,9 +77,16 @@ None. All resolved.
 MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, otel/otel-collector-config.yaml, per-dir README placeholders
 
 ## Resume pointer
-**⮕ S30 DONE. REDESIGN_PLAN §1–§6 fully closed. 527 passed, 1 skipped.**
+**⮕ S31 DONE. WS-C figure extraction tier complete. 570 passed, 1 skipped.**
+☑ WS-C figures (by sonnet-4.6, S31) — `33b3c90`; Qwen3-VL-8B figure tier:
+    - ingestion/processing/figures.py: FigureRecord + FigureCaptioner protocol + QwenVLCaptioner (HF transformers)
+    - --figures flag in run.py: sequential pass after text chunking (VRAM discipline)
+    - {stem}_figures.jsonl output: kind=figure chunks, caption+OCR as retrievable text
+    - graph/schema.py: :Figure constraint; graph/upsert.py: upsert_figures() + HAS_FIGURE edges
+    - agent/run.py: --figures flag on upsert-graph
+    - 39 new tests (27 figures + 10 upsert + 2 schema); 570 passed, 1 skipped
+**Next:** WS-C live verification — run --figures on a small sample (e.g. 5 TSB docs) to confirm crops feed correctly and figure chunks land in JSONL. Then fold into WS-F run.
 ☑ §6 eval/tests/test_feedback_eval.py (by sonnet-4.6, S30) — `6548edd`; 3 pytest wrappers for the standalone feedback_eval audit runner; last open verification item from REDESIGN_PLAN §6.
-**Next:** live eval run to confirm post-redesign A/B numbers, or WS-C figures (Qwen3-VL-8B).
 ☑ §1 hybrid index re-embed (by sonnet-4.6) — 77,173 chunks, dense+sparse. A/B: R@5=0.727 MRR=0.682 nDCG@5=0.694 (n=11); hybrid parity confirmed (sparse fires, reranker normalises at n=11).
 ☑ §2 query reformulation loop (by sonnet-4.6) — `b246329`
 ☑ §3 HITL removal + negative-feedback store + `/reject` + `/resolve` + top-N fix (by sonnet-4.6) — `b246329`, `d65e524`, `4a7dc15`
