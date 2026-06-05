@@ -51,7 +51,9 @@ def test_reject_stores_rejection(make_client, stub_deps_with_checkpointer):
     rec = fb.rejections[0]
     assert rec["query"] == "fuel"
     assert rec["answer"] == "stubbed draft answer."
+    # Only top-3 candidates excluded by default, not the full candidate list.
     assert isinstance(rec["chunk_hashes"], list)
+    assert len(rec["chunk_hashes"]) <= 3
 
 
 def test_reject_unknown_thread_returns_404(make_client, stub_deps_with_checkpointer):

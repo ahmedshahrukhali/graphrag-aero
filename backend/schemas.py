@@ -87,6 +87,9 @@ class RejectRequest(BaseModel):
     # Client may supply extra discriminating terms (e.g. from UI tag input).
     # If absent, terms are derived from the reformulated query in the checkpoint.
     terms: list[str] = Field(default_factory=list)
+    # How many top-ranked candidates to exclude on retry. Candidates are sorted
+    # descending by rerank_score — the top N drove the answer; the rest didn't.
+    top_reject: int = Field(3, ge=1, le=20)
 
 
 class RejectResponse(BaseModel):

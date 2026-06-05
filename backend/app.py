@@ -328,7 +328,11 @@ def _register_routes(app: FastAPI) -> None:
         q: str = state.get("query", "")
         answer: str = state.get("final") or state.get("draft") or ""
         candidates: list[dict] = state.get("candidates", [])
-        chunk_hashes = [c["chunk_hash"] for c in candidates]
+        # Candidates are sorted descending by rerank_score (see _merge_candidates).
+        # Only exclude the top-ranked ones — those are what the synthesiser drew on.
+        # Lower-ranked candidates had little influence and shouldn't be wasted.
+        _TOP_REJECT = body.top_reject
+        chunk_hashes = [c["chunk_hash"] for c in candidates[:_TOP_REJECT]]
         q_emb: list[float] | None = state.get("query_emb")
 
         # derive terms from the reformulated query (novel tokens added by hop-2)
