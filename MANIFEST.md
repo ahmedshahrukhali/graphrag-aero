@@ -77,7 +77,7 @@ None. All resolved.
 MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, otel/otel-collector-config.yaml, per-dir README placeholders
 
 ## Resume pointer
-**⮕ S28 DONE. §4 complete. No pending code work — standing by for next instruction.**
+**⮕ S29 DONE. §4 live verification complete. Standing by for next instruction.**
 ☑ §1 hybrid index re-embed (by sonnet-4.6) — 77,173 chunks, dense+sparse. A/B: R@5=0.727 MRR=0.682 nDCG@5=0.694 (n=11); hybrid parity confirmed (sparse fires, reranker normalises at n=11).
 ☑ §2 query reformulation loop (by sonnet-4.6) — `b246329`
 ☑ §3 HITL removal + negative-feedback store + `/reject` + `/resolve` + top-N fix (by sonnet-4.6) — `b246329`, `d65e524`, `4a7dc15`
@@ -89,6 +89,12 @@ MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, o
     - Regulation-[:GUIDED_BY]->AC now populated from TC corpus (was wired but never fed)
     - query.py: rec_regs + reg_guided_acs in traversal output; prompts.py renders them
     - 524 passed, 1 skipped (+19 new tests)
+☑ §4 live verification (by sonnet-4.6, S29) — `init_schema` + `upsert-graph` on live Neo4j:
+    - :Document label: 1,441 nodes (1,199 Occurrence + 242 AC)
+    - IMPLEMENTS edges (Rec→Reg): 55 | GUIDED_BY edges (Reg→AC): 652
+    - graph_eval TraversalHit=1.0 (all 4 occurrences, findings+regs populated)
+    - dense eval confirmed stable: R@5=0.7273 MRR=0.6818 nDCG@5=0.6937 (n=11)
+      EN(n=5) R@5=0.800 MRR=0.800 | FR(n=2) R@5=0.500 MRR=0.250 | ZH(n=4) R@5=0.750 MRR=0.750
 WS-F re-ingest is DONE (S24: 77,173 vectors in `aerospace_dense`) — the redesign operates on that index.
 The pre-S25 re-ingest pointer below is historical; do not restart it.
 

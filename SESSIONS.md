@@ -4,6 +4,19 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 
 ---
 
+## Session 29 — 2026-06-05 — sonnet-4.6
+**Commits:** see below (this session)
+**Achieved:**
+- `init_schema` applied (11 statements, idempotent) — S28 backfill migrations confirmed on live Neo4j
+- `upsert-graph` on 77,173 chunks → 55 IMPLEMENTS (Rec→Reg) + 652 GUIDED_BY (Reg→AC) + 1,441 :Document nodes populated
+- `graph_eval`: TraversalHit=1.0 across all 4 occurrences (findings + regs + acs in traversal)
+- dense eval: R@5=0.7273 MRR=0.6818 nDCG@5=0.6937 (n=11) — matches S27 baseline, retrieval stable
+- host env dep fixes: accelerate→0.33.0, huggingface-hub→0.36.2, httpx→0.27.2 (peft/starlette compat)
+- 524 passed, 1 skipped (suite unchanged)
+**Left:** nothing — §4 fully verified live. Standing by for next instruction.
+
+---
+
 ## Session 28 — 2026-06-05 — sonnet-4.6
 **Commits:** `157f7ae` (§4 graph restructure)
 **Achieved:**
