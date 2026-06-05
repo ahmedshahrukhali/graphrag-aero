@@ -77,12 +77,18 @@ None. All resolved.
 MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, otel/otel-collector-config.yaml, per-dir README placeholders
 
 ## Resume pointer
-**⮕ S27 DONE. Resume at §4 graph schema restructuring.**
+**⮕ S28 DONE. §4 complete. No pending code work — standing by for next instruction.**
 ☑ §1 hybrid index re-embed (by sonnet-4.6) — 77,173 chunks, dense+sparse. A/B: R@5=0.727 MRR=0.682 nDCG@5=0.694 (n=11); hybrid parity confirmed (sparse fires, reranker normalises at n=11).
 ☑ §2 query reformulation loop (by sonnet-4.6) — `b246329`
 ☑ §3 HITL removal + negative-feedback store + `/reject` + `/resolve` + top-N fix (by sonnet-4.6) — `b246329`, `d65e524`, `4a7dc15`
 ☑ §4-prep Aircraft extraction + `:INVOLVES` edges (by sonnet-4.6) — `7a585ef`
-**Next:** §4 graph schema — verify corpus doc_ids in rebuilt index, implement `Finding→Recommendation→IMPLEMENTS→Regulation→CITES→AC` depth traversal in `graph/query.py`.
+☑ §4 Document-rooted schema + dispatch seam + deeper traversal (by sonnet-4.6) — `157f7ae`
+    - :Document root label + doc_id on Occurrence/AC; WHERE-guarded backfill migrations
+    - DispatchExtractor routes per corpus prefix ("tsb"/"tc"/future)
+    - Recommendation-[:IMPLEMENTS]->Regulation (co-cited in same chunk)
+    - Regulation-[:GUIDED_BY]->AC now populated from TC corpus (was wired but never fed)
+    - query.py: rec_regs + reg_guided_acs in traversal output; prompts.py renders them
+    - 524 passed, 1 skipped (+19 new tests)
 WS-F re-ingest is DONE (S24: 77,173 vectors in `aerospace_dense`) — the redesign operates on that index.
 The pre-S25 re-ingest pointer below is historical; do not restart it.
 

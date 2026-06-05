@@ -4,6 +4,18 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 
 ---
 
+## Session 28 — 2026-06-05 — sonnet-4.6
+**Commits:** `157f7ae` (§4 graph restructure)
+**Achieved:**
+- §4a schema.py: Document root constraint + doc_id index + WHERE-guarded backfill migrations for existing nodes
+- §4b upsert.py: :Document label + doc_id on Occurrence/AC; Recommendation-[:IMPLEMENTS]->Regulation edges; Regulation-[:GUIDED_BY]->AC now populated from TC corpus (bug fix — edge was wired but never fed data)
+- §4c extract.py: dispatch_extractor() + DispatchExtractor class — corpus-prefix routing seam
+- §4d query.py: deeper traversal — rec_regs + reg_guided_acs in output; prompts.py renders them
+- 524 passed, 1 skipped (+19 new tests, 0 regressions)
+**Left:** §4 live verification — run `init_schema` + `upsert-graph` on live Neo4j to populate new edges; then re-run eval to confirm graph enrichment is visible
+
+---
+
 ## Session 27 — 2026-06-05 — sonnet-4.6
 **Commits:** `b246329` (§2+§3), `d65e524` (/reject), `4a7dc15` (/resolve + top-N fix), `7a585ef` (aircraft)
 **Achieved:**
