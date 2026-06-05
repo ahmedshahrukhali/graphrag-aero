@@ -61,6 +61,21 @@ def test_reject_unknown_thread_returns_404(make_client, stub_deps_with_checkpoin
     assert r.status_code == 404, r.text
 
 
+def test_resolve_clears_rejection(make_client, stub_deps_with_checkpointer):
+    """POST /resolve/{id} calls feedback_store.resolve with the right id."""
+    client = make_client()
+    client.post("/query", json={"query": "fuel", "thread_id": "res1", "max_hops": 1})
+    rej = client.post("/reject/res1", json={}).json()
+    rid = rej["rejection_id"]
+
+    r = client.post(f"/resolve/{rid}")
+    assert r.status_code == 200, r.text
+    assert r.json()["rejection_id"] == rid
+
+    fb = stub_deps_with_checkpointer._stubs["feedback_store"]
+    assert rid in fb.resolved_ids
+
+
 def _sse_events(text: str) -> list[str]:
     return [ln[len("event:"):].strip() for ln in text.splitlines() if ln.startswith("event:")]
 

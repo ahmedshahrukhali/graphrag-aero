@@ -94,6 +94,10 @@ class RejectResponse(BaseModel):
     terms: list[str]
 
 
+class ResolveResponse(BaseModel):
+    rejection_id: int
+
+
 # ─── /healthz ────────────────────────────────────────────────────────────────
 
 class ComponentHealth(BaseModel):

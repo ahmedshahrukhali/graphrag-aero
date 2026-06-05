@@ -87,6 +87,7 @@ class StubFeedbackStore:
 
     def __init__(self) -> None:
         self.rejections: list[dict] = []
+        self.resolved_ids: list[int] = []
         self._next_id = 1
 
     def write_rejection(self, query, query_embedding, answer, chunk_hashes, terms=None):
@@ -102,7 +103,7 @@ class StubFeedbackStore:
         return []
 
     def resolve(self, row_id: int) -> None:
-        pass
+        self.resolved_ids.append(row_id)
 
 
 class StubNeo4jSession:

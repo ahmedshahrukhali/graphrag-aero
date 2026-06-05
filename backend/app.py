@@ -29,6 +29,7 @@ from .schemas import (
     QueryRequest,
     RejectRequest,
     RejectResponse,
+    ResolveResponse,
     ResumeRequest,
     ResumeResponse,
     RetrieveRequest,
@@ -346,6 +347,20 @@ def _register_routes(app: FastAPI) -> None:
             q, q_emb, answer, chunk_hashes, terms or None,
         )
         return RejectResponse(rejection_id=row_id, terms=terms)
+
+    @app.post("/resolve/{rejection_id}", response_model=ResolveResponse)
+    def resolve(rejection_id: int, request: Request) -> ResolveResponse:
+        """§3: mark a rejected QA row as resolved.
+
+        Call this after the user accepts a retry answer for a thread that was
+        previously rejected.  Clears the ``unaccepted_qa`` row so future
+        similar queries no longer inherit its exclusions.
+        """
+        deps = _get_deps(request)
+        if deps.feedback_store is None:
+            raise HTTPException(503, "feedback store not configured (POSTGRES_DSN not set)")
+        deps.feedback_store.resolve(rejection_id)
+        return ResolveResponse(rejection_id=rejection_id)
 
     @app.get("/graph/{doc_id:path}")
     def graph_lookup(doc_id: str, request: Request) -> dict:

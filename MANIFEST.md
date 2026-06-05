@@ -77,13 +77,12 @@ None. All resolved.
 MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, otel/otel-collector-config.yaml, per-dir README placeholders
 
 ## Resume pointer
-**⮕ S27 NEXT (set S26, sonnet-4.6): continue [docs/REDESIGN_PLAN.md](docs/REDESIGN_PLAN.md).**
-§5+§1+§6 landed (commits `d16fe10`, `12e8f8f`). Next: **§2** query reformulation loop
-(`agent/reformulate.py`, real hop-N queries, calibrate `CONFIDENCE_THRESHOLD`), then **§3**
-remove HITL + negative-feedback store. Live step before §2: re-embed with `--sparse --recreate`
-to get the hybrid index (`python -m embed.run --sparse --recreate` inside the embed container
-— needs Docker Desktop up), then run `python -m eval.run --json` vs `--mode hybrid` to record
-the dense-vs-hybrid A/B numbers for the SESSIONS entry.
+**⮕ S27 IN PROGRESS (sonnet-4.6): [docs/REDESIGN_PLAN.md](docs/REDESIGN_PLAN.md).**
+☑ §2 query reformulation loop (by sonnet-4.6) — `b246329`
+☑ §3 HITL removal + negative-feedback store + `/reject` + `/resolve` (by sonnet-4.6) — `b246329`, `d65e524`, `HEAD`
+⏳ §1 hybrid index re-embed running (task bsnci9jve, ~77k chunks). **Next:** when embed completes,
+run `python -m eval.run --json` then `python -m eval.run --mode hybrid --json` to record A/B numbers,
+then close S27 SESSIONS entry and advance to **§4** graph schema restructuring.
 WS-F re-ingest is DONE (S24: 77,173 vectors in `aerospace_dense`) — the redesign operates on that index.
 The pre-S25 re-ingest pointer below is historical; do not restart it.
 
