@@ -77,7 +77,9 @@ None. All resolved.
 MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, otel/otel-collector-config.yaml, per-dir README placeholders
 
 ## Resume pointer
-**⮕ S31 DONE. WS-C figure extraction tier complete. 570 passed, 1 skipped.**
+**⮕ S32 DONE. Eval A/B confirmed, figure pipeline mock-verified. VL model download in progress.**
+☑ S32 eval A/B (by sonnet-4.6, S32) — hybrid n=11: R@5=0.7273 MRR=0.6818 nDCG@5=0.6937; by_lang: en=0.800, fr=0.250 MRR, zh=0.750 MRR; no regression vs §1 baseline
+☑ S32 WS-C mock-verify (by sonnet-4.6, S32) — figure detected (a00a0051 p4), _figures.jsonl written, :Figure+:HAS_FIGURE in Neo4j; :Figure constraint applied to live schema
 ☑ WS-C figures (by sonnet-4.6, S31) — `33b3c90`; Qwen3-VL-8B figure tier:
     - ingestion/processing/figures.py: FigureRecord + FigureCaptioner protocol + QwenVLCaptioner (HF transformers)
     - --figures flag in run.py: sequential pass after text chunking (VRAM discipline)
@@ -85,7 +87,7 @@ MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, o
     - graph/schema.py: :Figure constraint; graph/upsert.py: upsert_figures() + HAS_FIGURE edges
     - agent/run.py: --figures flag on upsert-graph
     - 39 new tests (27 figures + 10 upsert + 2 schema); 570 passed, 1 skipped
-**Next:** WS-C live verification — run --figures on a small sample (e.g. 5 TSB docs) to confirm crops feed correctly and figure chunks land in JSONL. Then fold into WS-F run.
+**Next (S33):** Wait for Qwen2.5-VL-7B-Instruct download to complete on D:\.cache\huggingface\hub → run `python -m ingestion.processing.run --in data/corpus --out data/chunks --source tsb --limit 5 --figures` with FIGURE_VL_MODEL pointing to local path → verify captions+OCR in {stem}_figures.jsonl → run `python -m agent.run upsert-graph --figures` → confirm :Figure/:HAS_FIGURE with real captions in Neo4j → fold into WS-F.
 ☑ §6 eval/tests/test_feedback_eval.py (by sonnet-4.6, S30) — `6548edd`; 3 pytest wrappers for the standalone feedback_eval audit runner; last open verification item from REDESIGN_PLAN §6.
 ☑ §1 hybrid index re-embed (by sonnet-4.6) — 77,173 chunks, dense+sparse. A/B: R@5=0.727 MRR=0.682 nDCG@5=0.694 (n=11); hybrid parity confirmed (sparse fires, reranker normalises at n=11).
 ☑ §2 query reformulation loop (by sonnet-4.6) — `b246329`

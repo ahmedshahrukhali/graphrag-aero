@@ -4,6 +4,17 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 
 ---
 
+## Session 32 — 2026-06-05 — sonnet-4.6
+**Commits:** (this session)
+**Achieved:**
+- Eval A/B confirmed: R@5=0.7273 MRR=0.6818 nDCG@5=0.6937 (n=11, hybrid) — matches §1 baseline; by_lang: en=0.800, fr=0.250 MRR, zh=0.750 MRR; no regression post-redesign
+- WS-C figure pipeline live-verified with mock captioner: a00a0051.pdf page 4 detected (bbox=[332.8,192.0,534.2,420.4]), figure_id=`tsb/a00a0051:fig:4:31231c279c92`, _figures.jsonl written (kind=figure), :Figure node + :HAS_FIGURE edge confirmed in Neo4j
+- :Figure uniqueness constraint created in live Neo4j (12 schema statements applied)
+- Qwen2.5-VL-7B-Instruct download in progress on D:\ (~40% done, ~6 MB/s)
+**Left:** VL model download to complete; run --figures with real Qwen on 5 TSB docs, verify captions+OCR in JSONL, confirm :Figure/:HAS_FIGURE with real captions → then fold into WS-F.
+
+---
+
 ## Session 31 — 2026-06-05 — sonnet-4.6
 **Commits:** `33b3c90`
 **Achieved:**
