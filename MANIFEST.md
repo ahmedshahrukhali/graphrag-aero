@@ -77,7 +77,9 @@ None. All resolved.
 MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, otel/otel-collector-config.yaml, per-dir README placeholders
 
 ## Resume pointer
-**⮕ S29 DONE. §4 live verification complete. Standing by for next instruction.**
+**⮕ S30 DONE. REDESIGN_PLAN §1–§6 fully closed. 527 passed, 1 skipped.**
+☑ §6 eval/tests/test_feedback_eval.py (by sonnet-4.6, S30) — `6548edd`; 3 pytest wrappers for the standalone feedback_eval audit runner; last open verification item from REDESIGN_PLAN §6.
+**Next:** live eval run to confirm post-redesign A/B numbers, or WS-C figures (Qwen3-VL-8B).
 ☑ §1 hybrid index re-embed (by sonnet-4.6) — 77,173 chunks, dense+sparse. A/B: R@5=0.727 MRR=0.682 nDCG@5=0.694 (n=11); hybrid parity confirmed (sparse fires, reranker normalises at n=11).
 ☑ §2 query reformulation loop (by sonnet-4.6) — `b246329`
 ☑ §3 HITL removal + negative-feedback store + `/reject` + `/resolve` + top-N fix (by sonnet-4.6) — `b246329`, `d65e524`, `4a7dc15`

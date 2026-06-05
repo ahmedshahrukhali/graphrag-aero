@@ -4,6 +4,16 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 
 ---
 
+## Session 30 — 2026-06-05 — sonnet-4.6
+**Commits:** `6548edd`
+**Achieved:**
+- Oriented: all REDESIGN_PLAN §1–§6 verified done; suite 524 passed, 1 skipped going in
+- Added `eval/tests/test_feedback_eval.py` — 3 pytest wrappers for the standalone feedback_eval scenarios, closing the last open §6 verification item
+- Suite: 527 passed, 1 skipped (+3 new tests, 0 regressions)
+**Left:** nothing open from REDESIGN_PLAN; next logical step is either live eval run (confirm A/B numbers post-§1–§4) or WS-C figures (Qwen3-VL-8B)
+
+---
+
 ## Session 29 — 2026-06-05 — sonnet-4.6
 **Commits:** see below (this session)
 **Achieved:**
