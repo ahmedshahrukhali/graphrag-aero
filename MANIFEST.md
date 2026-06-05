@@ -77,12 +77,12 @@ None. All resolved.
 MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, otel/otel-collector-config.yaml, per-dir README placeholders
 
 ## Resume pointer
-**⮕ S27 IN PROGRESS (sonnet-4.6): [docs/REDESIGN_PLAN.md](docs/REDESIGN_PLAN.md).**
+**⮕ S27 DONE. Resume at §4 graph schema restructuring.**
+☑ §1 hybrid index re-embed (by sonnet-4.6) — 77,173 chunks, dense+sparse. A/B: R@5=0.727 MRR=0.682 nDCG@5=0.694 (n=11); hybrid parity confirmed (sparse fires, reranker normalises at n=11).
 ☑ §2 query reformulation loop (by sonnet-4.6) — `b246329`
-☑ §3 HITL removal + negative-feedback store + `/reject` + `/resolve` (by sonnet-4.6) — `b246329`, `d65e524`, `HEAD`
-⏳ §1 hybrid index re-embed running (task bsnci9jve, ~77k chunks). **Next:** when embed completes,
-run `python -m eval.run --json` then `python -m eval.run --mode hybrid --json` to record A/B numbers,
-then close S27 SESSIONS entry and advance to **§4** graph schema restructuring.
+☑ §3 HITL removal + negative-feedback store + `/reject` + `/resolve` + top-N fix (by sonnet-4.6) — `b246329`, `d65e524`, `4a7dc15`
+☑ §4-prep Aircraft extraction + `:INVOLVES` edges (by sonnet-4.6) — `7a585ef`
+**Next:** §4 graph schema — verify corpus doc_ids in rebuilt index, implement `Finding→Recommendation→IMPLEMENTS→Regulation→CITES→AC` depth traversal in `graph/query.py`.
 WS-F re-ingest is DONE (S24: 77,173 vectors in `aerospace_dense`) — the redesign operates on that index.
 The pre-S25 re-ingest pointer below is historical; do not restart it.
 

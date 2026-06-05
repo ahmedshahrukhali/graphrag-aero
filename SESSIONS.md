@@ -5,14 +5,13 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 ---
 
 ## Session 27 — 2026-06-05 — sonnet-4.6
-**Commits:** `b246329` (§2+§3), `d65e524` (/reject wiring), `HEAD` (/resolve)
+**Commits:** `b246329` (§2+§3), `d65e524` (/reject), `4a7dc15` (/resolve + top-N fix), `7a585ef` (aircraft)
 **Achieved:**
+- §1: hybrid re-embed complete — 77,173 chunks, dense+sparse (153,845 indexed vectors). A/B eval: dense R@5=0.727 MRR=0.682 nDCG@5=0.694 (n=11). Hybrid identical — sparse fires (50+50→82 fused); parity at n=11 is expected (reranker normalises).
 - §2: `agent/reformulate.py` — real hop-N query expansion (TF-weighted novel tokens)
-- §3: HITL removed; `agent/feedback.py` FeedbackStore (`unaccepted_qa`); `excluded_chunk_hashes` + `rejected_prior` in state
-- Backend: `POST /reject/{thread_id}`, `POST /resolve/{rejection_id}`; feedback pre-check in `/query`
-- Tests: 486 → 489 passed (+3); `query_emb` stored in checkpoint for reject without re-embed
-- §1 hybrid index re-embed running (bsnci9jve); A/B eval numbers pending
-**Left:** embed completes → run `python -m eval.run --json` + `--mode hybrid` → record numbers → §4 graph schema
+- §3: HITL removed; `agent/feedback.py` FeedbackStore (`unaccepted_qa`); `excluded_chunk_hashes` + `rejected_prior` in state; `POST /reject/{thread_id}`, `POST /resolve/{rejection_id}`; top-N fix (only top-3 reranked chunks excluded, not all candidates); `query_emb` stored in checkpoint
+- §4-prep: Aircraft entity extraction (Bombardier-first + competitors), `Aircraft` node + `:INVOLVES` edge activated; 16 new tests; 505 passed
+**Left:** §4 graph schema restructuring — verify corpus doc_ids, wire `Finding→Recommendation→IMPLEMENTS→Regulation→CITES→AC` traversal depth in `graph/query.py`
 
 ---
 
