@@ -154,3 +154,42 @@ def test_recurring_dedups_input_ids():
     recurring_context_for_occurrences(d, ["a01", "a01", "a01"])
     assert d.session_obj.last_ids is not None
     assert d.session_obj.last_ids.count("a01") == 1
+
+
+# ─── §4 deeper traversal: rec_regs + reg_guided_acs ──────────────────────────
+
+def _rich_row_v4(occ_id: str, *, rec_regs=None, reg_guided_acs=None, **kw) -> dict:
+    base = _rich_row(occ_id, **kw)
+    base["rec_regs"] = rec_regs or []
+    base["reg_guided_acs"] = reg_guided_acs or []
+    return base
+
+
+def test_rec_regs_populated_from_traversal():
+    row = _rich_row_v4("a01", rec_regs=["602.115", "703.07"])
+    d = FakeDriver({"a01": row})
+    out = graph_context_for_occurrences(d, ["a01"])
+    assert out[0]["rec_regs"] == ["602.115", "703.07"]
+
+
+def test_reg_guided_acs_populated_from_traversal():
+    row = _rich_row_v4("a01", reg_guided_acs=["702-001"])
+    d = FakeDriver({"a01": row})
+    out = graph_context_for_occurrences(d, ["a01"])
+    assert out[0]["reg_guided_acs"] == ["702-001"]
+
+
+def test_rec_regs_defaults_to_empty_list_when_absent():
+    # Rows from old Neo4j (pre-§4) won't have these keys — must not error.
+    row = _rich_row("a01")  # no rec_regs / reg_guided_acs keys
+    d = FakeDriver({"a01": row})
+    out = graph_context_for_occurrences(d, ["a01"])
+    assert out[0]["rec_regs"] == []
+    assert out[0]["reg_guided_acs"] == []
+
+
+def test_rec_regs_null_values_filtered():
+    row = _rich_row_v4("a01", rec_regs=[None, "602.115", None])
+    d = FakeDriver({"a01": row})
+    out = graph_context_for_occurrences(d, ["a01"])
+    assert out[0]["rec_regs"] == ["602.115"]

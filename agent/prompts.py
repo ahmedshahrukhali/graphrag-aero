@@ -101,7 +101,10 @@ def format_graph_context(rows: Sequence[dict]) -> str:
         direct_regs = row.get("direct_regs") or []
         acs_ref = row.get("acs") or []
 
-        if findings or recs or direct_regs or acs_ref:
+        rec_regs = row.get("rec_regs") or []
+        reg_guided_acs = row.get("reg_guided_acs") or []
+
+        if findings or recs or direct_regs or acs_ref or rec_regs:
             out.append(f"Occurrence {occ_id}:")
             for f in findings:
                 src = f.get("source_doc_id") or occ_id
@@ -118,6 +121,10 @@ def format_graph_context(rows: Sequence[dict]) -> str:
                 out.append(f"  [{src} p.{page}] recommendation{rid}: {text}")
             if direct_regs:
                 out.append(f"  cited regulations: {', '.join(direct_regs)}")
+            if rec_regs:
+                out.append(f"  recommendations implement: {', '.join(rec_regs)}")
+            if reg_guided_acs:
+                out.append(f"  implementing regs guided by ACs: {', '.join(reg_guided_acs)}")
             if acs_ref:
                 out.append(f"  referenced ACs: {', '.join(acs_ref)}")
         else:

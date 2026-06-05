@@ -1,10 +1,12 @@
 """Graph traversal queries.
 
-graph_context_for_occurrences traverses:
-  Occurrence -[:HAS_FINDING]-> Finding -[:CITES]-> Regulation
-  Occurrence -[:HAS_RECOMMENDATION]-> Recommendation
-  Occurrence -[:CITES]-> Regulation
-  Occurrence -[:REFERENCES_AC]-> AC
+graph_context_for_occurrences traverses the §4 schema depth:
+
+  Occurrence -[:HAS_FINDING]->     Finding       -[:CITES]->     Regulation
+  Occurrence -[:HAS_RECOMMENDATION]-> Recommendation -[:IMPLEMENTS]-> Regulation
+                                                     -[:GUIDED_BY]->  AC
+  Occurrence -[:CITES]->           Regulation
+  Occurrence -[:REFERENCES_AC]->   AC
 
 Every returned row carries source_doc_id + page so the agent can cite it
 inline (the graph facts stay grounded, same discipline as vector chunks).
@@ -21,7 +23,8 @@ logger = logging.getLogger(__name__)
 
 
 # Single query: one round-trip per call. OPTIONAL MATCH so occurrences
-# without findings/regs still return their basic record.
+# without findings/recs/regs still return their basic record.
+# §4: adds Recommendation-[:IMPLEMENTS]->Regulation-[:GUIDED_BY]->AC second hop.
 _TRAVERSE_CYPHER = """
 UNWIND $ids AS occ_id
 MATCH (o:Occurrence {id: occ_id})
@@ -30,8 +33,10 @@ MATCH (o:Occurrence {id: occ_id})
 OPTIONAL MATCH (o)-[:HAS_FINDING]->(f:Finding)
 OPTIONAL MATCH (f)-[:CITES]->(fr:Regulation)
 
-// recommendations
+// recommendations + what they implement + ACs that elaborate those regs
 OPTIONAL MATCH (o)-[:HAS_RECOMMENDATION]->(rec:Recommendation)
+OPTIONAL MATCH (rec)-[:IMPLEMENTS]->(rr:Regulation)
+OPTIONAL MATCH (rr)-[:GUIDED_BY]->(ra:AC)
 
 // direct regulation + AC links (cited in text, not necessarily in a finding)
 OPTIONAL MATCH (o)-[:CITES]->(dr:Regulation)
@@ -55,8 +60,10 @@ RETURN
     source_doc_id:  rec.source_doc_id,
     page:           rec.page
   })                AS recommendations,
-  collect(DISTINCT dr.id)  AS direct_regs,
-  collect(DISTINCT ac.id)  AS acs
+  collect(DISTINCT dr.id)   AS direct_regs,
+  collect(DISTINCT ac.id)   AS acs,
+  collect(DISTINCT rr.id)   AS rec_regs,
+  collect(DISTINCT ra.id)   AS reg_guided_acs
 """.strip()
 
 
@@ -79,6 +86,8 @@ def graph_context_for_occurrences(
         recommendations: [{id, text, lang, source_doc_id, page}],
         direct_regs:     [str],   # CAR numbers cited directly on occurrence
         acs:             [str],   # AC ids referenced
+        rec_regs:        [str],   # §4 CAR numbers implemented by recommendations
+        reg_guided_acs:  [str],   # §4 AC ids that elaborate those regs (2nd hop)
       }
 
     Missing occurrences are silently dropped.
@@ -98,6 +107,8 @@ def graph_context_for_occurrences(
                 "recommendations": _clean_collect(row["recommendations"], "text"),
                 "direct_regs":     [r for r in (row["direct_regs"] or []) if r],
                 "acs":             [a for a in (row["acs"] or []) if a],
+                "rec_regs":        [r for r in (row.get("rec_regs") or []) if r],
+                "reg_guided_acs":  [a for a in (row.get("reg_guided_acs") or []) if a],
             })
 
     logger.debug("graph_context: %d ids in, %d rows out", len(ids), len(out))

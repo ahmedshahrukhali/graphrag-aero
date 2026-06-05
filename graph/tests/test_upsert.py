@@ -78,6 +78,7 @@ def test_occurrence_row_tsb():
     row = _occurrence_row(_rec("tsb/a00a0051", lang="en"))
     assert row == {
         "id": "a00a0051",
+        "doc_id": "tsb/a00a0051",
         "source_url": "https://example.test/tsb/a00a0051.pdf",
         "lang": "en",
     }
@@ -245,3 +246,90 @@ def test_entity_upsert_recommendation_with_tsb_id(tmp_path):
     # Verify rec id is the TSB id, not a hash
     rec_rows = [p["rows"] for c, p in d.runs if "Recommendation" in c and "MERGE" in c]
     assert any(r["id"] == "A19-01" for rows in rec_rows for r in rows)
+
+
+# ─── §4 Document label + doc_id ──────────────────────────────────────────────
+
+def test_occurrence_upsert_sets_document_label_and_doc_id(tmp_path):
+    root = tmp_path / "chunks"
+    _write_chunks(root, "tsb/a01", "en", 1)
+    d = FakeDriver()
+    upsert_occurrences_from_chunks(d, root)
+    # The Cypher should include :Document label and doc_id
+    cypher_blob = "\n".join(c for c, _ in d.runs)
+    assert "Document" in cypher_blob
+    row_data = [p["rows"] for c, p in d.runs if "Occurrence" in c]
+    assert any(r.get("doc_id") == "tsb/a01" for rows in row_data for r in rows)
+
+
+def test_ac_upsert_sets_document_label_and_doc_id(tmp_path):
+    root = tmp_path / "chunks"
+    _write_chunks(root, "tc/AC_702-001_ISSUE-1", "en", 1)
+    d = FakeDriver()
+    upsert_acs_from_chunks(d, root)
+    cypher_blob = "\n".join(c for c, _ in d.runs)
+    assert "Document" in cypher_blob
+    row_data = [p["rows"] for c, p in d.runs if "AC" in c]
+    assert any(r.get("doc_id") == "tc/AC_702-001_ISSUE-1"
+               for rows in row_data for r in rows)
+
+
+# ─── §4 Recommendation-[:IMPLEMENTS]->Regulation ─────────────────────────────
+
+def test_entity_upsert_creates_rec_implements_reg_link(tmp_path):
+    root = tmp_path / "chunks"
+    _write_chunks(root, "tsb/a01", "en", 1)
+
+    ents = ExtractedEntities({
+        "recommendations": [{"id": "A19-01", "text": "Require fuel checks.", "lang": "en"}],
+        "regulations": ["602.115"],
+    })
+    d = FakeDriver()
+    counts = upsert_entities_from_chunks(d, root, RegFixtureExtractor({"tsb/a01": ents}))
+    assert counts["rec_reg_links"] >= 1
+    implements_rows = [p["rows"] for c, p in d.runs if "IMPLEMENTS" in c]
+    assert implements_rows, "expected IMPLEMENTS link run"
+    link_ids = {r.get("reg_id") for rows in implements_rows for r in rows}
+    assert "602.115" in link_ids
+
+
+def test_entity_upsert_no_rec_reg_link_without_colocated_regulation(tmp_path):
+    root = tmp_path / "chunks"
+    _write_chunks(root, "tsb/a01", "en", 1)
+
+    ents = ExtractedEntities({
+        "recommendations": [{"id": "A19-01", "text": "Require fuel checks.", "lang": "en"}],
+        # no regulations in this chunk
+    })
+    d = FakeDriver()
+    counts = upsert_entities_from_chunks(d, root, RegFixtureExtractor({"tsb/a01": ents}))
+    assert counts["rec_reg_links"] == 0
+
+
+# ─── §4 Regulation-[:GUIDED_BY]->AC from TC corpus ───────────────────────────
+
+def test_entity_upsert_tc_chunk_creates_reg_guided_by_ac(tmp_path):
+    root = tmp_path / "chunks"
+    _write_chunks(root, "tc/AC_702-001_ISSUE-1", "en", 1)
+
+    ents = ExtractedEntities({"regulations": ["602.115"]})
+    d = FakeDriver()
+    counts = upsert_entities_from_chunks(
+        d, root, RegFixtureExtractor({"tc/AC_702-001_ISSUE-1": ents}))
+    assert counts["reg_ac_links"] >= 1
+    guided_rows = [p["rows"] for c, p in d.runs if "GUIDED_BY" in c]
+    assert guided_rows, "expected GUIDED_BY link run"
+    link_pairs = [(r.get("reg_id"), r.get("ac_id"))
+                  for rows in guided_rows for r in rows]
+    assert ("602.115", "702-001") in link_pairs
+
+
+def test_entity_upsert_tc_chunk_no_reg_ac_link_without_recognisable_ac(tmp_path):
+    root = tmp_path / "chunks"
+    _write_chunks(root, "tc/no_ac_number_here", "en", 1)
+
+    ents = ExtractedEntities({"regulations": ["602.115"]})
+    d = FakeDriver()
+    counts = upsert_entities_from_chunks(
+        d, root, RegFixtureExtractor({"tc/no_ac_number_here": ents}))
+    assert counts["reg_ac_links"] == 0

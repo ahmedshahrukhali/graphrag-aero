@@ -3,12 +3,14 @@ import json
 
 from embed.jsonl import ChunkRecord
 from graph.extract import (
+    DispatchExtractor,
     ExtractedEntities,
     HybridExtractor,
     LLMExtractor,
     NoopExtractor,
     RegexExtractor,
     _is_section_bearing,
+    dispatch_extractor,
     extract_all,
 )
 
@@ -357,3 +359,43 @@ def test_hybrid_no_llm_call_on_nonsection_chunk():
     ex = HybridExtractor(llm)
     ex.extract(_rec("Normal narrative text. No section headers here."))
     assert llm.calls == []
+
+
+# ─── dispatch seam (§4) ──────────────────────────────────────────────────────
+
+def test_dispatch_extractor_routes_by_prefix():
+    rx = RegexExtractor()
+    noop = NoopExtractor()
+    ex = dispatch_extractor("tsb/a13q0098", {"tsb": rx, "tc": noop})
+    assert ex is rx
+
+
+def test_dispatch_extractor_tc_prefix():
+    noop = NoopExtractor()
+    ex = dispatch_extractor("tc/AC_702-001_ISSUE-1", {"tsb": RegexExtractor(), "tc": noop})
+    assert ex is noop
+
+
+def test_dispatch_extractor_unknown_prefix_returns_noop():
+    ex = dispatch_extractor("manual/aom-001", {"tsb": RegexExtractor()})
+    assert isinstance(ex, NoopExtractor)
+
+
+def test_dispatch_extractor_no_slash_returns_noop():
+    ex = dispatch_extractor("somethingflat", {})
+    assert isinstance(ex, NoopExtractor)
+
+
+def test_dispatch_extractor_class_routes_by_chunk_doc_id():
+    rx = RegexExtractor()
+    ex = DispatchExtractor({"tsb": rx})
+    chunk = _rec("CAR 602.115 applies here.", doc_id="tsb/a01")
+    ents = ex.extract(chunk)
+    assert "602.115" in ents.get("regulations", [])
+
+
+def test_dispatch_extractor_class_unknown_corpus_returns_empty():
+    ex = DispatchExtractor({"tsb": RegexExtractor()})
+    chunk = _rec("CAR 602.115 applies here.", doc_id="manual/aom-001")
+    ents = ex.extract(chunk)
+    assert ents == ExtractedEntities()

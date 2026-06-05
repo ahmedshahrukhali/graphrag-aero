@@ -9,14 +9,21 @@ Three public entry points:
 
 All MERGEs are idempotent; re-runs refresh properties without duplicating.
 
-Node identity
--------------
+Node identity (§4 — Document-rooted)
+-------------------------------------
   Occurrence      id = TSB occurrence id, e.g. "a13q0098"  (lang-agnostic)
+                  doc_id = "tsb/a13q0098"   (full corpus path; carries :Document label)
   AC              id = AC number, e.g. "702-001"            (lang-agnostic)
+                  doc_id = "tc/AC_702-001_ISSUE-1"          (carries :Document label)
   Regulation      id = CAR number, e.g. "602.115"           (lang-agnostic)
   Finding         id = "{occ_id}:f:{sha256[:12]}"           (report-local)
   Recommendation  id = TSB rec id (e.g. "A19-01") when present,
                       else "{occ_id}:r:{sha256[:12]}"
+
+New §4 relationships
+---------------------
+  Recommendation -[:IMPLEMENTS]-> Regulation   (rec cites reg in same chunk)
+  Regulation     -[:GUIDED_BY]->  AC           (TC AC doc elaborates a CAR)
 
 Provenance
 ----------
@@ -50,8 +57,10 @@ _TC_AC_ID = re.compile(r"AC[_\s]?(\d{3}[-_]\d{3})", re.I)
 _UPSERT_OCCURRENCE = """
 UNWIND $rows AS row
 MERGE (o:Occurrence {id: row.id})
-SET   o.source_url = row.source_url,
-      o.lang = row.lang
+SET   o:Document,
+      o.doc_id     = row.doc_id,
+      o.source_url = row.source_url,
+      o.lang       = row.lang
 """.strip()
 
 
@@ -59,7 +68,8 @@ def _occurrence_row(rec: ChunkRecord) -> dict | None:
     if not rec.doc_id.startswith("tsb/"):
         return None
     occ_id = rec.doc_id.split("/", 1)[1]
-    return {"id": occ_id, "source_url": rec.source_url, "lang": rec.lang}
+    return {"id": occ_id, "doc_id": rec.doc_id,
+            "source_url": rec.source_url, "lang": rec.lang}
 
 
 def _dedup_rows(rows: Iterable[dict]) -> list[dict]:
@@ -91,8 +101,10 @@ def upsert_occurrences_from_chunks(
 _UPSERT_AC = """
 UNWIND $rows AS row
 MERGE (a:AC {id: row.id})
-SET   a.source_url = row.source_url,
-      a.title = row.title
+SET   a:Document,
+      a.doc_id     = row.doc_id,
+      a.source_url = row.source_url,
+      a.title      = row.title
 """.strip()
 
 
@@ -111,8 +123,8 @@ def _ac_row(rec: ChunkRecord) -> dict | None:
     ac_id = _ac_id_from_doc_id(rec.doc_id)
     if not ac_id:
         return None
-    return {"id": ac_id, "source_url": rec.source_url or "",
-            "title": rec.section_title or ""}
+    return {"id": ac_id, "doc_id": rec.doc_id,
+            "source_url": rec.source_url or "", "title": rec.section_title or ""}
 
 
 def upsert_acs_from_chunks(
@@ -192,6 +204,14 @@ MATCH (a:AC {id: row.ac_id})
 MERGE (reg)-[:GUIDED_BY]->(a)
 """.strip()
 
+# §4: Recommendation implements a Regulation cited in the same chunk
+_LINK_REC_REGULATION = """
+UNWIND $rows AS row
+MATCH (r:Recommendation {id: row.rec_id})
+MATCH (reg:Regulation {id: row.reg_id})
+MERGE (r)-[:IMPLEMENTS]->(reg)
+""".strip()
+
 _UPSERT_AIRCRAFT = """
 UNWIND $rows AS row
 MERGE (a:Aircraft {id: row.id})
@@ -235,6 +255,8 @@ def upsert_entities_from_chunks(
     ac_ids: set[str] = set()
     aircraft_ids: set[str] = set()
     finding_reg_links: list[dict] = []
+    rec_reg_links: list[dict] = []      # §4 Recommendation-[:IMPLEMENTS]->Regulation
+    reg_ac_links: list[dict] = []       # §4 Regulation-[:GUIDED_BY]->AC (from TC corpus)
     occ_reg_links: list[dict] = []
     occ_ac_links: list[dict] = []
     occ_aircraft_links: list[dict] = []
@@ -244,36 +266,43 @@ def upsert_entities_from_chunks(
         chunks_processed += 1
         ents: ExtractedEntities = extractor.extract(rec)
 
-        # Determine the occurrence / AC context
+        # Determine corpus context — dispatch seam for future doc types
+        occ_id: str | None = None
+        doc_ac_id: str | None = None
         if rec.doc_id.startswith("tsb/"):
             occ_id = rec.doc_id.split("/", 1)[1]
             is_tsb = True
         elif rec.doc_id.startswith("tc/"):
             is_tsb = False
-            ac_id = _ac_id_from_doc_id(rec.doc_id)
+            doc_ac_id = _ac_id_from_doc_id(rec.doc_id)
         else:
-            continue
+            continue  # unknown corpus — skip until its extractor is registered
 
-        # Regulations — accumulate canonical ids
+        # Regulations
         for car in ents.get("regulations") or []:
             reg_ids.add(car)
-            if is_tsb:
+            if is_tsb and occ_id:
                 occ_reg_links.append({"occ_id": occ_id, "reg_id": car})
+            elif not is_tsb and doc_ac_id:
+                # §4: TC AC document elaborates this regulation → GUIDED_BY edge
+                reg_ac_links.append({"reg_id": car, "ac_id": doc_ac_id})
 
-        # Advisory Circulars
+        # Advisory Circulars cited in text
         for ac in ents.get("advisory_circulars") or []:
             ac_ids.add(ac)
-            if is_tsb:
+            if is_tsb and occ_id:
                 occ_ac_links.append({"occ_id": occ_id, "ac_id": ac})
 
         # Aircraft
         for ac_type in ents.get("aircraft") or []:
             aircraft_ids.add(ac_type)
-            if is_tsb:
+            if is_tsb and occ_id:
                 occ_aircraft_links.append({"occ_id": occ_id, "aircraft_id": ac_type})
 
-        # Findings (TSB only — TC ACs don't have safety findings)
-        if is_tsb:
+        # Findings (TSB only)
+        if is_tsb and occ_id:
+            chunk_regs = ents.get("regulations") or []
+
             for f in ents.get("findings") or []:
                 fid = _finding_id(occ_id, f["text"])
                 finding_rows.append({
@@ -282,8 +311,7 @@ def upsert_entities_from_chunks(
                     "lang": f.get("lang", rec.lang),
                     "source_doc_id": rec.doc_id, "page": rec.page,
                 })
-                # Link finding to any regs cited in the same chunk
-                for car in ents.get("regulations") or []:
+                for car in chunk_regs:
                     finding_reg_links.append({"finding_id": fid, "reg_id": car})
 
             # Recommendations
@@ -296,6 +324,9 @@ def upsert_entities_from_chunks(
                     "text": r.get("text", ""), "lang": r.get("lang", rec.lang),
                     "source_doc_id": rec.doc_id, "page": rec.page,
                 })
+                # §4: link each rec to regulations cited in the same chunk
+                for car in chunk_regs:
+                    rec_reg_links.append({"rec_id": rid, "reg_id": car})
 
     # Flush to Neo4j in batches
     with driver.session() as session:
@@ -315,6 +346,11 @@ def upsert_entities_from_chunks(
                    batch_size)
         _batch_run(session, _LINK_OCC_AIRCRAFT,
                    _dedup_link_rows(occ_aircraft_links), batch_size)
+        # §4 new edges
+        _batch_run(session, _LINK_REC_REGULATION,
+                   _dedup_link_rows(rec_reg_links), batch_size)
+        _batch_run(session, _LINK_REG_AC,
+                   _dedup_link_rows(reg_ac_links), batch_size)
 
     counts = {
         "chunks": chunks_processed,
@@ -323,6 +359,8 @@ def upsert_entities_from_chunks(
         "findings": len(finding_rows),
         "recommendations": len(rec_rows),
         "aircraft": len(aircraft_ids),
+        "rec_reg_links": len(rec_reg_links),
+        "reg_ac_links": len(reg_ac_links),
     }
     logger.info("upsert_entities_from_chunks: %s", counts)
     return counts

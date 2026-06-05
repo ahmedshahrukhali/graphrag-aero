@@ -383,3 +383,43 @@ class HybridExtractor:
                 ents["recommendations"] = list(merged.values())
 
         return ents
+
+
+# ─── dispatch seam ───────────────────────────────────────────────────────────
+
+_NOOP: NoopExtractor = NoopExtractor()
+
+
+def dispatch_extractor(
+    doc_id: str,
+    extractor_map: dict[str, "EntityExtractor"],
+) -> "EntityExtractor":
+    """Return the extractor registered for this doc_id's corpus prefix.
+
+    ``extractor_map`` keys are corpus prefixes ("tsb", "tc").  Unknown prefixes
+    fall back to :class:`NoopExtractor` so future corpora are safe by default.
+
+    Example::
+        dispatch_extractor("tsb/a13q0098", {"tsb": hybrid, "tc": noop})
+    """
+    prefix = doc_id.split("/")[0] if "/" in doc_id else doc_id
+    return extractor_map.get(prefix, _NOOP)
+
+
+class DispatchExtractor:
+    """Route extraction to per-corpus extractors.  Implements EntityExtractor.
+
+    Wraps :func:`dispatch_extractor` so the seam is transparent to callers of
+    :func:`~graph.upsert.upsert_entities_from_chunks` that expect a single
+    ``EntityExtractor`` object.
+
+    Example::
+        ex = DispatchExtractor({"tsb": HybridExtractor(llm), "tc": NoopExtractor()})
+        upsert_entities_from_chunks(driver, root, ex)
+    """
+
+    def __init__(self, extractor_map: dict[str, "EntityExtractor"]) -> None:
+        self._map = extractor_map
+
+    def extract(self, chunk: ChunkRecord) -> ExtractedEntities:
+        return dispatch_extractor(chunk.doc_id, self._map).extract(chunk)
