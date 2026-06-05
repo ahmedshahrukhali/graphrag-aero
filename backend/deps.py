@@ -91,6 +91,8 @@ class BackendDeps:
     # Releases resources opened at startup (e.g. the Postgres connection behind
     # the checkpointer). Called by the lifespan's shutdown. None for stubs.
     closer: Callable[[], None] | None = None
+    # §3: negative-feedback store. None when POSTGRES_DSN is unset (dev/test).
+    feedback_store: Any | None = None   # agent.feedback.FeedbackStore
 
 
 def build_default_deps() -> BackendDeps:
@@ -133,12 +135,17 @@ def build_default_deps() -> BackendDeps:
     # backend builds deps once). Enter it via an ExitStack and hand the close
     # back as ``closer`` so the lifespan can release the connection on shutdown.
     closer: Callable[[], None] | None = None
+    feedback_store = None
     if os.environ.get("POSTGRES_DSN"):
         from contextlib import ExitStack
         stack = ExitStack()
         checkpointer = stack.enter_context(make_postgres_saver())
         checkpointer.setup()  # idempotent: CREATE TABLE IF NOT EXISTS
         closer = stack.close
+
+        from agent.feedback import make_feedback_store
+        feedback_store = make_feedback_store()
+        feedback_store.create_table()
     else:
         checkpointer = make_memory_saver()
 
@@ -162,4 +169,5 @@ def build_default_deps() -> BackendDeps:
         ping_neo4j=_ping_neo4j,
         ping_ollama=_ping_ollama,
         closer=closer,
+        feedback_store=feedback_store,
     )

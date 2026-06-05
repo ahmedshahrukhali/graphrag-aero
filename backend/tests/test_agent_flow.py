@@ -38,6 +38,29 @@ def test_synthesize_unloads_retrieval_models(make_client, stub_deps_with_checkpo
     assert stub_deps_with_checkpointer._stubs["reranker"].unloaded is True
 
 
+def test_reject_stores_rejection(make_client, stub_deps_with_checkpointer):
+    """POST /reject/{thread_id} persists a rejection after a completed query."""
+    client = make_client()
+    client.post("/query", json={"query": "fuel", "thread_id": "rej1", "max_hops": 1})
+    r = client.post("/reject/rej1", json={})
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert isinstance(body["rejection_id"], int)
+    fb = stub_deps_with_checkpointer._stubs["feedback_store"]
+    assert len(fb.rejections) == 1
+    rec = fb.rejections[0]
+    assert rec["query"] == "fuel"
+    assert rec["answer"] == "stubbed draft answer."
+    assert isinstance(rec["chunk_hashes"], list)
+
+
+def test_reject_unknown_thread_returns_404(make_client, stub_deps_with_checkpointer):
+    """POST /reject for a thread that was never queried returns 404."""
+    client = make_client()
+    r = client.post("/reject/no-such-thread", json={})
+    assert r.status_code == 404, r.text
+
+
 def _sse_events(text: str) -> list[str]:
     return [ln[len("event:"):].strip() for ln in text.splitlines() if ln.startswith("event:")]
 

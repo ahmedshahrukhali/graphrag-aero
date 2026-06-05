@@ -81,6 +81,19 @@ class ResumeResponse(BaseModel):
     history: list[dict]
 
 
+# ─── /reject ─────────────────────────────────────────────────────────────────
+
+class RejectRequest(BaseModel):
+    # Client may supply extra discriminating terms (e.g. from UI tag input).
+    # If absent, terms are derived from the reformulated query in the checkpoint.
+    terms: list[str] = Field(default_factory=list)
+
+
+class RejectResponse(BaseModel):
+    rejection_id: int
+    terms: list[str]
+
+
 # ─── /healthz ────────────────────────────────────────────────────────────────
 
 class ComponentHealth(BaseModel):

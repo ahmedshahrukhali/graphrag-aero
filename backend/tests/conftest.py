@@ -82,6 +82,29 @@ class StubLLM:
         yield self.reply
 
 
+class StubFeedbackStore:
+    """In-memory feedback store for tests — never returns prior matches."""
+
+    def __init__(self) -> None:
+        self.rejections: list[dict] = []
+        self._next_id = 1
+
+    def write_rejection(self, query, query_embedding, answer, chunk_hashes, terms=None):
+        row_id = self._next_id
+        self._next_id += 1
+        self.rejections.append(dict(
+            id=row_id, query=query, answer=answer,
+            chunk_hashes=list(chunk_hashes), terms=list(terms or []),
+        ))
+        return row_id
+
+    def find_similar(self, query_embedding, *, threshold=None):
+        return []
+
+    def resolve(self, row_id: int) -> None:
+        pass
+
+
 class StubNeo4jSession:
     def __enter__(self): return self
     def __exit__(self, *a): return False
@@ -130,6 +153,7 @@ def stub_deps(populated_qdrant):
     reranker = StubReranker()
     llm = StubLLM()
     neo4j = StubNeo4jDriver()
+    feedback_store = StubFeedbackStore()
 
     agent_deps = AgentDeps(
         embedder=embedder,
@@ -160,11 +184,13 @@ def stub_deps(populated_qdrant):
         checkpointer=None,
         collection=COLL,
         ping_qdrant=_pq, ping_neo4j=_pn, ping_ollama=_po,
+        feedback_store=feedback_store,
     )
     # Hand back the knobs so individual tests can flip them.
     deps._pings = pings           # type: ignore[attr-defined]
     deps._stubs = {                # type: ignore[attr-defined]
         "embedder": embedder, "reranker": reranker, "llm": llm,
+        "feedback_store": feedback_store,
     }
     return deps
 

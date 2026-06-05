@@ -27,6 +27,8 @@ from .schemas import (
     HealthResponse,
     QueryPausedResponse,
     QueryRequest,
+    RejectRequest,
+    RejectResponse,
     ResumeRequest,
     ResumeResponse,
     RetrieveRequest,
@@ -155,18 +157,37 @@ def _register_routes(app: FastAPI) -> None:
         from agent.state import initial_state
 
         deps = _get_deps(request)
-        graph = build_graph(deps.agent_deps, checkpointer=deps.checkpointer)
+        ad = deps.agent_deps
+        graph = build_graph(ad, checkpointer=deps.checkpointer)
         config = {"configurable": {"thread_id": req.thread_id}}
+
+        # Embed the query once here — used for feedback lookup AND stored in
+        # state so /reject can retrieve it without reloading the embedder.
+        q_emb: list[float] = list(ad.embedder.embed([req.query])[0])
+
+        # §3: check for prior rejections on similar queries.
+        excluded_hashes: list[str] = []
+        rejected_prior: str | None = None
+        if deps.feedback_store is not None:
+            matches = deps.feedback_store.find_similar(q_emb)
+            if matches:
+                best = matches[0]
+                excluded_hashes = best["chunk_hashes"]
+                rejected_prior = best["answer"]
 
         from .otel import get_tracer
         tracer = get_tracer()
         with tracer.start_as_current_span("agent.query") as span:
             span.set_attribute("thread_id", req.thread_id)
             span.set_attribute("max_hops", req.max_hops)
+            span.set_attribute("prior_rejection", bool(rejected_prior))
             paused = graph.invoke(
                 initial_state(
                     req.query, max_hops=req.max_hops,
                     lang=req.lang, source=req.source,
+                    query_emb=q_emb,
+                    excluded_chunk_hashes=excluded_hashes,
+                    rejected_prior=rejected_prior,
                 ),
                 config=config,
             )
@@ -279,6 +300,52 @@ def _register_routes(app: FastAPI) -> None:
             trace=done.get("trace", []),
             history=trace_from_history(graph, config),
         )
+
+    @app.post("/reject/{thread_id}", response_model=RejectResponse)
+    def reject(thread_id: str, body: RejectRequest, request: Request) -> RejectResponse:
+        """§3: record an explicit user rejection for a completed thread.
+
+        Reads the checkpoint for ``thread_id`` to extract the query, answer,
+        candidate chunk hashes, and stored query embedding, then writes a row
+        to ``unaccepted_qa``.  Subsequent queries whose embedding is cosine-
+        similar (≥ 0.80) will skip those chunks and note the prior rejection
+        in the synthesiser prompt.
+        """
+        from agent.graph import build_graph
+
+        deps = _get_deps(request)
+        if deps.feedback_store is None:
+            raise HTTPException(503, "feedback store not configured (POSTGRES_DSN not set)")
+
+        graph = build_graph(deps.agent_deps, checkpointer=deps.checkpointer)
+        config = {"configurable": {"thread_id": thread_id}}
+        snap = graph.get_state(config)
+        if snap is None or not snap.values:
+            raise HTTPException(404, f"no checkpoint for thread {thread_id!r}")
+
+        state = snap.values
+        q: str = state.get("query", "")
+        answer: str = state.get("final") or state.get("draft") or ""
+        candidates: list[dict] = state.get("candidates", [])
+        chunk_hashes = [c["chunk_hash"] for c in candidates]
+        q_emb: list[float] | None = state.get("query_emb")
+
+        # derive terms from the reformulated query (novel tokens added by hop-2)
+        terms: list[str] = list(body.terms)
+        if not terms:
+            reformulated: str | None = state.get("reformulated_query")
+            if reformulated:
+                orig_tokens = set(q.lower().split())
+                terms = [t for t in reformulated.lower().split() if t not in orig_tokens]
+
+        if q_emb is None:
+            # fallback for threads created before query_emb was stored in state
+            q_emb = list(deps.agent_deps.embedder.embed([q])[0])
+
+        row_id = deps.feedback_store.write_rejection(
+            q, q_emb, answer, chunk_hashes, terms or None,
+        )
+        return RejectResponse(rejection_id=row_id, terms=terms)
 
     @app.get("/graph/{doc_id:path}")
     def graph_lookup(doc_id: str, request: Request) -> dict:

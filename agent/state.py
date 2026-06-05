@@ -66,6 +66,9 @@ class AgentState(TypedDict, total=False):
     # §3: feedback-loop exclusions set when a prior similar answer was rejected
     excluded_chunk_hashes: list[str]
     rejected_prior: str | None
+    # Dense embedding of the query — stored so /reject can retrieve it from the
+    # checkpoint without re-loading the embedder.
+    query_emb: list[float] | None
 
 
 def initial_state(
@@ -76,6 +79,7 @@ def initial_state(
     source: str | None = None,
     excluded_chunk_hashes: list[str] | None = None,
     rejected_prior: str | None = None,
+    query_emb: list[float] | None = None,
 ) -> AgentState:
     return AgentState(
         query=query,
@@ -92,4 +96,5 @@ def initial_state(
         reformulated_query=None,
         excluded_chunk_hashes=excluded_chunk_hashes or [],
         rejected_prior=rejected_prior,
+        query_emb=query_emb,
     )
