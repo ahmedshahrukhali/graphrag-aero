@@ -106,6 +106,7 @@ def cmd_upsert_graph(args) -> int:
     from graph.upsert import (
         upsert_acs_from_chunks,
         upsert_entities_from_chunks,
+        upsert_figures,
         upsert_occurrences_from_chunks,
     )
 
@@ -130,9 +131,55 @@ def cmd_upsert_graph(args) -> int:
 
         counts = upsert_entities_from_chunks(d, chunks_root, extractor)
         print(f"entity extraction: {counts}")
+
+        if args.figures:
+            from embed.jsonl import iter_chunk_files
+            from ingestion.processing.figures import FigureRecord
+
+            print("upserting :Figure nodes from *_figures.jsonl files…")
+            figure_records = _load_figure_records_from_chunks(chunks_root)
+            n_fig = upsert_figures(d, figure_records)
+            print(f"upserted {n_fig} Figure nodes")
     finally:
         d.close()
     return 0
+
+
+def _load_figure_records_from_chunks(chunks_root: Path):
+    """Yield FigureRecord objects reconstructed from kind=figure chunk JSONL lines."""
+    import json
+    from ingestion.processing.figures import FigureRecord
+
+    for path in sorted(chunks_root.rglob("*_figures.jsonl")):
+        with path.open(encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    d = json.loads(line)
+                    if d.get("kind") != "figure":
+                        continue
+                    bbox = list(d.get("bbox", []))
+                    caption = ""
+                    ocr_text = ""
+                    text = d.get("text", "")
+                    # Recover caption/ocr_text from the stored figure chunk text.
+                    # Format: "[Figure p.N] <caption>\n\n<ocr_text>"
+                    if text.startswith("[Figure"):
+                        rest = text.split("] ", 1)[-1] if "] " in text else text
+                        parts = rest.split("\n\n", 1)
+                        caption = parts[0]
+                        ocr_text = parts[1] if len(parts) > 1 else ""
+                    yield FigureRecord(
+                        doc_id=d["doc_id"],
+                        page=int(d.get("page", 0)),
+                        bbox=bbox,
+                        caption=caption,
+                        ocr_text=ocr_text,
+                    )
+                except Exception:
+                    continue
 
 
 def cmd_query(args) -> int:
@@ -189,6 +236,8 @@ def main(argv: list[str] | None = None) -> int:
     up.add_argument("--extract", action="store_true",
                     help="Use HybridExtractor (regex + qwen3:8b LLM). "
                          "Omit to use RegexExtractor only (faster, no Ollama needed).")
+    up.add_argument("--figures", action="store_true",
+                    help="WS-C: also upsert :Figure nodes from *_figures.jsonl files.")
 
     q = sub.add_parser("query")
     q.add_argument("query", help="Natural-language question.")

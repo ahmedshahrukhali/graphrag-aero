@@ -62,3 +62,14 @@ def test_document_constraint_present():
 
 def test_finding_source_index_present():
     assert any("finding_source" in s for s in INDEXES)
+
+
+def test_figure_constraint_present():
+    assert any("Figure" in s for s in CONSTRAINTS)
+
+
+def test_init_schema_includes_figure_label():
+    d = FakeDriver()
+    init_schema(d)
+    cypher_blob = "\n".join(s for s, _ in d.statements)
+    assert "Figure" in cypher_blob

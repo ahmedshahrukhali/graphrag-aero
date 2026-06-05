@@ -1,13 +1,17 @@
 """Neo4j schema: constraints + indexes for the aerospace knowledge graph.
 
-Schema diagram (§4 Document-rooted):
+Schema diagram (§4 Document-rooted + WS-C Figure tier):
 
     (:Document:Occurrence)-[:INVOLVES]->(:Aircraft)
     (:Document:Occurrence)-[:HAS_FINDING]->(:Finding)
     (:Document:Occurrence)-[:HAS_RECOMMENDATION]->(:Recommendation)
+    (:Document:Occurrence)-[:HAS_FIGURE]->(:Figure)
     (:Finding)-[:CITES]->(:Regulation)
     (:Recommendation)-[:IMPLEMENTS]->(:Regulation)
     (:Regulation)-[:GUIDED_BY]->(:Document:AC)
+
+:Figure nodes carry {doc_id, page, bbox, caption, ocr_text}.
+Their id is stable: "{doc_id}:fig:{page}:{bbox_hash[:12]}".
 
 Document is the generic root label; Occurrence and AC are typed subtypes.
 The dispatch seam in extract.py allows other doc types (manuals, drawings) to
@@ -35,6 +39,8 @@ CONSTRAINTS: tuple[str, ...] = (
     "CREATE CONSTRAINT recommendation_id   IF NOT EXISTS FOR (r:Recommendation)   REQUIRE r.id IS UNIQUE",
     "CREATE CONSTRAINT regulation_id       IF NOT EXISTS FOR (r:Regulation)       REQUIRE r.id IS UNIQUE",
     "CREATE CONSTRAINT ac_id               IF NOT EXISTS FOR (a:AC)               REQUIRE a.id IS UNIQUE",
+    # WS-C: figure tier — id keyed by (doc_id, page, bbox_hash)
+    "CREATE CONSTRAINT figure_id           IF NOT EXISTS FOR (f:Figure)           REQUIRE f.id IS UNIQUE",
 )
 
 INDEXES: tuple[str, ...] = (

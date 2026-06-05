@@ -23,6 +23,7 @@ from .chunk import Chunk, Tokenizer, chunk_pages
 from .curation import ADMITTED, Admission, CurationManifest, admit
 from .dedup import Dedup
 from .doc_id import DocRef, doc_ref_for_path
+from .figures import FigureCaptioner, FigureRecord, extract_figures, figure_to_chunk_dict
 from .ocr import OcrBatchQueue, ocr_page, paddle_lang, render_page_to_array
 
 logger = logging.getLogger(__name__)
@@ -205,6 +206,34 @@ def iter_corpus_pdfs(corpus_root: Path, source: str | None) -> list[Path]:
     return paths
 
 
+def extract_figures_for_doc(
+    src: Path,
+    out_root: Path,
+    captioner: FigureCaptioner,
+    *,
+    force: bool = False,
+) -> int:
+    """Extract figures from *src* and write ``{stem}_figures.jsonl``.
+
+    Skips if the figures JSONL already exists and is newer than the source PDF
+    (same freshness logic as text chunks).  Returns the number of figures written.
+    """
+    ref = doc_ref_for_path(src)
+    dest = out_root / ref.lang / ref.source / f"{ref.stem}_figures.jsonl"
+    if not force and _is_fresh(dest, src):
+        logger.info("skip figures (fresh): %s", dest)
+        return 0
+
+    figures: list[FigureRecord] = extract_figures(src, ref.doc_id, captioner)
+    if not figures:
+        return 0
+
+    records = (figure_to_chunk_dict(ref, fig) for fig in figures)
+    n = write_jsonl(dest, records)
+    logger.info("wrote %d figure chunks -> %s", n, dest)
+    return n
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description="Chunk corpus PDFs into JSONL.")
     p.add_argument("--in", dest="in_root", type=Path, default=Path("data/corpus"))
@@ -219,6 +248,10 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--workers", type=int, default=4,
                    help="Parallel worker threads for PDF extraction. OCR GPU calls are "
                         "still serialised internally. Use 1 to disable parallelism.")
+    p.add_argument("--figures", action="store_true",
+                   help="WS-C: extract and caption figures via Qwen3-VL-8B (HF transformers). "
+                        "Runs as a separate sequential pass after text chunking. "
+                        "Requires the VL model weights on disk (~16 GB).")
     p.add_argument("-v", "--verbose", action="store_true")
     args = p.parse_args(argv)
 
@@ -277,6 +310,24 @@ def main(argv: list[str] | None = None) -> int:
         warning = manifest.balance_warning()
         if warning:
             logger.warning(warning)
+
+    # WS-C figure extraction pass — runs sequentially (VL model is large; no multi-worker).
+    # The VL model must NOT overlap with PaddleOCR (VRAM discipline); it loads here, after
+    # OCR is done, and unloads when the context manager exits.
+    if args.figures:
+        from .figures import QwenVLCaptioner
+        logger.info("starting figure extraction pass (Qwen3-VL-8B)…")
+        total_figures = 0
+        with QwenVLCaptioner() as captioner:
+            for src in paths:
+                try:
+                    total_figures += extract_figures_for_doc(
+                        src, args.out_root, captioner, force=args.force
+                    )
+                except Exception as exc:
+                    logger.exception("figure extraction failed for %s: %s", src, exc)
+        logger.info("figure extraction done: %d figure chunks written", total_figures)
+
     return 0
 
 

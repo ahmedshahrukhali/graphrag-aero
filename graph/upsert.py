@@ -382,3 +382,65 @@ def _dedup_link_rows(rows: list[dict]) -> list[dict]:
             seen.add(key)
             out.append(r)
     return out
+
+
+# ─── Figure nodes (WS-C) ─────────────────────────────────────────────────────
+
+_UPSERT_FIGURE = """
+UNWIND $rows AS row
+MERGE (fig:Figure {id: row.id})
+SET   fig.doc_id   = row.doc_id,
+      fig.page     = row.page,
+      fig.bbox     = row.bbox,
+      fig.caption  = row.caption,
+      fig.ocr_text = row.ocr_text
+""".strip()
+
+_LINK_OCC_FIGURE = """
+UNWIND $rows AS row
+MATCH (o:Occurrence {id: row.occ_id})
+MATCH (fig:Figure {id: row.fig_id})
+MERGE (o)-[:HAS_FIGURE]->(fig)
+""".strip()
+
+
+def upsert_figures(
+    driver: DriverLike,
+    figure_records,
+    *,
+    batch_size: int = BATCH_SIZE,
+) -> int:
+    """MERGE :Figure nodes and HAS_FIGURE edges from *figure_records*.
+
+    *figure_records* must be an iterable of
+    ``ingestion.processing.figures.FigureRecord``.  The function keys figures
+    idempotently by ``FigureRecord.figure_id`` so re-runs are safe.
+
+    Returns the number of Figure nodes upserted.
+    """
+    fig_rows: list[dict] = []
+    link_rows: list[dict] = []
+
+    for fig in figure_records:
+        row = {
+            "id": fig.figure_id,
+            "doc_id": fig.doc_id,
+            "page": fig.page,
+            "bbox": fig.bbox,
+            "caption": fig.caption,
+            "ocr_text": fig.ocr_text,
+        }
+        fig_rows.append(row)
+
+        # HAS_FIGURE edges only for TSB occurrences (the only corpus with
+        # Occurrence nodes at this stage).  TC/ZH support can extend this later.
+        if fig.doc_id.startswith("tsb/"):
+            occ_id = fig.doc_id.split("/", 1)[1]
+            link_rows.append({"occ_id": occ_id, "fig_id": fig.figure_id})
+
+    with driver.session() as session:
+        _batch_run(session, _UPSERT_FIGURE, fig_rows, batch_size)
+        _batch_run(session, _LINK_OCC_FIGURE, _dedup_link_rows(link_rows), batch_size)
+
+    logger.info("upserted %d Figure nodes (%d HAS_FIGURE links)", len(fig_rows), len(link_rows))
+    return len(fig_rows)
