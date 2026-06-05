@@ -4,6 +4,19 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 
 ---
 
+## Session 26 — 2026-06-04 — sonnet-4.6
+**Commits:** `d16fe10`, `12e8f8f`
+**Achieved:**
+- §5: gemma2:9b → qwen3:8b default in `agent/llm.py`, `.env.example`, `CLAUDE.md`
+- §1 hybrid retrieval: `BGE_M3Embedder.embed_sparse()`, `ensure_collection(with_sparse=True)`,
+  `upsert_hybrid_batch`, `sparse_search` + `rrf_fuse` (RRF k=60), `hybrid_retrieve_and_rerank`
+- §6 eval baseline: +4 jargon-id queries (q08-q11), `reformulation_lift` metric, `--mode dense|hybrid`
+- Tests: 436 → 463 passed (+27 new), all offline
+**Left (resume → S27):** re-embed with `--sparse --recreate` (needs Docker up), run dense vs hybrid
+eval to record A/B numbers; then §2 reformulation loop + §3 HITL removal + feedback store.
+
+---
+
 ## Session 25 — 2026-06-04 — opus-4.8
 **Commits:** _(this commit — docs only)_
 **Achieved (design-only; NO source/logic changed):**

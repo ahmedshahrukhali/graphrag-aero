@@ -77,10 +77,13 @@ None. All resolved.
 MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, otel/otel-collector-config.yaml, per-dir README placeholders
 
 ## Resume pointer
-**⮕ S26 NEXT (set S25, opus-4.8): execute [docs/REDESIGN_PLAN.md](docs/REDESIGN_PLAN.md).**
-Design-only review (S25) found file-anchored defects in retrieval/agent/graph and froze a 6-part
-fix program. Start **§5** (LLM gemma2:9b → Qwen3-8B — small), then **§1** hybrid dense+sparse + **§6** eval
-baseline (`python -m eval.run --json`, record numbers).
+**⮕ S27 NEXT (set S26, sonnet-4.6): continue [docs/REDESIGN_PLAN.md](docs/REDESIGN_PLAN.md).**
+§5+§1+§6 landed (commits `d16fe10`, `12e8f8f`). Next: **§2** query reformulation loop
+(`agent/reformulate.py`, real hop-N queries, calibrate `CONFIDENCE_THRESHOLD`), then **§3**
+remove HITL + negative-feedback store. Live step before §2: re-embed with `--sparse --recreate`
+to get the hybrid index (`python -m embed.run --sparse --recreate` inside the embed container
+— needs Docker Desktop up), then run `python -m eval.run --json` vs `--mode hybrid` to record
+the dense-vs-hybrid A/B numbers for the SESSIONS entry.
 WS-F re-ingest is DONE (S24: 77,173 vectors in `aerospace_dense`) — the redesign operates on that index.
 The pre-S25 re-ingest pointer below is historical; do not restart it.
 
