@@ -34,16 +34,16 @@ Rules:
   claim ("recurs across N reports", "a common regulatory thread") in it and cite
   those sibling reports. If that block is empty, do NOT claim a wide survey —
   speak only to the reports actually cited.
-- Ground EVERY claim with an inline [doc_id p.page] citation
-  (e.g. [tsb/a21c0038 p.86]). Cite the specific report+page each fact came
-  from; graph-context facts carry their own [doc p.page] — use those. An
-  uncited sentence is not allowed. Do not invent citations or facts.
+- Ground EVERY claim with an inline [doc_id p.page] citation followed immediately
+  by an exact, verbatim quote from the text in double quotes. Cite the specific
+  report+page each fact came from; graph-context facts carry their own [doc p.page].
+  An uncited sentence is not allowed. Do not invent citations or facts.
 - FORMAT THE CITATION EXACTLY as a bracketed tag [doc_id p.page], copying the
-  doc_id verbatim from the passage header (e.g. [tsb/a13q0098 p.4]). NEVER cite
-  in prose like "TSB Report A13Q0098" — always the bracket form with the
-  lowercase doc_id. Downstream highlighting parses these brackets; prose
-  citations are silently dropped. EXAMPLE: ✓ "Fuel was lost [tsb/a13q0098 p.4]"
-  NOT ✗ "TSB Report A13Q0098 notes fuel was lost".
+  doc_id verbatim from the passage header, followed by the quote. NEVER cite
+  in prose like "TSB Report A13Q0098" — always the bracket form. Downstream
+  highlighting parses these brackets and quotes. EXAMPLE:
+  ✓ "The engine failed [tsb/a13q0098 p.4] \"Power was lost on short final.\""
+  NOT ✗ "TSB Report A13Q0098 notes power was lost".
 - Prefer findings, recommendations, and regulations over narrative. Summarize
   regulations; don't quote every clause.
 - Match the language of the question (English or French).

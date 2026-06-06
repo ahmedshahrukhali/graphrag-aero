@@ -154,8 +154,8 @@ def _cited_keys(answer: str) -> set[tuple[str, int]]:
     return keys
 
 
-# Function words (EN + FR) dropped before highlighting query terms — boxing
-# "the"/"de" everywhere would be noise, not signal.
+# Function words (EN + FR) dropped before highlighting query terms.
+# (No longer used for PDF highlighting; we now use exact structured quotes from the LLM.)
 _TERM_STOPWORDS = {
     "the", "and", "for", "with", "from", "into", "after", "before", "that",
     "this", "was", "were", "are", "has", "had", "not", "but", "its",
@@ -201,14 +201,14 @@ def _gallery_items(
     retrieve: RetrieveResponse,
     *,
     draw_bbox: bool = True,
-    cited_keys: set[tuple[str, int]] | None = None,
+    cited_dict: dict[tuple[str, int], str] | None = None,
 ) -> list[tuple[Any, str]]:
-    cited_keys = cited_keys or set()
-    terms = _query_terms(retrieve.query)
+    cited_dict = cited_dict or {}
     items: list[tuple[Any, str]] = []
     for c in retrieve.results:
         key = (c.doc_id, c.page)
-        is_cited = key in cited_keys
+        is_cited = key in cited_dict
+        quote = cited_dict.get(key)
         is_figure = c.kind == "figure"
         tag = " · ✦ cited" if is_cited else ""
         if is_figure:
@@ -238,7 +238,7 @@ def _gallery_items(
                 c.source_url, c.page, c.bbox,
                 draw_bbox=do_box,
                 region_bboxes=regions,
-                terms=terms if do_box else (),
+                terms=(quote,) if (do_box and quote) else (),
                 box_images=do_box,
             )
             items.append((img, caption))
@@ -523,8 +523,12 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
             return []
         retrieve = _sources_to_retrieve(srcs, art.get("query", ""))
         draft = art.get("draft", "") if show_bbox else ""
-        cited = _cited_keys(draft)
-        return _gallery_items(retrieve, draw_bbox=bool(show_bbox), cited_keys=cited)
+        cited = _parse_citations(draft)
+        # Fallback to _cited_keys if the LLM forgot the quote but still emitted the tag
+        for k in _cited_keys(draft):
+            if k not in cited:
+                cited[k] = ""
+        return _gallery_items(retrieve, draw_bbox=bool(show_bbox), cited_dict=cited)
 
     def render_pages(artifacts: dict, show_bbox: bool):
         """Render source pages into the collapsible panel, and open it.

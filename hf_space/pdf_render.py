@@ -122,8 +122,13 @@ def search_page_terms(
         t = term.strip()
         if not t:
             continue
+            
+        # Make search robust against newlines/extra spaces in PDF text
+        parts = [re.escape(w) for w in t.split()]
+        robust_pattern = r'\s+'.join(parts)
+        
         try:
-            hits = page.search(re.escape(t), regex=True, case=False)
+            hits = page.search(robust_pattern, regex=True, case=False)
         except Exception:  # noqa: BLE001 — pdfplumber search is best-effort
             continue
         for h in hits:
@@ -157,8 +162,11 @@ def page_image_bboxes(page, *, max_boxes: int = _MAX_TERM_BOXES) -> list[BBox]:
 
 
 def _bbox_is_drawable(bbox: BBox) -> bool:
-    """A stored bbox worth drawing — nonzero area (not the [0,0,0,0] placeholder)."""
-    return (bbox[2] - bbox[0]) > 0 and (bbox[3] - bbox[1]) > 0
+    """A stored bbox worth drawing — nonzero area and not glued to top-left origin."""
+    x_valid = (bbox[2] - bbox[0]) > 0
+    y_valid = (bbox[3] - bbox[1]) > 0
+    not_origin = bbox[0] > 1.0 or bbox[1] > 1.0
+    return x_valid and y_valid and not_origin
 
 
 @lru_cache(maxsize=64)
