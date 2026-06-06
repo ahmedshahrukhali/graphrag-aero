@@ -95,7 +95,7 @@ def test_cited_keys_empty_for_uncited_answer():
 
 
 def test_cited_keys_tolerates_section_title_in_tag():
-    # gemma copies the chunk's section title into the bracket, e.g.
+    # the model copies the chunk's section title into the bracket, e.g.
     # [tsb/a03q0109 p.2 §26 JULY 2003]. Observed live; must still resolve.
     answer = (
         "Fuel exhaustion was the cause [tsb/a03q0109 p.2 §26 JULY 2003] and "

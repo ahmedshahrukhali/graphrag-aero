@@ -1,6 +1,6 @@
 # agent/ — P4
 
-LangGraph multi-hop agent: dense retrieve → graph expand → optional refetch → gemma2:9b synthesis → HITL pre-finalize gate.
+LangGraph multi-hop agent: dense retrieve → graph expand → optional refetch → qwen3:4b synthesis → HITL pre-finalize gate.
 
 ## Install
 
@@ -12,7 +12,7 @@ pip install -r agent/requirements-dev.txt
 
 ```bash
 docker compose up -d qdrant neo4j postgres ollama
-docker compose exec ollama ollama pull gemma2:9b
+docker compose exec ollama ollama pull qwen3:4b
 
 python -m agent.run init-schema
 python -m agent.run upsert-graph --in data/chunks

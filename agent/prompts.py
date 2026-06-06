@@ -1,4 +1,4 @@
-"""Prompt templates for gemma2:9b synthesis.
+"""Prompt templates for qwen3:4b synthesis.
 
 Kept separate from node logic so they're easy to iterate on without touching
 graph orchestration. The synthesize node formats `{citations}` and
@@ -118,7 +118,7 @@ def format_graph_context(rows: Sequence[dict]) -> str:
     """Render traversal results as cited facts.
 
     Each Occurrence row exposes its findings, recommendations, and regulation /
-    AC links as inline-cited lines so gemma can reference them with provenance.
+    AC links as inline-cited lines so the model can reference them with provenance.
     Bare {id, source_url, lang} rows (pre-extraction fallback) are rendered
     minimally so the prompt stays valid even before graph population.
     """

@@ -8,7 +8,7 @@ Human-in-the-Loop gate → FastAPI backend with OpenTelemetry tracing →
 Next.js UI with PDF citation highlighting → Gradio HuggingFace Space.
 
 All inference is local: BGE-M3 dense embeddings + `bge-reranker-v2-m3`
-cross-encoder + `gemma2:9b` via Ollama. The model budget is sequenced
+cross-encoder + `qwen3:4b` via Ollama. The model budget is sequenced
 for an 8GB GPU (3060Ti); see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Status
@@ -34,8 +34,8 @@ cp .env.example .env                # edit POSTGRES_PASSWORD, NEO4J_PASSWORD
 # 2. start backing services
 docker compose up -d qdrant neo4j postgres ollama otel-collector
 
-# 3. pull the local LLM (one-time, ~5.5GB)
-docker compose exec ollama ollama pull gemma2:9b
+# 3. pull the local LLM (one-time, ~2.5GB)
+docker compose exec ollama ollama pull qwen3:4b
 
 # 4. acquire + ingest the corpus
 docker compose --profile ingest run --rm ingestion \
@@ -99,7 +99,7 @@ downloads, no live HTTP, no GPU required.
 | Chunking | 512 tokens, 64 overlap; carries `doc_id, section_title, page, bbox` |
 | Graph | Neo4j 5 |
 | Agent framework | LangGraph + PostgresSaver |
-| LLM | `gemma2:9b` Q4_K_M via Ollama |
+| LLM | `qwen3:4b` Q4_K_M via Ollama |
 | Languages | English + French |
 | Tracing | OpenTelemetry (OTLP gRPC) |
 

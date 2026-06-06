@@ -98,13 +98,13 @@ doc N-1's GPU OCR) and/or drop the OCR render DPI from 200 (those 200 MB bitmaps
 likely fine). These are the highest-leverage speedups and are *not* yet done.
 
 ## VRAM discipline (8 GB card)
-OCR peaks at ~7.9 GB during inference; embed ~2 GB; gemma2:9b ~5.5 GB. They must run in **separate
+OCR peaks at ~7.9 GB during inference; embed ~2 GB; qwen3:4b ~2.5 GB. They must run in **separate
 phases** — never concurrently. WS-F is ingest-then-embed (sequential), so this holds; just don't fire
-`/query` (gemma) during the batch.
+`/query` during the batch.
 
 ## Still open (smaller)
 - Browser click-through screenshot of the ZH bbox highlight at :7860 (page_bboxes confirmed in API).
 - About tab (What/Why/How) — author pre-approved.
-- Query-time latency: gemma2:9b ~350 s/query — the Qwen3-8B generator swap is still under eval.
+- Query-time latency: qwen3:4b is the single generation LLM (gemma2:9b/qwen3:8b swap resolved — 4b fits the 8 GB card with retrieval co-resident).
 - Each `--rm` ingestion container re-downloads PP-OCR models; mount a model-cache volume to skip it
   on repeat runs.

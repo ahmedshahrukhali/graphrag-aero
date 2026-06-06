@@ -68,7 +68,7 @@ section_title, page, bbox, lang, text) plus `ann_score` and `rerank_score`.
 ## VRAM (3060Ti, 8 GB)
 
 Sequential discipline: BGE-M3 (~0.5 GB) → query encode → reranker (~0.5 GB) →
-rerank → gemma2:9b (~5.5 GB, P4). Total ~6.5 GB. `ModelSession` is the
+rerank → qwen3:4b (~2.5 GB, P4). Total ~3.5 GB. `ModelSession` is the
 enforcement seam — interactive callers (P6) keep models resident across
 requests; batch callers wrap each stage in `with ModelSession(...)`.
 

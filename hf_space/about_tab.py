@@ -70,7 +70,7 @@ BGE-M3 reranker-v2-m3 cross-encoder → top-K reranked chunks
 Neo4j multi-hop traversal  (Occurrence→Finding→Regulation→AC)
     │
     ▼
-LangGraph synthesis agent  (Qwen3-8B / gemma2:9b via Ollama)
+LangGraph synthesis agent  (qwen3:4b via Ollama)
     │  cites [doc_id p.page] inline
     ▼
 HITL gate  (human review before final answer delivery)
@@ -103,7 +103,7 @@ _STACK_MD = """\
 
 **Graph:** Neo4j 5 · LangGraph (multi-hop agent) · PostgreSQL (LangGraph checkpointer)
 
-**LLM:** Ollama · Qwen3-8B / gemma2:9b Q4_K_M
+**LLM:** Ollama · qwen3:4b Q4_K_M
 
 **Backend:** FastAPI · Pydantic v2 · OpenTelemetry (OTLP → otel-collector)
 

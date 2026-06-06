@@ -17,7 +17,7 @@ class _FakeClient:
             "model": model, "messages": messages, "options": options,
             "keep_alive": keep_alive,
         })
-        return {"message": {"role": "assistant", "content": "hello from gemma"}}
+        return {"message": {"role": "assistant", "content": "hello from qwen"}}
 
 
 def _install_fake_ollama(monkeypatch: pytest.MonkeyPatch) -> dict:
@@ -38,14 +38,14 @@ def _install_fake_ollama(monkeypatch: pytest.MonkeyPatch) -> dict:
 
 def test_chat_calls_ollama_client_with_expected_shape(monkeypatch: pytest.MonkeyPatch):
     holder = _install_fake_ollama(monkeypatch)
-    llm = OllamaLLM(host="http://x:11434", model="gemma2:9b")
+    llm = OllamaLLM(host="http://x:11434", model="qwen3:4b")
     out = llm.chat(system="be brief", user="what is X?")
-    assert out == "hello from gemma"
+    assert out == "hello from qwen"
     fake: _FakeClient = holder["client"]
     assert fake.host == "http://x:11434"
     assert len(fake.calls) == 1
     call = fake.calls[0]
-    assert call["model"] == "gemma2:9b"
+    assert call["model"] == "qwen3:4b"
     assert call["messages"][0] == {"role": "system", "content": "be brief"}
     assert call["messages"][1]["role"] == "user"
     # User text preserved; "/no_think" appended by default (thinking off).
@@ -125,7 +125,7 @@ def test_default_model_is_qwen3(monkeypatch: pytest.MonkeyPatch):
     holder = _install_fake_ollama(monkeypatch)
     llm = OllamaLLM()
     llm.chat("s", "u")
-    assert holder["client"].calls[0]["model"] == "qwen3:8b"
+    assert holder["client"].calls[0]["model"] == "qwen3:4b"
 
 
 def test_client_lazy_imported(monkeypatch: pytest.MonkeyPatch):

@@ -20,7 +20,7 @@
 | Graph | Neo4j (knowledge graph: Occurrence→Aircraft→Finding→Recommendation→Regulation→AC) |
 | Agents | LangGraph; HITL interrupt before final answer; full trace surfaced |
 | Eval | Recall@k / nDCG / MRR |
-| LLM | gemma2:9b via Ollama (fits 3060Ti with sequential model loading). **Swap under eval (S18):** → Qwen3-8B generation, VRAM-gated, decided by bake-off in WS-0 — see [docs/REINGEST_PLAN.md](docs/REINGEST_PLAN.md) §4.6. |
+| LLM | **qwen3:4b** via Ollama — the single generation LLM (~2.5 GB, co-resides with retrieval on the 8 GB 3060Ti). Swap history: gemma2:9b → qwen3:8b (S19, 6.2 GB borderline) → qwen3:4b (current; fits with headroom). |
 | Languages | EN + FR |
 | Tracing | OpenTelemetry |
 | Backend | FastAPI |

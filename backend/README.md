@@ -1,7 +1,7 @@
 # backend/ — P6
 
 FastAPI HTTP surface for the retrieve + agent pipeline. Wires Ollama
-(gemma2:9b) as the LLM and ships OpenTelemetry spans to the collector
+(qwen3:4b) as the LLM and ships OpenTelemetry spans to the collector
 sidecar.
 
 ## Endpoints
@@ -36,7 +36,7 @@ uvicorn backend.app:app --host 0.0.0.0 --port 8080 --workers 1
 ## VRAM discipline
 **Single worker only.** Multiple uvicorn workers would race for the
 3060Ti's 8GB VRAM. The current model budget (BGE-M3 0.5GB → reranker 0.5GB
-→ gemma2:9b 5.5GB, sequenced) only fits if exactly one request is using
+→ qwen3:4b ~2.5GB, sequenced) only fits if exactly one request is using
 GPU at a time. `--workers 1` is enforced in the Dockerfile CMD.
 
 Within a request, the sequencing is:

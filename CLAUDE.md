@@ -27,7 +27,7 @@ Docker Desktop processes, and wasted tokens without resolving. This rule is firm
 - **Checkpointer:** Postgres (LangGraph PostgresSaver) — not Neo4j
 - **Graph:** Neo4j — Occurrence→Aircraft→Finding→Recommendation→Regulation→AC
 - **Agents:** LangGraph; HITL interrupt before final answer delivery; surface full checkpoint trace
-- **LLM:** qwen3:8b via Ollama (sequential VRAM loading; 6.2 GB measured S19, fits 3060Ti)
+- **LLM:** qwen3:4b via Ollama (single generation LLM; ~2.5 GB, co-resides with retrieval on 3060Ti). qwen3:8b (6.2 GB, S19) only fits if retrieval is unloaded first.
 - **Languages:** EN + FR (BGE-M3 + reranker-v2-m3 both multilingual)
 - **Tracing:** OpenTelemetry
 
@@ -55,8 +55,8 @@ Scrape and download to data/corpus/:
 Load sequentially — not simultaneously:
   BGE-M3 dense:       ~0.5 GB (embed query, then unload or keep small)
   reranker-v2-m3:     ~0.5 GB (rerank top-k, then unload)
-  gemma2:9b Q4_K_M:   ~5.5 GB (generate)
-  Total peak:         ~6.5 GB — fits.
+  qwen3:4b Q4_K_M:    ~2.5 GB (generate)
+  Total peak:         ~3.5 GB — fits comfortably.
 
 ## Conventions
 - Ingestion isolated in its own image — PaddleOCR + torch dep conflicts with agent runtime.

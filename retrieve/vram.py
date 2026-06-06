@@ -1,8 +1,8 @@
 """Sequential VRAM discipline — a context manager that loads a model on enter
 and releases the CUDA cache on exit.
 
-3060Ti (8 GB) has just barely enough headroom for BGE-M3 (~0.5 GB) +
-reranker-v2-m3 (~0.5 GB) + gemma2:9b Q4_K_M (~5.5 GB). Interactive callers
+3060Ti (8 GB) has comfortable headroom for BGE-M3 (~0.5 GB) +
+reranker-v2-m3 (~0.5 GB) + qwen3:4b Q4_K_M (~2.5 GB). Interactive callers
 (the FastAPI backend in P6) keep models loaded across requests; batch / eval
 callers (P5) wrap each stage in ``with ModelSession(...)`` to free VRAM
 between stages.

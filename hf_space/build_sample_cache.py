@@ -1,6 +1,6 @@
 """Pre-compute the sample-query answers into ``hf_space/sample_cache.json``.
 
-The Space serves these instantly (no gemma generation) when a user clicks an
+The Space serves these instantly (no LLM generation) when a user clicks an
 example — the same idea as Gradio's ``cache_examples=True``. Run once against a
 live backend whenever the corpus/index changes:
 
@@ -36,7 +36,7 @@ CACHE_PATH = Path(__file__).with_name("sample_cache.json")
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--backend", default=os.environ.get("BACKEND_URL", "http://localhost:8080"))
-    ap.add_argument("--timeout", type=float, default=900.0, help="per-query seconds (gemma is slow)")
+    ap.add_argument("--timeout", type=float, default=900.0, help="per-query seconds (generation is slow)")
     args = ap.parse_args()
 
     cache: dict[str, dict] = {}

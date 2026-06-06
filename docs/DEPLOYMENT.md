@@ -12,7 +12,7 @@ HuggingFace Space — plus the full env-var catalogue and known gotchas.
   the Start Menu and wait for the system-tray icon to show "Docker Desktop is running."
 - 16 GB RAM (Neo4j + Postgres + Ollama + Qdrant + backend)
 - ~10 GB free disk (model weights + Qdrant index + Neo4j data)
-- **NVIDIA GPU with 8 GB VRAM** recommended — Ollama runs gemma2:9b on
+- **NVIDIA GPU with 8 GB VRAM** recommended — Ollama runs qwen3:4b on
   GPU when available, on CPU as a slow fallback. Uncomment the
   `deploy.resources` block under `ollama` in `docker-compose.yml`
   if you have one.
@@ -28,7 +28,7 @@ cp .env.example .env
 # edit: POSTGRES_PASSWORD, NEO4J_PASSWORD (anything but the default)
 
 docker compose up -d qdrant neo4j postgres ollama otel-collector
-docker compose exec ollama ollama pull gemma2:9b
+docker compose exec ollama ollama pull qwen3:4b
 ```
 
 ### Build the index
@@ -123,7 +123,7 @@ match `.env.example`.
 | `POSTGRES_PASSWORD` | postgres, agent | — | **must change**; used in `POSTGRES_DSN` |
 | `POSTGRES_DSN` | agent, backend | `postgresql://langgraph:.../langgraph` | LangGraph checkpointer |
 | `OLLAMA_HOST` | agent, backend | `http://ollama:11434` | |
-| `OLLAMA_MODEL` | agent, backend | `gemma2:9b` | Q4_K_M is the locked quant |
+| `OLLAMA_MODEL` | agent, backend | `qwen3:4b` | single generation LLM; Q4_K_M quant |
 | `EMBED_MODEL` | embed, retrieve | `BAAI/bge-m3` | locked |
 | `RERANK_MODEL` | retrieve | `BAAI/bge-reranker-v2-m3` | locked |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | backend | `http://otel-collector:4317` | gRPC; backend skips OTel if unset |

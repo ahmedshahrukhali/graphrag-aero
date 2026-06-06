@@ -136,7 +136,7 @@ def _parse_citations(answer: str) -> dict[tuple[str, int], str]:
 
 # Bare citation tag — [doc_id p.page] — with no required trailing quote. This is
 # what the model actually emits, so it's how we decide which pages were cited.
-# In practice gemma appends the chunk's section title inside the bracket
+# In practice the model appends the chunk's section title inside the bracket
 # (e.g. [tsb/a03q0109 p.2 §26 JULY 2003]), so tolerate any non-']' run after the
 # page. _parse_citations stays the more precise quote-capturing path used to
 # tighten the highlight when a quote exists.
@@ -538,7 +538,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
         return gr.update(value=items), gr.update(open=bool(items))
 
     def on_pick_sample(evt: gr.SelectData):
-        """Click a sample → instant cached answer (no backend/gemma call).
+        """Click a sample → instant cached answer (no backend/LLM call).
 
         Returns the answered chat (user + thought + sources + answer) from the
         pre-built cache. Source pages render into the collapsible panel via the

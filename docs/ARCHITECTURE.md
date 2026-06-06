@@ -27,7 +27,7 @@ flowchart LR
         BE["backend (FastAPI)<br/>/retrieve  /query  /resume  /healthz"]
         AG["LangGraph agent<br/>retrieve -> graph_expand -> synthesize -> [HITL] -> finalize"]
         CHK[(Postgres<br/>PostgresSaver)]
-        OL["Ollama<br/>gemma2:9b"]
+        OL["Ollama<br/>qwen3:4b"]
     end
 
     QDR --> BE
@@ -73,7 +73,7 @@ A single `/query` HTTP call traces through the system as follows:
 5. **decide_continue** picks `retrieve` again if best rerank score <
    threshold AND `hop < max_hops`; else `synthesize`.
 6. **synthesize node** unloads the embedder + reranker (frees ~1GB
-   VRAM), builds the prompt, and calls Ollama `gemma2:9b` for the draft.
+   VRAM), builds the prompt, and calls Ollama `qwen3:4b` for the draft.
 7. **HITL interrupt** — the graph pauses *before* `finalize`. The
    backend returns the paused state to the caller:
    `{thread_id, draft, trace, n_candidates}`.
@@ -96,8 +96,8 @@ models share that budget; they do **not** sit in VRAM concurrently:
 |-------|-------|---------------|
 | Embed query | BGE-M3 dense | ~0.5 GB |
 | Rerank top-K | bge-reranker-v2-m3 | ~0.5 GB |
-| Generate | gemma2:9b Q4_K_M (Ollama) | ~5.5 GB |
-| Total **sequenced** peak | | ~6.5 GB |
+| Generate | qwen3:4b Q4_K_M (Ollama) | ~2.5 GB |
+| Total **sequenced** peak | | ~3.5 GB |
 | Total if concurrent | | ~9+ GB (overflows) |
 
 The discipline is enforced in three places:

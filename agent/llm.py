@@ -1,8 +1,8 @@
 """LLM wrapper.
 
-The agent uses gemma2:9b via Ollama (CLAUDE.md locks this). Ollama runs as a
-sibling docker service and exposes an HTTP API; ``ollama-python`` is the thin
-client.
+The agent uses qwen3:4b via Ollama (set by OLLAMA_MODEL; CLAUDE.md locks this
+as the single generation LLM). Ollama runs as a sibling docker service and
+exposes an HTTP API; ``ollama-python`` is the thin client.
 
 ``LLM`` Protocol lets tests stub generation without importing ollama.
 """
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 _THINK_RE = re.compile(r"^\s*<think>.*?</think>\s*", re.DOTALL)
 
 
-# Ollama's default num_ctx (4096 for gemma2) silently truncates the citation
+# Ollama's default num_ctx (4096) silently truncates the citation
 # block — the synthesize prompt runs ~4.7k tokens, so the model never sees the
 # last citations and can't synthesize. 8192 fits the whole prompt.
 def _default_options() -> dict:
@@ -53,7 +53,7 @@ class OllamaLLM:
         # Lazy import. Resolved at first .chat() call so tests can monkeypatch
         # the ``ollama`` module before any real network call.
         self._host = host or os.environ.get("OLLAMA_HOST", "http://localhost:11434")
-        self._model = model or os.environ.get("OLLAMA_MODEL", "qwen3:8b")
+        self._model = model or os.environ.get("OLLAMA_MODEL", "qwen3:4b")
         self._options = options if options is not None else _default_options()
         # keep_alive=0 → Ollama unloads the model from VRAM immediately after
         # generating, instead of holding it ~5 min. Load-bearing on the 8 GB

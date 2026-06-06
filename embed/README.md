@@ -103,4 +103,4 @@ don't need HuggingFace network access.
 ## VRAM (3060Ti, 8GB)
 
 P2 is single-model: BGE-M3 fp16 ≈ 0.5 GB. Sequential load/unload across BGE-M3
-→ reranker → gemma2:9b becomes load-bearing in P3+, not here.
+→ reranker → qwen3:4b becomes load-bearing in P3+, not here.
