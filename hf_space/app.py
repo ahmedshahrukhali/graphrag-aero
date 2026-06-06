@@ -22,6 +22,7 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+import difflib
 
 import gradio as gr
 
@@ -197,11 +198,37 @@ def _page_regions(c: RetrievedChunk) -> tuple[tuple[float, float, float, float],
     return tuple(out)
 
 
+def _find_best_chunk_sentence(chunk_text: str, draft: str) -> str | None:
+    if not chunk_text or not draft:
+        return None
+    sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', chunk_text) if len(s.strip()) > 20]
+    if not sentences:
+        return None
+    
+    draft_sents = [s.strip() for s in re.split(r'(?<=[.!?])\s+', draft) if len(s.strip()) > 20]
+    if not draft_sents:
+        draft_sents = [draft]
+
+    best_score = 0.0
+    best_sent = None
+    for sent in sentences:
+        for ds in draft_sents:
+            score = difflib.SequenceMatcher(None, sent.lower(), ds.lower()).ratio()
+            if score > best_score:
+                best_score = score
+                best_sent = sent
+
+    if best_score > 0.35 and best_sent:
+        return best_sent
+    return None
+
+
 def _gallery_items(
     retrieve: RetrieveResponse,
     *,
     draw_bbox: bool = True,
     cited_dict: dict[tuple[str, int], str] | None = None,
+    draft: str = "",
 ) -> list[tuple[Any, str]]:
     cited_dict = cited_dict or {}
     items: list[tuple[Any, str]] = []
@@ -209,6 +236,13 @@ def _gallery_items(
         key = (c.doc_id, c.page)
         is_cited = key in cited_dict
         quote = cited_dict.get(key)
+        
+        # Fuzzy match fallback if LLM omitted structured quote
+        if is_cited and not quote and draft:
+            best = _find_best_chunk_sentence(c.text or "", draft)
+            if best:
+                quote = best
+
         is_figure = c.kind == "figure"
         tag = " · ✦ cited" if is_cited else ""
         if is_figure:
@@ -233,12 +267,21 @@ def _gallery_items(
         # region *is* the image the vision model read, so we showcase it.
         do_box = bool(draw_bbox and (is_cited or is_figure))
         regions = _page_regions(c) if do_box else ()
+        
+        terms = ()
+        if do_box:
+            if quote:
+                terms = (quote,)
+            elif retrieve.query:
+                # Absolute fallback if fuzzy match failed: use top 3 query terms to prevent empty boxes
+                terms = _query_terms(retrieve.query, max_terms=3)
+
         try:
             img = render_page_with_bbox(
                 c.source_url, c.page, c.bbox,
                 draw_bbox=do_box,
                 region_bboxes=regions,
-                terms=(quote,) if (do_box and quote) else (),
+                terms=terms,
                 box_images=do_box,
             )
             items.append((img, caption))
@@ -528,7 +571,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
         for k in _cited_keys(draft):
             if k not in cited:
                 cited[k] = ""
-        return _gallery_items(retrieve, draw_bbox=bool(show_bbox), cited_dict=cited)
+        return _gallery_items(retrieve, draw_bbox=bool(show_bbox), cited_dict=cited, draft=draft)
 
     def render_pages(artifacts: dict, show_bbox: bool):
         """Render source pages into the collapsible panel, and open it.
