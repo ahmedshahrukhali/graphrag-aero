@@ -4,6 +4,15 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 
 ---
 
+## Session 38 — 2026-06-06 — haiku-4.5
+**Commits:** `92da11c` (S37 completion), `ba032f7` (manifest close)
+**Achieved:**
+- S37 code committed: qwen3:4b VRAM fix + sequential unload + /no_think + improved citation prompt
+- Backend rebuilt with enhanced citation format example (explicit ✓/✗ patterns)
+- Tests verified: 149 unit tests pass (all mocked); no regressions
+- Identified live testing infrastructure gap (shell escaping issues prevented direct verification)
+**Left:** S39 task — live-verify citation format on real `/query`; if prose ✗, revert model or post-process
+
 ## Session 37 — 2026-06-06 — opus-4.8
 **Commits:** none yet — all changes UNCOMMITTED in working tree (commit next session).
 **Achieved:**
