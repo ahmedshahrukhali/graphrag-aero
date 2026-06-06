@@ -33,6 +33,10 @@ from hf_space import corpus_tab, graph_tab, eval_tab, embedding_tab, about_tab
 
 logger = logging.getLogger(__name__)
 
+# Ensure static directory exists for serving rendered gallery images
+os.makedirs("/tmp/gradio_renders", exist_ok=True)
+gr.set_static_paths(paths=["/tmp/gradio_renders"])
+
 
 def _patch_gradio_client_bool_schema() -> None:
     """Harmless no-op on Gradio 5; kept for safety during transition."""
@@ -291,7 +295,13 @@ def _gallery_items(
                 terms=terms,
                 box_images=do_box,
             )
-            items.append((img, caption))
+            # Save the image so we can link directly to it via Gradio's static file serving
+            safe_query = re.sub(r'[^a-zA-Z0-9]', '_', retrieve.query or '')[:20]
+            safe_doc = doc_id.replace('/', '_')
+            filepath = f"/tmp/gradio_renders/{safe_query}_{safe_doc}_p{page}.png"
+            img.save(filepath)
+            
+            items.append((filepath, caption))
         except PdfRenderError as e:
             logger.warning("pdf render failed for %s: %s", doc_id, e)
             
@@ -301,16 +311,55 @@ def _gallery_items(
 def _chunks_md(retrieve: RetrieveResponse) -> str:
     if not retrieve.results:
         return "_no chunks retrieved._"
-    out: list[str] = []
+        
+    grouped = {}
     for c in retrieve.results:
-        snippet = " ".join(c.text.split())[:280]
-        section = f" · § {c.section_title}" if c.section_title else ""
-        score = "—" if c.rerank_score is None else f"{c.rerank_score:.3f}"
-        out.append(
-            f"**#{c.rank} · `{c.doc_id}` · p.{c.page}{section}** (rerank={score})\n\n"
-            f"{snippet}…\n"
-        )
-    return "\n---\n".join(out)
+        if c.doc_id not in grouped:
+            grouped[c.doc_id] = []
+        grouped[c.doc_id].append(c)
+        
+    out: list[str] = []
+    safe_query = re.sub(r'[^a-zA-Z0-9]', '_', retrieve.query or '')[:20]
+    
+    for doc_id, chunks in grouped.items():
+        max_score = max((c.rerank_score for c in chunks if c.rerank_score is not None), default=None)
+        score_str = "—" if max_score is None else f"{max_score:.3f}"
+        
+        chunks.sort(key=lambda x: x.page)
+        
+        doc_header = f"### `{doc_id}` (max rerank score: {score_str})\n"
+        chunk_lines = []
+        for c in chunks:
+            snippet = " ".join(c.text.split())[:150]
+            section = f" § {c.section_title}" if c.section_title else ""
+            
+            safe_doc = c.doc_id.replace('/', '_')
+            img_path = f"/file=/tmp/gradio_renders/{safe_query}_{safe_doc}_p{c.page}.png"
+            pdf_link = f"({c.source_url}#page={c.page})" if c.source_url else "(#)"
+            
+            links = f"[🖼️ Highlighted Image]({img_path}) | [📄 Raw PDF]{pdf_link}"
+            chunk_lines.append(f"- **p.{c.page}{section}** ({links}): {snippet}…")
+            
+        out.append(doc_header + "\n".join(chunk_lines))
+        
+    return "\n\n".join(out)
+
+def _linkify_citations(text: str, retrieve: RetrieveResponse) -> str:
+    """Convert LLM citations [doc_id p.page] to links pointing to rendered gallery images."""
+    if not retrieve.results:
+        return text
+        
+    safe_query = re.sub(r'[^a-zA-Z0-9]', '_', retrieve.query or '')[:20]
+    
+    def repl(m):
+        doc_id = m.group(1).strip()
+        page_str = m.group(2)
+        safe_doc = doc_id.replace('/', '_')
+        img_path = f"/file=/tmp/gradio_renders/{safe_query}_{safe_doc}_p{page_str}.png"
+        return f"[{doc_id} p.{page_str}]({img_path})"
+
+    # match [tsb/a11o0098 p.2]
+    return re.sub(r'\[([a-zA-Z0-9_/-]+)\s+p\.(\d+)\]', repl, text)
 
 
 def _recent_samples(history: list[dict]) -> list[list[str]]:
@@ -537,6 +586,17 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                             **artifacts[IDX_SRC],
                             "draft": "".join(text_buf),
                         }
+                        
+                    # Linkify citations for the UI chat display
+                    display_text = "".join(text_buf)
+                    if sources_done and data.get("sources"):
+                        retrieve = _sources_to_retrieve(data["sources"], q)
+                        display_text = _linkify_citations(display_text, retrieve)
+                        
+                    chat_list[IDX_ANS] = {
+                        "role": "assistant",
+                        "content": display_text,
+                    }
                     new_history = _push_history(history, q, final_thread_id)
                     new_sess = {
                         **sess,
@@ -625,7 +685,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
             {"role": "assistant", "content": _chunks_md(retrieve),
              "metadata": {"title": f"📑 Sources ({len(retrieve.results)})",
                           "status": "done"}},
-            {"role": "assistant", "content": draft},
+            {"role": "assistant", "content": _linkify_citations(draft, retrieve)},
         ]
         new_artifacts = {IDX_SRC: {"sources": cached.get("sources", []), "query": q, "draft": draft}}
         new_sess = {"thread_id": cached.get("thread_id", ""), "draft": draft, "query": q}
