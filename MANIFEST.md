@@ -24,7 +24,7 @@
 | Languages | EN + FR |
 | Tracing | OpenTelemetry |
 | Backend | FastAPI |
-| Frontend | Next.js + TypeScript, PDF snippet highlighting (bbox from pdfplumber) |
+| Frontend | HF Space Gradio (Next.js dropped) |
 | Demo | HF Space Gradio multimodal + cross-lingual |
 | Corpus | Transport Canada ACs + TSB aviation investigation reports (public, bilingual) |
 
@@ -60,7 +60,7 @@ None. All resolved.
 | P4 | Graph+agents: Neo4j schema, LangGraph, PostgresSaver, HITL (final answer gate + trace) | ☑ (by gemini-3.5-flash) |
 | P5 | Eval: Recall@k / nDCG / MRR | ☑ (by opus-4.7, metrics by gemini-3.5-flash) |
 | P6 | Backend: FastAPI, OTel, Ollama | ☑ (by opus-4.7) |
-| P7 | Frontend: Next.js + TS, PDF highlight | ☑ (by opus-4.7) |
+| P7 | Frontend: Next.js + TS, PDF highlight | ~~dropped~~ |
 | P8 | HF Space: Gradio multimodal, EN+FR | ☑ (by opus-4.7) |
 | P9 | Docs | ☑ (by opus-4.7) |
 
@@ -404,10 +404,8 @@ the hop. Stack **stopped** this session to free CPU/RAM — resume with
 - `curl -s -X POST http://localhost:8080/resume/smoke-1 -H 'content-type: application/json' -d '{}'` — finalises.
 - With `otel-collector` up: confirm spans hit the collector — check the collector logs for `service.name=graphrag-aero-backend`.
 
-### 7. Frontend (P7)
-- `docker compose build frontend` — multi-stage build should succeed.
-- `docker compose up frontend` — visit `http://localhost:3000`. Health badge should turn green. Submit "fuel exhaustion forced landing" → draft + trace + cited chunks render → click "highlight in pdf" on a chunk → PDF modal opens with bbox box drawn → edit draft → finalize → final answer renders.
-- `cd frontend && npm test && npm run typecheck && npm run build` — confirm Node 22 build still clean.
+### 7. Frontend (P7) — DROPPED
+Next.js frontend removed. HF Space (P8) is the UI.
 
 ### 8. HF Space (P8)
 - `docker compose --profile hf-space build hf-space`.
@@ -415,7 +413,6 @@ the hop. Stack **stopped** this session to free CPU/RAM — resume with
 
 ### 9. Final cross-cuts
 - `python -m pytest` — full suite (expect 222 passed) after all the above.
-- `cd frontend && npm test` — expect 18 passed.
 - Walk through [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) front-to-back as a fresh reader; flag any step that's stale.
 - If pushing the HF Space: `huggingface-cli upload <user>/graphrag-aero hf_space/ . --repo-type=space` (only after a publicly-reachable backend exists).
 

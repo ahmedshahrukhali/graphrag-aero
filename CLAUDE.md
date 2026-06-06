@@ -48,7 +48,6 @@ Scrape and download to data/corpus/:
 - P4  Graph+agents: Neo4j schema; LangGraph multi-hop; PostgresSaver; HITL final-answer gate + trace
 - P5  Eval: Recall@k / nDCG / MRR
 - P6  FastAPI backend + OTel + Ollama
-- P7  Next.js + TS + PDF highlight
 - P8  HF Space Gradio multimodal EN+FR
 - P9  Docs
 

@@ -1,6 +1,6 @@
 # Graph RAG over Aerospace Docs — full local stack.
 # Bring up infra first:  docker compose up -d qdrant neo4j postgres ollama otel-collector
-# Then app:              docker compose up --build backend frontend
+# Then app:              docker compose up --build backend hf-space
 
 services:
   qdrant:
