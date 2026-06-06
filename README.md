@@ -25,6 +25,9 @@ current test counts.
 ## Quickstart
 
 ```bash
+# 0. start Docker Desktop (Windows: Start Menu → Docker Desktop; wait for tray icon "Docker Desktop is running")
+#    (macOS: open -a Docker && sleep 10  |  Linux: sudo systemctl start docker)
+
 # 1. configure secrets and ports
 cp .env.example .env                # edit POSTGRES_PASSWORD, NEO4J_PASSWORD
 

@@ -7,7 +7,9 @@ HuggingFace Space — plus the full env-var catalogue and known gotchas.
 
 ### Prerequisites
 
-- Docker + Docker Compose v2
+- **Docker Desktop** (Windows/macOS) or Docker Engine + Compose v2 (Linux) — must be
+  **running** before any `docker compose` command. On Windows, launch Docker Desktop from
+  the Start Menu and wait for the system-tray icon to show "Docker Desktop is running."
 - 16 GB RAM (Neo4j + Postgres + Ollama + Qdrant + backend)
 - ~10 GB free disk (model weights + Qdrant index + Neo4j data)
 - **NVIDIA GPU with 8 GB VRAM** recommended — Ollama runs gemma2:9b on
@@ -18,6 +20,10 @@ HuggingFace Space — plus the full env-var catalogue and known gotchas.
 ### One-time setup
 
 ```bash
+# (Windows) Start Docker Desktop from the Start Menu; wait for "Docker Desktop is running"
+# (macOS)   open -a Docker && sleep 10
+# (Linux)   sudo systemctl start docker   # or equivalent for your init system
+
 cp .env.example .env
 # edit: POSTGRES_PASSWORD, NEO4J_PASSWORD (anything but the default)
 
@@ -128,6 +134,11 @@ match `.env.example`.
 
 ## Gotchas
 
+- **Docker Desktop must be running first** (Windows/macOS). Every `docker compose` command
+  fails silently or with a confusing socket error if Docker Desktop is stopped. Launch it
+  from the Start Menu (Windows) or Applications (macOS), wait for the tray icon to show
+  "Docker Desktop is running," then proceed. This is the most common cause of unexplained
+  stack failures — confirmed recurring across sessions S19, S22, S23.
 - **`NEXT_PUBLIC_BACKEND_URL` is baked in at build time.** If the
   backend URL changes, you must rebuild the frontend image. The
   `frontend/Dockerfile` accepts it as a `--build-arg`; the compose
@@ -160,4 +171,7 @@ To wipe everything and start clean:
 docker compose down -v        # removes named volumes (qdrant_data, neo4j_data, postgres_data, ollama_models)
 rm -rf data/chunks/            # cached chunked JSONL
 # (data/corpus/ is the source PDFs — leave it if you want to skip re-acquiring)
+
+# (Windows/macOS) Once all containers are stopped you can quit Docker Desktop
+#   from the system-tray icon → "Quit Docker Desktop"
 ```
