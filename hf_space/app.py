@@ -198,12 +198,12 @@ def _page_regions(c: RetrievedChunk) -> tuple[tuple[float, float, float, float],
     return tuple(out)
 
 
-def _find_best_chunk_sentence(chunk_text: str, draft: str) -> str | None:
+def _find_best_chunk_sentence(chunk_text: str, draft: str) -> tuple[float, str | None]:
     if not chunk_text or not draft:
-        return None
+        return 0.0, None
     sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', chunk_text) if len(s.strip()) > 20]
     if not sentences:
-        return None
+        return 0.0, None
     
     draft_sents = [s.strip() for s in re.split(r'(?<=[.!?])\s+', draft) if len(s.strip()) > 20]
     if not draft_sents:
@@ -219,8 +219,8 @@ def _find_best_chunk_sentence(chunk_text: str, draft: str) -> str | None:
                 best_sent = sent
 
     if best_score > 0.35 and best_sent:
-        return best_sent
-    return None
+        return best_score, best_sent
+    return 0.0, None
 
 
 def _gallery_items(
@@ -232,61 +232,69 @@ def _gallery_items(
 ) -> list[tuple[Any, str]]:
     cited_dict = cited_dict or {}
     items: list[tuple[Any, str]] = []
+    
+    grouped = {}
     for c in retrieve.results:
         key = (c.doc_id, c.page)
+        if key not in grouped:
+            grouped[key] = []
+        grouped[key].append(c)
+
+    for key, chunks in grouped.items():
+        doc_id, page = key
         is_cited = key in cited_dict
         quote = cited_dict.get(key)
         
-        # Fuzzy match fallback if LLM omitted structured quote
         if is_cited and not quote and draft:
-            best = _find_best_chunk_sentence(c.text or "", draft)
-            if best:
-                quote = best
+            best_overall_score = 0.0
+            best_overall_sent = None
+            for c in chunks:
+                b_score, b_sent = _find_best_chunk_sentence(c.text or "", draft)
+                if b_score > best_overall_score:
+                    best_overall_score = b_score
+                    best_overall_sent = b_sent
+            if best_overall_sent:
+                quote = best_overall_sent
 
-        is_figure = c.kind == "figure"
+        is_figure = any(c.kind == "figure" for c in chunks)
         tag = " · ✦ cited" if is_cited else ""
-        if is_figure:
-            # Proof of image-intelligence: this chunk's text is the caption +
-            # OCR that Qwen2.5-VL produced from the figure at ingestion. Show
-            # the figure region (always boxed) next to that AI reading.
-            cap_text = " ".join((c.text or "").split())
-            if len(cap_text) > 90:
-                cap_text = cap_text[:90] + "…"
-            caption = f"🖼 AI-read figure · #{c.rank} · {c.doc_id} · p.{c.page}{tag}"
-            if cap_text:
-                caption += f' · "{cap_text}"'
-        else:
-            caption = (
-                f"#{c.rank} · {c.doc_id} · p.{c.page} · "
-                f"rerank={'—' if c.rerank_score is None else f'{c.rerank_score:.3f}'}{tag}"
-            )
-        if not c.source_url:
-            continue
-        # Highlight a page when the answer cites it (WS-B: draw the chunk's own
-        # stored region(s), no quote-anchoring). Figures are always boxed — the
-        # region *is* the image the vision model read, so we showcase it.
-        do_box = bool(draw_bbox and (is_cited or is_figure))
-        regions = _page_regions(c) if do_box else ()
         
+        ranks = ",".join(str(c.rank) for c in chunks)
+        if is_figure:
+            caption = f"🖼 AI-read figure · #{ranks} · {doc_id} · p.{page}{tag}"
+        else:
+            caption = f"#{ranks} · {doc_id} · p.{page}{tag}"
+
+        if not chunks[0].source_url:
+            continue
+
+        do_box = bool(draw_bbox and (is_cited or is_figure))
+        regions = []
+        if do_box:
+            for c in chunks:
+                regions.extend(_page_regions(c))
+                
         terms = ()
         if do_box:
             if quote:
                 terms = (quote,)
+                if not is_figure:
+                    regions = []
             elif retrieve.query:
-                # Absolute fallback if fuzzy match failed: use top 3 query terms to prevent empty boxes
                 terms = _query_terms(retrieve.query, max_terms=3)
 
         try:
             img = render_page_with_bbox(
-                c.source_url, c.page, c.bbox,
+                chunks[0].source_url, page, chunks[0].bbox,
                 draw_bbox=do_box,
-                region_bboxes=regions,
+                region_bboxes=tuple(regions),
                 terms=terms,
                 box_images=do_box,
             )
             items.append((img, caption))
         except PdfRenderError as e:
-            logger.warning("pdf render failed for %s: %s", c.doc_id, e)
+            logger.warning("pdf render failed for %s: %s", doc_id, e)
+            
     return items
 
 
