@@ -13,7 +13,9 @@ def test_query_completes_with_draft(make_client, stub_deps_with_checkpointer):
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["thread_id"] == "t1"
-    assert body["draft"] == "stubbed draft answer."
+    # S40: synthesize appends a deterministic Sources block to the draft.
+    assert body["draft"].startswith("stubbed draft answer.")
+    assert "**Sources:**" in body["draft"]
     assert body["n_candidates"] > 0
     nodes = [t["node"] for t in body["trace"]]
     assert "retrieve" in nodes and "synthesize" in nodes
@@ -26,7 +28,8 @@ def test_resume_returns_final_answer(make_client, stub_deps_with_checkpointer):
     r = client.post("/resume/t2", json={})
     assert r.status_code == 200, r.text
     body = r.json()
-    assert body["final"] == "stubbed draft answer."
+    assert body["final"].startswith("stubbed draft answer.")
+    assert "**Sources:**" in body["final"]
 
 
 def test_synthesize_unloads_retrieval_models(make_client, stub_deps_with_checkpointer, monkeypatch):
@@ -53,7 +56,7 @@ def test_reject_stores_rejection(make_client, stub_deps_with_checkpointer):
     assert len(fb.rejections) == 1
     rec = fb.rejections[0]
     assert rec["query"] == "fuel"
-    assert rec["answer"] == "stubbed draft answer."
+    assert rec["answer"].startswith("stubbed draft answer.")
     # Only top-3 candidates excluded by default, not the full candidate list.
     assert isinstance(rec["chunk_hashes"], list)
     assert len(rec["chunk_hashes"]) <= 3
