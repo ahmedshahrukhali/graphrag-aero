@@ -54,6 +54,8 @@ class EvalItem:
     lang: str | None
 
 
+# Mirror of eval/dataset.jsonl (n=11, EN/FR/ZH). Kept embedded so the HF Space
+# image needs no eval/ dir. `tags` from the source file are dropped (unused here).
 EVAL_DATASET: list[EvalItem] = [
     EvalItem("q01", "Fox Harbour visual approach Astra SPX collision with trees",
              ["tsb/a00a0051"], "en"),
@@ -62,6 +64,20 @@ EVAL_DATASET: list[EvalItem] = [
     EvalItem("q03", "Select Aviation College Cessna 150M mid-air collision Gatineau Airport",
              ["tsb/a23q0069"], "en"),
     EvalItem("q04", "Saint-Rémi Cessna 150G décrochage et collision avec le relief",
+             ["tsb/a23q0041"], "fr"),
+    EvalItem("q05", "安捷飛航訓練中心 DA-40NG 發動機失效迫降高雄外海",
+             ["ttsb/3287_ttsb-aor-19-11-001"], "zh"),
+    EvalItem("q06", "直昇機吊掛作業組員受傷致死 AS365N3",
+             ["ttsb/3292_ttsb-aor-19-11-002"], "zh"),
+    EvalItem("q07", "民用航空器维修计划和控制 CCAR-121",
+             ["caac/P020151103346484825446"], "zh"),
+    EvalItem("q08", "CAR 605.38 fuel quantity required Piper PA-31 fuel starvation",
+             ["tsb/a00c0260"], "en"),
+    EvalItem("q09", "C-FHGR C-FXLQ mid-air collision Gatineau Select Aviation Cessna 150M",
+             ["tsb/a23q0069"], "en"),
+    EvalItem("q10", "CCAR-121 飞行机组成员训练计划和检查要求 民用航空规章",
+             ["caac/P020151103346484825446"], "zh"),
+    EvalItem("q11", "CAR 602.01 VFR de nuit décrochage Cessna Saint-Rémi",
              ["tsb/a23q0041"], "fr"),
 ]
 

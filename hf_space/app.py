@@ -282,6 +282,8 @@ SAMPLE_QUERIES: list[tuple[str, str, str, int]] = [
     ("VFR flight into IMC", "en", "tsb", 2),
     ("alimentation en carburant", "fr", "tsb", 2),
     ("approach procedures helicopter", "en", "tc", 2),
+    ("安捷飛航訓練中心 DA-40NG 發動機失效迫降高雄外海", "zh", "ttsb", 2),
+    ("民用航空器维修计划和控制 CCAR-121", "zh", "caac", 2),
 ]
 
 
@@ -639,8 +641,8 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                 samples_per_page=10,
             )
             gr.HTML("<hr>")
-            lang = gr.Radio(["all", "en", "fr"], value="all", label="Lang")
-            source = gr.Radio(["all", "tsb", "tc"], value="all", label="Corpus")
+            lang = gr.Radio(["all", "en", "fr", "zh"], value="all", label="Lang")
+            source = gr.Radio(["all", "tsb", "tc", "ttsb", "caac"], value="all", label="Corpus")
             with gr.Accordion("Advanced", open=False):
                 max_hops = gr.Slider(1, 5, value=2, step=1, label="Max hops")
                 show_bbox = gr.Checkbox(

@@ -53,8 +53,8 @@ def build(client: "ApiClient") -> None:
             )
             search_btn = gr.Button("Search", variant="primary", scale=1)
         with gr.Row():
-            c_lang = gr.Radio(["all", "en", "fr"], value="all", label="Language")
-            c_source = gr.Radio(["all", "tsb", "tc"], value="all", label="Source")
+            c_lang = gr.Radio(["all", "en", "fr", "zh"], value="all", label="Language")
+            c_source = gr.Radio(["all", "tsb", "tc", "ttsb", "caac"], value="all", label="Source")
             c_topk = gr.Slider(5, 50, value=10, step=5, label="Top-K")
 
         results_table = gr.Dataframe(
