@@ -77,16 +77,17 @@ None. All resolved.
 MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, otel/otel-collector-config.yaml, per-dir README placeholders
 
 ## Resume pointer
-**☑ S38 DONE (by haiku-4.5, 2026-06-06).** Commit `92da11c`: qwen3:4b VRAM fix + polish improvements.
-- S37 code committed (18 files, 149 unit tests pass).
-- Generation model: qwen3:4b (VRAM-gated at 2.5 GB, coexists with retrieval on 8 GB 3060Ti).
-- Sequential VRAM unload + OLLAMA_KEEP_ALIVE=0 + /no_think default, all working.
-- **Known item for S39:** live-verify improved prompt produces bracket `[tsb/… p.N]` citations; if regressed, revert model or add post-processing.
+**☑ S39 code DONE (by opus-4.8, 2026-06-06).** Deterministic Sources block — citation regression fixed in code; live-through-container verify deferred to a backend rebuild.
+- **S39 finding (live):** `/query "fuel exhaustion forced landing"` against the running backend (qwen3:4b) → good prose answer but **0** inline `[doc_id p.page]` citations (regression confirmed; raw draft parsed to 0 (doc,page) pairs by hf_space `_CITED_TAG_RE`).
+- **Decision (user):** revert to gemma2:9b is hardware-blocked (S37 GPU-VM crash); chose **deterministic Sources block** over prompt-tuning.
+- **Fix:** `agent/prompts.format_sources_block()` builds `**Sources:** [doc_id p.page], …` from retrieved candidates (dedup by (doc,page), rank order); `agent/nodes.synthesize_node` appends it to every draft. Tags are exactly what `_CITED_TAG_RE` parses → page-level highlighting now resolves (verified: 10 pairs from the live query output, 0→10).
+- Coarse by design: bare tags (no quotes) → `_cited_keys` (page-level) matches; `_parse_citations` (quote-tightening) does not. Per-sentence attribution NOT attempted.
+- Tests: 7 new (4 prompts, 2 nodes, 1 graph updated); full `agent/` suite green.
 
-**⮕ Next (S39):**
-1. Live-verify citation format: `/query "fuel exhaustion forced landing"` → check draft for `[tsb/a13q0098 p.4]` bracket form (not prose "A13Q0098").
-2. If brackets present ✓: mark S38 polish verified, close S39 as no-op.
-3. If prose ✗: debug (try gemma2:9b if VRAM allows, or post-process citations → bracket form).
+**⮕ Next (S40 — needs Docker, user-controlled):**
+1. **User rebuilds backend image** (code is baked in, not volume-mounted) so the running container picks up the Sources-block change.
+2. Re-run `/query "fuel exhaustion forced landing"` → confirm draft ends with a `**Sources:** [tsb/… p.N]` line.
+3. Open the HF Space (`:7860`), run the same query, confirm cited pages get PDF-highlighted (the user-facing payoff).
 
 **Root cause settled (S37):** live `/query` crashed the Docker/WSL **GPU VM** because a 6.9 GB LLM (qwen3-vl) can't co-reside with retrieval (~4.4 GB) on the 8 GB 3060Ti. Fix: generation→**qwen3:4b** (text); retrieval GPU with sequential unload+gc+barrier; `OLLAMA_KEEP_ALIVE=0`; qwen3 `/no_think`. Images handled at ingestion (Qwen2.5-VL captions, retrievable; hf_space renders "🖼 AI-read figure"). `.env` (gitignored) now `OLLAMA_MODEL=qwen3:4b`. Full detail in SESSIONS.md S37.
 **Deferred:** query-time image Q&A (user uploads image → VL on GPU, retrieval→CPU, image plumbing) — own task.

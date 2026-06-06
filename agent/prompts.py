@@ -87,6 +87,33 @@ def format_citations(candidates: Sequence[ScoredChunkDict], *, max_chars: int = 
     return "\n\n".join(lines)
 
 
+def format_sources_block(candidates: Sequence[ScoredChunkDict]) -> str:
+    """Deterministic trailing 'Sources' line of [doc_id p.page] tags.
+
+    qwen3:4b (the VRAM-gated generation model on the 8 GB 3060Ti) reliably
+    produces good prose but ignores the inline-citation instruction, so the
+    draft carries no bracket tags for downstream PDF highlighting to parse
+    (hf_space._cited_keys). We guarantee valid tags exist by appending the
+    actually-retrieved sources, deduped by (doc_id, page) in rank order. The
+    tag form here is exactly what ``_CITED_TAG_RE`` matches: ``[doc_id p.page]``.
+    """
+    seen: set[tuple[str, object]] = set()
+    tags: list[str] = []
+    for c in candidates:
+        doc_id = c.get("doc_id")
+        page = c.get("page")
+        if not doc_id or page is None:
+            continue
+        key = (doc_id, page)
+        if key in seen:
+            continue
+        seen.add(key)
+        tags.append(f"[{doc_id} p.{page}]")
+    if not tags:
+        return ""
+    return "**Sources:** " + ", ".join(tags)
+
+
 def format_graph_context(rows: Sequence[dict]) -> str:
     """Render traversal results as cited facts.
 

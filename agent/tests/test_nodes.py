@@ -409,13 +409,42 @@ def test_synthesize_calls_llm_with_prompt(qclient):
         scored_chunk_to_dict(ScoredChunk(_rec("alpha", idx=0), 0.5, 0.5)),
     ]
     update = node(state)
-    assert update["draft"] == "draft text"
+    assert update["draft"].startswith("draft text")
     assert len(llm.calls) == 1
     system, user = llm.calls[0]
     assert "aerospace" in system.lower()
     assert "what?" in user
     assert "alpha" in user
     assert update["trace"][-1]["node"] == "synthesize"
+
+
+def test_synthesize_appends_deterministic_sources_block(qclient):
+    # qwen3:4b won't emit inline citations, so the node appends a Sources block
+    # of [doc_id p.page] tags from the candidates for downstream highlighting.
+    llm = StubLLM("draft with no citations")
+    deps = _make_deps(qclient, llm=llm)
+    node = make_synthesize_node(deps)
+    state = initial_state("what?")
+    state["candidates"] = [
+        scored_chunk_to_dict(ScoredChunk(_rec("alpha", idx=0), 0.5, 0.5)),
+        scored_chunk_to_dict(ScoredChunk(_rec("beta", idx=1), 0.4, 0.4)),
+    ]
+    update = node(state)
+    assert update["draft"].startswith("draft with no citations")
+    assert "**Sources:**" in update["draft"]
+    assert "[tsb/doc000 p.1]" in update["draft"]
+    assert "[tsb/doc001 p.2]" in update["draft"]
+    assert update["trace"][-1]["sources_appended"] is True
+
+
+def test_synthesize_no_sources_block_without_candidates(qclient):
+    llm = StubLLM("draft text")
+    deps = _make_deps(qclient, llm=llm)
+    node = make_synthesize_node(deps)
+    update = node(initial_state("what?"))
+    assert update["draft"] == "draft text"
+    assert "**Sources:**" not in update["draft"]
+    assert update["trace"][-1]["sources_appended"] is False
 
 
 # ─── finalize_node ───────────────────────────────────────────────────────────

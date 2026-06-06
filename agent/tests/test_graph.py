@@ -105,8 +105,10 @@ def test_runs_to_completion_in_one_invoke(qclient):
     config = {"configurable": {"thread_id": "t1"}}
 
     done = graph.invoke(initial_state("q"), config=config)
-    assert done.get("draft") == "DRAFT ANSWER"
-    assert done.get("final") == "DRAFT ANSWER"
+    # Draft carries the LLM answer plus the deterministic Sources block.
+    assert done.get("draft").startswith("DRAFT ANSWER")
+    assert "**Sources:**" in done.get("draft")
+    assert done.get("final") == done.get("draft")
     # Graph is at END — no pending nodes.
     assert tuple(graph.get_state(config).next) == ()
 

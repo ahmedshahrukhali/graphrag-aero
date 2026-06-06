@@ -32,7 +32,7 @@ from retrieve.reranker import CrossEncoderReranker
 from retrieve.vram import wait_for_free_vram
 
 from .llm import LLM
-from .prompts import SYSTEM_PROMPT, build_user_prompt
+from .prompts import SYSTEM_PROMPT, build_user_prompt, format_sources_block
 from .reformulate import reformulate
 from .state import AgentState, scored_chunk_to_dict
 
@@ -288,11 +288,19 @@ def make_synthesize_node(deps: AgentDeps) -> Callable[[AgentState], dict]:
             state.get("recurring_context", []),
         )
         draft = deps.llm.chat(system, user)
+        # Deterministic citation guarantee: qwen3:4b won't emit inline
+        # [doc_id p.page] tags, so append a Sources block built from the
+        # retrieved candidates. This is what downstream PDF highlighting
+        # (hf_space._cited_keys) parses — without it, highlighting gets nothing.
+        sources = format_sources_block(state.get("candidates", []))
+        if sources:
+            draft = f"{draft.rstrip()}\n\n---\n{sources}"
         trace = list(state.get("trace", []))
         trace.append(_trace_entry(
             "synthesize", started,
             prompt_chars=len(user), draft_chars=len(draft),
             has_rejected_prior=bool(rejected_prior),
+            sources_appended=bool(sources),
         ))
         return {"draft": draft, "trace": trace}
     return synthesize_node

@@ -4,6 +4,15 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 
 ---
 
+## Session 39 — 2026-06-06 — opus-4.8
+**Commits:** (this commit) — deterministic Sources block
+**Achieved:**
+- S39 live-verified citation regression: `/query "fuel exhaustion forced landing"` on running backend (qwen3:4b) → strong prose answer but 0 inline `[doc_id p.page]` tags. Confirmed raw draft parses to 0 (doc,page) pairs via hf_space `_CITED_TAG_RE`; retrieval itself fine (10 real candidates).
+- Root-cause: 4B model won't follow the (very explicit) bracket-citation prompt; gemma2:9b revert hardware-blocked (S37 GPU-VM crash). User chose deterministic Sources block.
+- Added `format_sources_block()` (prompts.py) + append in `synthesize_node` (nodes.py): `**Sources:** [doc_id p.page], …`, deduped by (doc,page) in rank order, matches `_CITED_TAG_RE`. Verified against live output: 0→10 highlightable pairs.
+- 7 tests added/updated; full `agent/` suite green.
+**Left:** live-through-container verify — backend code is baked in (not mounted), so **user must rebuild backend image**, then re-run query + check HF Space PDF highlighting. (S40)
+
 ## Session 38 — 2026-06-06 — haiku-4.5
 **Commits:** `92da11c` (S37 completion), `ba032f7` (manifest close)
 **Achieved:**

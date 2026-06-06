@@ -6,6 +6,7 @@ from agent.prompts import (
     format_citations,
     format_graph_context,
     format_recurring_context,
+    format_sources_block,
 )
 
 
@@ -39,6 +40,40 @@ def test_format_citations_truncates_long_text():
     # Should contain truncation marker.
     assert "..." in out
     assert len(out) < 5000
+
+
+def test_format_sources_block_empty():
+    assert format_sources_block([]) == ""
+
+
+def test_format_sources_block_tags_match_parser():
+    # Tags must be the [doc_id p.page] form hf_space._CITED_TAG_RE parses.
+    out = format_sources_block([
+        _cand("tsb/a13q0098", 5, "alpha"),
+        _cand("tsb/a03q0109", 2, "beta"),
+    ])
+    assert out.startswith("**Sources:**")
+    assert "[tsb/a13q0098 p.5]" in out
+    assert "[tsb/a03q0109 p.2]" in out
+
+
+def test_format_sources_block_dedups_doc_page_in_rank_order():
+    out = format_sources_block([
+        _cand("tsb/a01", 3, "a"),
+        _cand("tsb/a01", 3, "dup"),   # same doc+page → dropped
+        _cand("tsb/a01", 4, "b"),     # same doc, new page → kept
+        _cand("tsb/a02", 1, "c"),
+    ])
+    assert out == "**Sources:** [tsb/a01 p.3], [tsb/a01 p.4], [tsb/a02 p.1]"
+
+
+def test_format_sources_block_skips_missing_fields():
+    out = format_sources_block([
+        {"doc_id": "tsb/a01", "page": None},   # no page → skipped
+        {"doc_id": None, "page": 2},           # no doc_id → skipped
+        _cand("tsb/a02", 7, "ok"),
+    ])
+    assert out == "**Sources:** [tsb/a02 p.7]"
 
 
 def test_format_graph_context_none():
