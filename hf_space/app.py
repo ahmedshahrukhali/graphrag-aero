@@ -650,7 +650,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
         """
         art = (artifacts or {}).get(IDX_SRC) or {}
         items = _render_gallery(art, bool(show_bbox)) if art.get("sources") else []
-        return gr.update(value=items), gr.update(open=False)
+        return gr.update(value=items), gr.update(open=bool(items))
 
     def on_pick_sample(evt: gr.SelectData):
         """Click a sample → instant cached answer (no backend/LLM call).
@@ -857,11 +857,7 @@ def main() -> None:
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
     app = make_app()
-    app.launch(
-        server_name="0.0.0.0", 
-        server_port=int(os.environ.get("PORT", 7860)),
-        allowed_paths=["/tmp/gradio_renders"]
-    )
+    app.launch(server_name="0.0.0.0", server_port=int(os.environ.get("PORT", 7860)))
 
 
 if __name__ == "__main__":

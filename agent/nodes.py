@@ -26,7 +26,7 @@ from retrieve.pipeline import (
     DEFAULT_CHAR_BUDGET,
     DEFAULT_TOP_N_DOCS,
     anchored_retrieve,
-    hybrid_retrieve_and_rerank,
+    retrieve_and_rerank,
 )
 from retrieve.reranker import CrossEncoderReranker
 from retrieve.vram import wait_for_free_vram
@@ -160,7 +160,7 @@ def make_retrieve_node(deps: AgentDeps) -> Callable[[AgentState], dict]:
             merged = [scored_chunk_to_dict(r) for r in results]
             n_new = len(merged)
         else:
-            results = hybrid_retrieve_and_rerank(
+            results = retrieve_and_rerank(
                 query,
                 embedder=deps.embedder,
                 reranker=deps.reranker,

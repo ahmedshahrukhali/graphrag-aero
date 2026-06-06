@@ -151,7 +151,7 @@ def anchored_retrieve(
     character budget by relevance, and return the selection in reading order
     (doc_id, page) so the LLM sees coherent passages.
     """
-    seed = hybrid_retrieve_and_rerank(
+    seed = retrieve_and_rerank(
         query, embedder=embedder, reranker=reranker, client=client,
         collection=collection, ann_k=ann_k, top_k=top_k, lang=lang, source=source,
         exclude_hashes=exclude_hashes,
