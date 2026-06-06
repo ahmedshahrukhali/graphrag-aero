@@ -1,6 +1,8 @@
 """/query → /resume flow over stub agent deps (§3: HITL removed; /query completes immediately)."""
 from __future__ import annotations
 
+import re
+
 import pytest
 
 pytest.importorskip("langgraph")
@@ -150,3 +152,45 @@ def test_query_stream_emits_sources_before_tokens(make_client):
     data_line = next(ln for ln in done_block[0].splitlines() if ln.startswith("data:"))
     done_data = json.loads(data_line[len("data:"):].strip())
     assert "sources" not in done_data, f"done still carries sources: {done_data}"
+
+
+def _token_text(text: str) -> str:
+    """Concatenate every `token` event's text — the UI's accumulated draft."""
+    import json
+    out: list[str] = []
+    for block in text.split("\n\n"):
+        if "event: token" in block:
+            data_line = next(ln for ln in block.splitlines() if ln.startswith("data:"))
+            out.append(json.loads(data_line[len("data:"):].strip()).get("text", ""))
+    return "".join(out)
+
+
+# Tag form the HF Space's hf_space._cited_keys / _CITED_TAG_RE parses to decide
+# which pages get PDF-highlighted: [doc_id p.page].
+_CITED_TAG_RE = re.compile(r"\[[^\]\s]+\s+p\.\s*\d+[^\]]*\]")
+
+
+def test_query_stream_appends_sources_block(make_client):
+    """Regression: the streaming path must append the deterministic Sources
+    block so the streamed tokens (and the done draft) carry [doc_id p.page]
+    tags. Without it the HF Space gallery parses zero citations and PDF
+    highlighting boxes nothing — the S41 bug, which slipped because S39's fix
+    only touched synthesize_node (the /query path), not /query/stream."""
+    client = make_client()
+    r = client.post("/query/stream", json={"query": "fuel", "thread_id": "ts2", "max_hops": 1})
+    assert r.status_code == 200, r.text
+
+    # The Sources block must arrive via token events (so it lands in text_buf).
+    tokens = _token_text(r.text)
+    assert _CITED_TAG_RE.search(tokens), f"no [doc_id p.page] tag in streamed tokens: {tokens!r}"
+    assert "**Sources:**" in tokens, f"no Sources block in streamed tokens: {tokens!r}"
+
+    # And the done draft must carry it too.
+    import json
+    done_block = next(
+        b for b in r.text.split("\n\n")
+        if b.startswith("event: done") or "\nevent: done" in b
+    )
+    data_line = next(ln for ln in done_block.splitlines() if ln.startswith("data:"))
+    draft = json.loads(data_line[len("data:"):].strip())["draft"]
+    assert _CITED_TAG_RE.search(draft), f"no [doc_id p.page] tag in done draft: {draft!r}"

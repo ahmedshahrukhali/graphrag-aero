@@ -209,7 +209,7 @@ def _register_routes(app: FastAPI) -> None:
         then token-level synthesize output. Skips the LangGraph HITL pause —
         clients that need draft-edit should use /query + /resume instead."""
         from agent.nodes import make_retrieve_node, make_graph_expand_node
-        from agent.prompts import SYSTEM_PROMPT, build_user_prompt
+        from agent.prompts import SYSTEM_PROMPT, build_user_prompt, format_sources_block
         from agent.state import initial_state
         deps = _get_deps(request)
         ad = deps.agent_deps
@@ -254,6 +254,19 @@ def _register_routes(app: FastAPI) -> None:
                 pieces.append(chunk)
                 yield _sse("token", {"text": chunk})
             draft = "".join(pieces)
+
+            # Append the deterministic Sources block — exactly as synthesize_node
+            # does for the /query path. The streaming path is what the HF Space UI
+            # consumes; without this the streamed draft carries no [doc_id p.page]
+            # tags, so hf_space._cited_keys parses nothing and PDF highlighting
+            # boxes zero pages. Emit it as a trailing token too, so it lands in the
+            # UI's accumulated text_buf (the gallery anchors highlights off that),
+            # not just the done payload.
+            sources = format_sources_block(state.get("candidates", []))
+            if sources:
+                tail = f"\n\n---\n{sources}"
+                draft = f"{draft.rstrip()}{tail}"
+                yield _sse("token", {"text": tail})
 
             trace = list(state.get("trace", []))
             trace.append({
