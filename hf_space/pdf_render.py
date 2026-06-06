@@ -132,14 +132,28 @@ def search_page_terms(
         except Exception:  # noqa: BLE001 — pdfplumber search is best-effort
             continue
         for h in hits:
-            bb = (float(h["x0"]), float(h["top"]), float(h["x1"]), float(h["bottom"]))
-            key = (round(bb[0]), round(bb[1]), round(bb[2]), round(bb[3]))
-            if key in seen:
-                continue
-            seen.add(key)
-            boxes.append(bb)
-            if len(boxes) >= max_boxes:
-                return boxes
+            line_groups = {}
+            for c in h.get("chars", []):
+                # group chars by approximate top coordinate (2 points tolerance)
+                line_y = round(float(c["top"]) / 2) * 2
+                if line_y not in line_groups:
+                    line_groups[line_y] = []
+                line_groups[line_y].append(c)
+                
+            for chars in line_groups.values():
+                x0 = min(float(c["x0"]) for c in chars)
+                top = min(float(c["top"]) for c in chars)
+                x1 = max(float(c["x1"]) for c in chars)
+                bottom = max(float(c["bottom"]) for c in chars)
+                
+                bb = (x0, top, x1, bottom)
+                key = (round(bb[0]), round(bb[1]), round(bb[2]), round(bb[3]))
+                if key in seen:
+                    continue
+                seen.add(key)
+                boxes.append(bb)
+                if len(boxes) >= max_boxes:
+                    return boxes
     return boxes
 
 
