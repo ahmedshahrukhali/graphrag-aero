@@ -703,7 +703,21 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
         ask_event_b = query.submit(on_ask, inputs=ask_inputs, outputs=ask_outputs)
         ask_event_b.then(render_pages, [artifacts, show_bbox], pages_out)
 
-        stop_btn.click(None, cancels=[ask_event_a, ask_event_b])
+        def on_stop(chat_list):
+            if not chat_list:
+                return gr.update()
+            new_chat = []
+            for msg in chat_list:
+                m = dict(msg)
+                if "metadata" in m and m.get("metadata", {}).get("status") == "pending":
+                    m["metadata"] = dict(m["metadata"])
+                    m["metadata"]["status"] = "done"
+                    if "Thinking" in m["metadata"].get("title", ""):
+                        m["metadata"]["title"] = "🧠 Stopped"
+                new_chat.append(m)
+            return new_chat
+
+        stop_btn.click(on_stop, inputs=[chat], outputs=[chat], cancels=[ask_event_a, ask_event_b])
 
         new_btn.click(
             on_new, [sess], [chat, sess, artifacts]
