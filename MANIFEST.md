@@ -77,7 +77,7 @@ None. All resolved.
 MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, otel/otel-collector-config.yaml, per-dir README placeholders
 
 ## Resume pointer
-**⮕ S32 DONE. Eval A/B confirmed, figure pipeline mock-verified. VL model download in progress.**
+**⮕ S35 DONE. Figure chunks embedded (77,179 pts), WS-E eval confirmed exact parity. Awaiting next instruction.**
 ☑ S32 eval A/B (by sonnet-4.6, S32) — hybrid n=11: R@5=0.7273 MRR=0.6818 nDCG@5=0.6937; by_lang: en=0.800, fr=0.250 MRR, zh=0.750 MRR; no regression vs §1 baseline
 ☑ S32 WS-C mock-verify (by sonnet-4.6, S32) — figure detected (a00a0051 p4), _figures.jsonl written, :Figure+:HAS_FIGURE in Neo4j; :Figure constraint applied to live schema
 ☑ WS-C figures (by sonnet-4.6, S31) — `33b3c90`; Qwen3-VL-8B figure tier:
@@ -97,7 +97,13 @@ MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, o
     - requirements-vl.txt committed; run via graphrag-aero-embed container (CUDA torch + pdfplumber on-the-fly)
     - 6 figures across 3 docs: a00a0051 p4 "Fox Harbor runway diagram", a00a0071 (3 header logos), a00a0076 (2 photos)
     - Real caption sample: "A simplified diagram of Fox Harbor's runway layout, including windsock position and tree line."
-**Next (S35):** Run `python -m embed.run --in data/chunks` to index the 6 new kind=figure chunks into Qdrant (incremental, idempotent); then WS-E dual-corpus eval (EN+ZH retrieval quality on full 77k+ corpus). Optional: rebuild ingestion `vl` Docker image properly once paddle CDN stabilises.
+☑ S35 WS-E figure embed + dual-corpus eval (by sonnet-4.6, S35)
+    - 6 kind=figure chunks embedded into Qdrant: 77,173 → 77,179 pts (dense+sparse, BGE-M3)
+    - Figure chunks verified retrievable: q01 (Fox Harbour / a00a0051) retrieves figure chunk in top-10
+    - Eval n=11 [dense]: R@5=0.7273 MRR=0.6818 nDCG@5=0.6937 — exact parity with S32 hybrid baseline
+      EN(n=5): R@5=0.800 MRR=0.800 | FR(n=2): R@5=0.500 MRR=0.250 | ZH(n=4): R@5=0.750 MRR=0.750
+    - Suite: 570 passed, 1 skipped (no regressions)
+**Next (S36):** No open WS items. Candidate next steps: (A) Qwen3-8B vs gemma2:9b generation bake-off (VRAM settled at 6.2 GB); (B) About tab UI; (C) graph-breadth enrichment (densify Finding→Regulation links via LLM). Await instruction.
 ☑ §6 eval/tests/test_feedback_eval.py (by sonnet-4.6, S30) — `6548edd`; 3 pytest wrappers for the standalone feedback_eval audit runner; last open verification item from REDESIGN_PLAN §6.
 ☑ §1 hybrid index re-embed (by sonnet-4.6) — 77,173 chunks, dense+sparse. A/B: R@5=0.727 MRR=0.682 nDCG@5=0.694 (n=11); hybrid parity confirmed (sparse fires, reranker normalises at n=11).
 ☑ §2 query reformulation loop (by sonnet-4.6) — `b246329`

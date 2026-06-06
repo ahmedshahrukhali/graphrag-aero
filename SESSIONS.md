@@ -4,6 +4,18 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 
 ---
 
+## Session 35 — 2026-06-06 — sonnet-4.6
+**Commits:** (this session — see below)
+**Achieved:**
+- State reconciled: S33/S34 commits confirmed (5652da7, b3292c1, eddbeb2); 6 figure chunks present + 6 :Figure/:HAS_FIGURE in Neo4j ✓
+- 6 kind=figure chunks embedded into Qdrant: 77,173 → 77,179 pts (dense+sparse BGE-M3, incremental idempotent)
+- WS-E dual-corpus eval n=11 [dense]: R@5=0.7273 MRR=0.6818 nDCG@5=0.6937 — exact parity with S32 hybrid baseline
+  EN(n=5) R@5=0.800 | FR(n=2) MRR=0.250 | ZH(n=4) R@5=0.750; no regression; figure chunks retrievable (q01 a00a0051 top-4)
+- Suite: 570 passed, 1 skipped (no regressions)
+**Left:** Nothing open. Candidate next steps: Qwen3-8B generation bake-off; About tab UI; graph-breadth densification.
+
+---
+
 ## Session 34 — 2026-06-05 — sonnet-4.6
 **Commits:** (this session — see below)
 **Achieved:**
