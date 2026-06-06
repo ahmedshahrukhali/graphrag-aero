@@ -77,8 +77,13 @@ None. All resolved.
 MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, otel/otel-collector-config.yaml, per-dir README placeholders
 
 ## Resume pointer
-**⮕ S36 DONE. About tab shipped (`0aed931`). 578 passed, 1 skipped.**
-**Next (S37):** Qwen3-8B vs gemma2:9b generation bake-off (VRAM confirmed 6.2 GB; quality-gated swap, needs live stack). No other open items.
+**⮕ S37 code done + tested (585 main + 57 hf_space), but UNCOMMITTED and live-verify of polish pending.**
+**Next (do first, S38):**
+1. `docker compose up -d --build backend` (Claude must ASK user to run Docker — see CLAUDE.md hard rule), then live-verify the polish: text `/query` faster than 53 s, citations in `[tsb/… p.N]` bracket form, GPU peak ~5.8 GB, no crash. Confirm 🖼 figure renders in hf_space at :7860.
+2. **Commit** the 16 changed files with `Model: opus-4.8` trailer; mark generation-model swap (gemma2:9b → qwen3:4b) + sequential-VRAM fix in this MANIFEST.
+**Root cause settled (S37):** live `/query` crashed the Docker/WSL **GPU VM** because a 6.9 GB LLM (qwen3-vl) can't co-reside with retrieval (~4.4 GB) on the 8 GB 3060Ti. Fix: generation→**qwen3:4b** (text); retrieval GPU with sequential unload+gc+barrier; `OLLAMA_KEEP_ALIVE=0`; qwen3 `/no_think`. Images handled at ingestion (Qwen2.5-VL captions, retrievable; hf_space renders "🖼 AI-read figure"). `.env` (gitignored) now `OLLAMA_MODEL=qwen3:4b`. Full detail in SESSIONS.md S37.
+**Deferred:** query-time image Q&A (user uploads image → VL on GPU, retrieval→CPU, image plumbing) — own task.
+**Earlier next (still open):** Qwen3-8B vs gemma2:9b generation bake-off — superseded by the qwen3:4b swap above unless revisited on bigger hardware.
 ☑ S36 About tab (by sonnet-4.6, S36) — `0aed931`; hf_space/about_tab.py What/Why/How; wired into make_app(); 8 new tests; 578 passed, 1 skipped
 **⮕ (was S35) S35 DONE. Figure chunks embedded (77,179 pts), WS-E eval confirmed exact parity.**
 ☑ S32 eval A/B (by sonnet-4.6, S32) — hybrid n=11: R@5=0.7273 MRR=0.6818 nDCG@5=0.6937; by_lang: en=0.800, fr=0.250 MRR, zh=0.750 MRR; no regression vs §1 baseline

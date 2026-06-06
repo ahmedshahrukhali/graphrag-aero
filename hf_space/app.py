@@ -95,6 +95,9 @@ def _sources_to_retrieve(sources: list[dict], query: str) -> RetrieveResponse:
             page_bboxes=tuple(tuple(float(v) for v in pb) for pb in s.get("page_bboxes", ())),
             lang=s.get("lang", ""),
             text=s.get("text", ""),
+            # kind="figure" marks a chunk whose text is a Qwen2.5-VL caption+OCR
+            # of a figure read at ingestion — surfaced visually in the gallery.
+            kind=s.get("kind", "text"),
             ann_score=float(s.get("ann_score", 0.0)),
             rerank_score=None if s.get("rerank_score") is None else float(s["rerank_score"]),
         ))
@@ -206,17 +209,29 @@ def _gallery_items(
     for c in retrieve.results:
         key = (c.doc_id, c.page)
         is_cited = key in cited_keys
+        is_figure = c.kind == "figure"
         tag = " · ✦ cited" if is_cited else ""
-        caption = (
-            f"#{c.rank} · {c.doc_id} · p.{c.page} · "
-            f"rerank={'—' if c.rerank_score is None else f'{c.rerank_score:.3f}'}{tag}"
-        )
+        if is_figure:
+            # Proof of image-intelligence: this chunk's text is the caption +
+            # OCR that Qwen2.5-VL produced from the figure at ingestion. Show
+            # the figure region (always boxed) next to that AI reading.
+            cap_text = " ".join((c.text or "").split())
+            if len(cap_text) > 90:
+                cap_text = cap_text[:90] + "…"
+            caption = f"🖼 AI-read figure · #{c.rank} · {c.doc_id} · p.{c.page}{tag}"
+            if cap_text:
+                caption += f' · "{cap_text}"'
+        else:
+            caption = (
+                f"#{c.rank} · {c.doc_id} · p.{c.page} · "
+                f"rerank={'—' if c.rerank_score is None else f'{c.rerank_score:.3f}'}{tag}"
+            )
         if not c.source_url:
             continue
-        # Highlight a page only when the answer cites it. WS-B: the cited box is
-        # the chunk's stored region(s) for this page (page_bboxes) — drawn
-        # directly, no page-search/quote-anchoring (that desynced; see §4.1).
-        do_box = bool(draw_bbox and is_cited)
+        # Highlight a page when the answer cites it (WS-B: draw the chunk's own
+        # stored region(s), no quote-anchoring). Figures are always boxed — the
+        # region *is* the image the vision model read, so we showcase it.
+        do_box = bool(draw_bbox and (is_cited or is_figure))
         regions = _page_regions(c) if do_box else ()
         try:
             img = render_page_with_bbox(

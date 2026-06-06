@@ -10,10 +10,15 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 from typing import Iterator, Protocol
 
 
 logger = logging.getLogger(__name__)
+
+# Strip a leading reasoning block some thinking models still emit (e.g. an empty
+# <think></think>) even with /no_think, so it never leaks into the cited answer.
+_THINK_RE = re.compile(r"^\s*<think>.*?</think>\s*", re.DOTALL)
 
 
 # Ollama's default num_ctx (4096 for gemma2) silently truncates the citation
@@ -50,7 +55,21 @@ class OllamaLLM:
         self._host = host or os.environ.get("OLLAMA_HOST", "http://localhost:11434")
         self._model = model or os.environ.get("OLLAMA_MODEL", "qwen3:8b")
         self._options = options if options is not None else _default_options()
+        # keep_alive=0 → Ollama unloads the model from VRAM immediately after
+        # generating, instead of holding it ~5 min. Load-bearing on the 8 GB
+        # 3060Ti: it frees the GPU before the next query's BGE-M3 + reranker
+        # load, so the LLM and retrieval models are never co-resident (their sum
+        # crashes the WSL GPU VM). Override with OLLAMA_KEEP_ALIVE (e.g. "5m").
+        self._keep_alive = os.environ.get("OLLAMA_KEEP_ALIVE", "0")
+        # Qwen3 models "think" (emit a reasoning block) by default, which is slow
+        # and, for our citation-heavy synthesis, hurts format adherence. Default
+        # off via the "/no_think" soft switch (Qwen3 honours it; harmless to
+        # other models). Set OLLAMA_THINK=1 to re-enable reasoning.
+        self._think = os.environ.get("OLLAMA_THINK", "0") == "1"
         self._client = None
+
+    def _user_content(self, user: str) -> str:
+        return user if self._think else f"{user}\n\n/no_think"
 
     def _ensure_client(self):
         if self._client is None:
@@ -66,12 +85,13 @@ class OllamaLLM:
             model=self._model,
             messages=[
                 {"role": "system", "content": system},
-                {"role": "user", "content": user},
+                {"role": "user", "content": self._user_content(user)},
             ],
             options=self._options,
+            keep_alive=self._keep_alive,
         )
         # Ollama's response shape: {"message": {"role": "assistant", "content": ...}, ...}
-        return resp["message"]["content"]
+        return _THINK_RE.sub("", resp["message"]["content"] or "")
 
     def chat_stream(self, system: str, user: str) -> Iterator[str]:
         """Yield assistant content chunks as Ollama emits them.
@@ -85,9 +105,10 @@ class OllamaLLM:
             model=self._model,
             messages=[
                 {"role": "system", "content": system},
-                {"role": "user", "content": user},
+                {"role": "user", "content": self._user_content(user)},
             ],
             options=self._options,
+            keep_alive=self._keep_alive,
             stream=True,
         ):
             piece = (chunk.get("message") or {}).get("content") or ""

@@ -40,13 +40,22 @@ class BGE_M3Embedder:
         use_fp16: bool = True,
         max_length: int = DEFAULT_MAX_LENGTH,
         batch_size: int = 128,
+        device: str | None = None,
     ) -> None:
         # Lazy import — keeps ``import embed.bge_m3`` cheap and offline-safe.
         from FlagEmbedding import BGEM3FlagModel  # type: ignore
 
         name = model_name or os.environ.get("EMBED_MODEL", "BAAI/bge-m3")
-        logger.info("loading BGE-M3 (%s, fp16=%s)", name, use_fp16)
-        self._model = BGEM3FlagModel(name, use_fp16=use_fp16)
+        # device: None → FlagEmbedding auto-selects (GPU if present); "cpu" pins
+        # to CPU. The backend pins to CPU so BGE-M3 doesn't co-reside on the 8 GB
+        # GPU with Ollama (their sum crashes the WSL GPU VM); the batch embed job
+        # leaves this None to keep GPU speed. Env EMBED_DEVICE overrides.
+        if device is None:
+            device = os.environ.get("EMBED_DEVICE") or None
+        if device == "cpu":
+            use_fp16 = False  # fp16 is a GPU optimization — invalid/slow on CPU.
+        logger.info("loading BGE-M3 (%s, fp16=%s, device=%s)", name, use_fp16, device or "auto")
+        self._model = BGEM3FlagModel(name, use_fp16=use_fp16, devices=device)
         self._max_length = max_length
         self._batch_size = batch_size
 

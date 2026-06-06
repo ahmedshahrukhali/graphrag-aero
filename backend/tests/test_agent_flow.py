@@ -29,9 +29,12 @@ def test_resume_returns_final_answer(make_client, stub_deps_with_checkpointer):
     assert body["final"] == "stubbed draft answer."
 
 
-def test_synthesize_unloads_retrieval_models(make_client, stub_deps_with_checkpointer):
-    """VRAM discipline assertion: by the time finalize runs, embedder +
-    reranker have been unloaded so the LLM gets the slot."""
+def test_synthesize_unloads_retrieval_models(make_client, stub_deps_with_checkpointer, monkeypatch):
+    """VRAM discipline assertion (large-LLM mode): with SEQUENTIAL_VRAM_UNLOAD=1,
+    by the time finalize runs the embedder + reranker have been unloaded so the
+    LLM gets the slot. (Off by default — a small LLM co-resides with retrieval.)"""
+    monkeypatch.setenv("SEQUENTIAL_VRAM_UNLOAD", "1")
+    monkeypatch.setattr("agent.nodes.wait_for_free_vram", lambda *a, **k: True)
     client = make_client()
     client.post("/query", json={"query": "fuel", "thread_id": "t4", "max_hops": 1})
     assert stub_deps_with_checkpointer._stubs["embedder"].unloaded is True

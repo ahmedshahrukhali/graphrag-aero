@@ -29,6 +29,7 @@ from retrieve.pipeline import (
     retrieve_and_rerank,
 )
 from retrieve.reranker import CrossEncoderReranker
+from retrieve.vram import wait_for_free_vram
 
 from .llm import LLM
 from .prompts import SYSTEM_PROMPT, build_user_prompt
@@ -253,11 +254,20 @@ def make_decide_continue(deps: AgentDeps) -> Callable[[AgentState], str]:
 def make_synthesize_node(deps: AgentDeps) -> Callable[[AgentState], dict]:
     def synthesize_node(state: AgentState) -> dict:
         started = time.time()
-        # VRAM discipline: unload retrieval models before generating
-        if hasattr(deps.embedder, "unload"):
-            deps.embedder.unload()
-        if hasattr(deps.reranker, "unload"):
-            deps.reranker.unload()
+        # Sequential-VRAM discipline: free retrieval models before generating.
+        # ON by default — BGE-M3 + reranker are ~4.4 GB in fp16, so even with a
+        # small LLM they don't leave enough room for the LLM's weights + KV
+        # cache on an 8 GB card (Ollama would offload layers to CPU and crawl).
+        # Set SEQUENTIAL_VRAM_UNLOAD=0 only on a GPU big enough to hold both.
+        if os.environ.get("SEQUENTIAL_VRAM_UNLOAD", "1") == "1":
+            if hasattr(deps.embedder, "unload"):
+                deps.embedder.unload()
+            if hasattr(deps.reranker, "unload"):
+                deps.reranker.unload()
+            # Barrier: wait until the driver actually reclaims that VRAM before
+            # Ollama allocates the LLM, so retrieval models and the LLM are never
+            # co-resident. No-op without CUDA. Threshold = VRAM the LLM needs.
+            wait_for_free_vram(int(os.environ.get("LLM_MIN_FREE_MIB", "7000")))
 
         system = SYSTEM_PROMPT
         # §3: if a prior similar answer was rejected, tell the model to avoid

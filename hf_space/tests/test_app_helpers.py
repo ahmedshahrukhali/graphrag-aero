@@ -46,6 +46,45 @@ def test_sources_sort_puts_missing_rerank_last():
     assert out.results[1].rerank_score is None
 
 
+def _fig_src(doc_id: str, page: int, rerank: float | None, text: str) -> dict:
+    d = _src(doc_id, page, rerank)
+    d.update(kind="figure", text=text, page_bboxes=[[page, 1.0, 2.0, 3.0, 4.0]])
+    return d
+
+
+def test_kind_propagates_through_sources():
+    out = _sources_to_retrieve([_fig_src("d/a", 4, 0.9, "a runway diagram")], "q")
+    assert out.results[0].kind == "figure"
+
+
+def test_kind_defaults_to_text_when_absent():
+    out = _sources_to_retrieve([_src("d/a", 1, 0.5)], "q")
+    assert out.results[0].kind == "text"
+
+
+def test_gallery_marks_figure_as_ai_read_and_boxes_it(monkeypatch):
+    from hf_space import app
+
+    calls: list[dict] = []
+
+    def fake_render(source_url, page, bbox, *, draw_bbox, region_bboxes, terms, box_images):
+        calls.append({"draw_bbox": draw_bbox, "box_images": box_images})
+        return "IMG"
+
+    monkeypatch.setattr(app, "render_page_with_bbox", fake_render)
+    retrieve = _sources_to_retrieve(
+        [_fig_src("tsb/a00a0051", 4, 0.9, "A simplified diagram of Fox Harbour runway")],
+        "q",
+    )
+    # Not cited — a text chunk wouldn't be boxed, but a figure always is.
+    items = app._gallery_items(retrieve, draw_bbox=True, cited_keys=set())
+    assert len(items) == 1
+    _img, caption = items[0]
+    assert "🖼" in caption and "AI-read figure" in caption
+    assert "Fox Harbour" in caption           # the AI caption is surfaced
+    assert calls[0]["draw_bbox"] is True       # figure region shown even uncited
+
+
 def test_cited_keys_extracts_bare_tags_without_quotes():
     answer = "The copilot let speed decay [tsb/a96p0006 p.2] and recovered [tsb/a08o0029 p. 7]."
     assert _cited_keys(answer) == {("tsb/a96p0006", 2), ("tsb/a08o0029", 7)}

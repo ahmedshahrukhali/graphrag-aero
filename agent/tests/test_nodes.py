@@ -442,13 +442,27 @@ class UnloadTracker:
         self.unloaded = True
 
 
-def test_synthesize_node_calls_unload_on_dependencies(qclient):
+def test_synthesize_node_calls_unload_when_sequential_vram_enabled(qclient, monkeypatch):
+    monkeypatch.setenv("SEQUENTIAL_VRAM_UNLOAD", "1")
+    monkeypatch.setattr("agent.nodes.wait_for_free_vram", lambda *a, **k: True)
     llm = StubLLM("draft text")
     embedder = UnloadTracker()
     reranker = UnloadTracker()
     deps = _make_deps(qclient, llm=llm, embedder=embedder, reranker=reranker)
     node = make_synthesize_node(deps)
-    state = initial_state("what?")
-    node(state)
+    node(initial_state("what?"))
     assert embedder.unloaded is True
     assert reranker.unloaded is True
+
+
+def test_synthesize_node_skips_unload_when_disabled(qclient, monkeypatch):
+    # SEQUENTIAL_VRAM_UNLOAD=0 (big-GPU setups): retrieval stays resident.
+    monkeypatch.setenv("SEQUENTIAL_VRAM_UNLOAD", "0")
+    llm = StubLLM("draft text")
+    embedder = UnloadTracker()
+    reranker = UnloadTracker()
+    deps = _make_deps(qclient, llm=llm, embedder=embedder, reranker=reranker)
+    node = make_synthesize_node(deps)
+    node(initial_state("what?"))
+    assert embedder.unloaded is False
+    assert reranker.unloaded is False

@@ -3,6 +3,21 @@
 Read MANIFEST.md first. Follow the resume pointer. Work one phase at a time.
 After each phase: run tests, mark ☑ in MANIFEST.md, move resume pointer, pause for human review.
 
+## Docker policy — HARD RULE (do not violate)
+**Claude never controls Docker on this machine.** No `docker compose up/down`, no
+`docker start/stop/restart`, no `wsl --shutdown`, no killing or launching Docker Desktop.
+The user controls Docker exclusively.
+
+Allowed: a single **read-only** status check (`docker version` / `docker ps`). Then:
+- If Docker (and the needed containers) are up → proceed.
+- If anything is down/missing → **ask the user to bring it up, then END THE TURN and do
+  nothing.** Do NOT poll, loop, sleep, or "wait" — idle waiting wastes the user's tokens.
+  The user's reply (e.g. "docker is up") is the green light to resume. Never recover Docker
+  yourself.
+
+Why: simultaneous Claude-vs-user Docker recovery collided repeatedly, piled up stale
+Docker Desktop processes, and wasted tokens without resolving. This rule is firm.
+
 ## Locked architecture
 - **Vector store:** Qdrant — dense + named sparse (BGE-M3 lexical weights); `--sparse` flag in embed
 - **Embeddings:** BGE-M3 dense+sparse (BAAI/bge-m3) via FlagEmbedding; dense dim=1024

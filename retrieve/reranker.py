@@ -54,12 +54,20 @@ class BGE_RerankerV2M3:
         use_fp16: bool = True,
         max_length: int = DEFAULT_MAX_LENGTH,
         normalize: bool = True,
+        device: str | None = None,
     ) -> None:
         from FlagEmbedding import FlagReranker  # type: ignore
 
         name = model_name or os.environ.get("RERANK_MODEL", "BAAI/bge-reranker-v2-m3")
-        logger.info("loading reranker (%s, fp16=%s)", name, use_fp16)
-        self._model = FlagReranker(name, use_fp16=use_fp16)
+        # device: None → auto (GPU if present); "cpu" pins to CPU. The backend
+        # pins to CPU so the reranker doesn't share the 8 GB GPU with Ollama
+        # (the sum crashes the WSL GPU VM). Env RERANK_DEVICE overrides.
+        if device is None:
+            device = os.environ.get("RERANK_DEVICE") or None
+        if device == "cpu":
+            use_fp16 = False  # fp16 is a GPU optimization — invalid/slow on CPU.
+        logger.info("loading reranker (%s, fp16=%s, device=%s)", name, use_fp16, device or "auto")
+        self._model = FlagReranker(name, use_fp16=use_fp16, devices=device)
         self._max_length = max_length
         self._normalize = normalize
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
 import sys
 from pathlib import Path
 
@@ -66,14 +67,18 @@ def _build_deps(collection: str):
     cfg = QdrantConfig.from_env()
     qdrant = QdrantClient(host=cfg.host, port=cfg.port)
 
-    # Factories for lazy loading
+    # Retrieval on GPU; kept temporally separate from Ollama's LLM via the
+    # synthesize unload (gc.collect + empty_cache) and keep_alive=0, so they're
+    # never co-resident on the 8 GB GPU. RETRIEVE_DEVICE=cpu forces CPU.
+    retr_device = os.environ.get("RETRIEVE_DEVICE") or None
+
     def embedder_factory():
         from embed.bge_m3 import BGE_M3Embedder
-        return BGE_M3Embedder()
+        return BGE_M3Embedder(device=retr_device)
 
     def reranker_factory():
         from retrieve.reranker import BGE_RerankerV2M3
-        return BGE_RerankerV2M3()
+        return BGE_RerankerV2M3(device=retr_device)
 
     lazy_embed = LazySessionModel(embedder_factory, "bge-m3")
     lazy_rerank = LazySessionModel(reranker_factory, "bge-reranker-v2-m3")

@@ -38,6 +38,12 @@ Rules:
   (e.g. [tsb/a21c0038 p.86]). Cite the specific report+page each fact came
   from; graph-context facts carry their own [doc p.page] — use those. An
   uncited sentence is not allowed. Do not invent citations or facts.
+- FORMAT THE CITATION EXACTLY as a bracketed tag [doc_id p.page], copying the
+  doc_id verbatim from the passage header (e.g. [tsb/a13q0098 p.4]). NEVER cite
+  in prose like "TSB Report A13Q0098" — always the bracket form with the
+  lowercase doc_id. Downstream highlighting parses these brackets; prose
+  citations are silently dropped. EXAMPLE: ✓ "Fuel was lost [tsb/a13q0098 p.4]"
+  NOT ✗ "TSB Report A13Q0098 notes fuel was lost".
 - Prefer findings, recommendations, and regulations over narrative. Summarize
   regulations; don't quote every clause.
 - Match the language of the question (English or French).

@@ -111,13 +111,20 @@ def build_default_deps() -> BackendDeps:
     cfg = QdrantConfig.from_env()
     qdrant = QdrantClient(host=cfg.host, port=cfg.port)
 
+    # Retrieval runs on the GPU (fast). Co-residence with Ollama's ~6.9 GB LLM
+    # on the 8 GB 3060Ti is avoided *temporally*, not by device split: the
+    # synthesize node frees these models before generating (retrieve/vram.py
+    # gc.collect + empty_cache) and Ollama runs with keep_alive=0, so the two
+    # are never on the GPU at once. Set RETRIEVE_DEVICE=cpu to force CPU instead.
+    retr_device = os.environ.get("RETRIEVE_DEVICE") or None
+
     def embedder_factory():
         from embed.bge_m3 import BGE_M3Embedder
-        return BGE_M3Embedder()
+        return BGE_M3Embedder(device=retr_device)
 
     def reranker_factory():
         from retrieve.reranker import BGE_RerankerV2M3
-        return BGE_RerankerV2M3()
+        return BGE_RerankerV2M3(device=retr_device)
 
     embedder = LazyEmbedder(_LazySession(embedder_factory, "bge-m3"))
     reranker = LazyReranker(_LazySession(reranker_factory, "bge-reranker-v2-m3"))

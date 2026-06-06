@@ -4,6 +4,20 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 
 ---
 
+## Session 37 — 2026-06-06 — opus-4.8
+**Commits:** none yet — all changes UNCOMMITTED in working tree (commit next session).
+**Achieved:**
+- Root-caused the live `/query` crash: it hard-crashes the Docker/WSL **GPU VM** (exit 255 all containers; `0xc00000fd`). Proved via isolation tests that Ollama generation alone is fine (qwen3-vl peak ~6.9 GB), so the crash is **two GPU tenants** — backend's CUDA context (retrieval models, ~4.4 GB fp16) + the LLM — exceeding 8 GB. A 6.9 GB LLM (qwen3-vl) can't co-reside with retrieval on the 8 GB 3060Ti (resident / sequential-unload / mem-barrier all still crash).
+- **Fix (working, live-verified 53 s, peak 5776, no crash):** generation → **qwen3:4b** (text); retrieval on GPU with **sequential unload + gc.collect + mem barrier** (`retrieve/vram.py`) freeing it before generation; `OLLAMA_KEEP_ALIVE=0`. Image understanding stays at **ingestion** (Qwen2.5-VL figure captions → retrievable text) — proven: figure chunk `tsb/a00a0051 p.4` retrieved live.
+- **Image-source rendering** (`hf_space/app.py`): figure chunks now show as "🖼 AI-read figure" with the AI caption + boxed region (proves image-intelligence without query-time VL).
+- **Polish:** qwen3 `/no_think` default (`OLLAMA_THINK`), bracketed `[doc_id p.page]` citation directive (`agent/prompts.py`), `SEQUENTIAL_VRAM_UNLOAD` knob (default ON — retrieval must free for the LLM; OFF starves it → CPU offload → 200 s).
+- Tests: **585** main + **57** hf_space green, offline. `.env` (gitignored) set `OLLAMA_MODEL=qwen3:4b`, removed `RETRIEVE_DEVICE` pin.
+- CLAUDE.md: added **Docker HARD RULE** (Claude never controls Docker; ask user + end turn). Memories updated (WSL cap applied 28 GB; Docker user-controlled).
+**Left (resume here next session):**
+- Rebuild backend (`up -d --build backend`) + **live-verify the polish**: faster than 53 s, `[tsb/… p.N]` citations, peak ~5.8 GB, no crash. Confirm 🖼 figure renders in hf_space UI.
+- **Commit** the 16 changed files (Model: opus-4.8 trailer) + mark in MANIFEST. Nothing is committed yet.
+- Deferred feature: **query-time image Q&A** (user uploads image) — needs retrieval=CPU + VL on GPU + image plumbing (api/agent/llm/ui); scope as its own task.
+
 ## Session 36 — 2026-06-05 — sonnet-4.6
 **Commits:** `0aed931` (About tab)
 **Achieved:**

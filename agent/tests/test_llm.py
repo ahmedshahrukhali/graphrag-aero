@@ -12,8 +12,11 @@ class _FakeClient:
         self.host = host
         self.calls: list[dict] = []
 
-    def chat(self, model, messages, options):
-        self.calls.append({"model": model, "messages": messages, "options": options})
+    def chat(self, model, messages, options, keep_alive=None, stream=False):
+        self.calls.append({
+            "model": model, "messages": messages, "options": options,
+            "keep_alive": keep_alive,
+        })
         return {"message": {"role": "assistant", "content": "hello from gemma"}}
 
 
@@ -43,10 +46,39 @@ def test_chat_calls_ollama_client_with_expected_shape(monkeypatch: pytest.Monkey
     assert len(fake.calls) == 1
     call = fake.calls[0]
     assert call["model"] == "gemma2:9b"
-    assert call["messages"] == [
-        {"role": "system", "content": "be brief"},
-        {"role": "user", "content": "what is X?"},
-    ]
+    assert call["messages"][0] == {"role": "system", "content": "be brief"}
+    assert call["messages"][1]["role"] == "user"
+    # User text preserved; "/no_think" appended by default (thinking off).
+    assert call["messages"][1]["content"].startswith("what is X?")
+    assert "/no_think" in call["messages"][1]["content"]
+    # keep_alive=0 by default → Ollama frees the LLM's VRAM after each answer.
+    assert call["keep_alive"] == "0"
+
+
+def test_no_think_appended_by_default(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv("OLLAMA_THINK", raising=False)
+    holder = _install_fake_ollama(monkeypatch)
+    OllamaLLM().chat("s", "u")
+    assert "/no_think" in holder["client"].calls[0]["messages"][1]["content"]
+
+
+def test_thinking_kept_when_enabled(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("OLLAMA_THINK", "1")
+    holder = _install_fake_ollama(monkeypatch)
+    OllamaLLM().chat("s", "u")
+    assert holder["client"].calls[0]["messages"][1]["content"] == "u"
+
+
+def test_keep_alive_default_and_override(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv("OLLAMA_KEEP_ALIVE", raising=False)
+    holder = _install_fake_ollama(monkeypatch)
+    OllamaLLM().chat("s", "u")
+    assert holder["client"].calls[0]["keep_alive"] == "0"
+
+    monkeypatch.setenv("OLLAMA_KEEP_ALIVE", "5m")
+    holder2 = _install_fake_ollama(monkeypatch)
+    OllamaLLM().chat("s", "u")
+    assert holder2["client"].calls[0]["keep_alive"] == "5m"
 
 
 def test_env_defaults(monkeypatch: pytest.MonkeyPatch):
