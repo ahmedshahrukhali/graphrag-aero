@@ -170,9 +170,31 @@ def page_image_bboxes(page, *, max_boxes: int = _MAX_TERM_BOXES) -> list[BBox]:
             out.append((float(im["x0"]), float(im["top"]), float(im["x1"]), float(im["bottom"])))
         except (KeyError, TypeError, ValueError):
             continue
-        if len(out) >= max_boxes:
-            break
-    return out
+
+    # Merge overlapping or touching boxes (PDF generators often fragment photos)
+    merged = out
+    changed = True
+    while changed:
+        changed = False
+        new_merged = []
+        for box in merged:
+            x0, y0, x1, y1 = box
+            found = False
+            for i, mb in enumerate(new_merged):
+                mx0, my0, mx1, my1 = mb
+                tol = 2.0
+                if (x0 <= mx1 + tol and x1 >= mx0 - tol) and (y0 <= my1 + tol and y1 >= my0 - tol):
+                    new_merged[i] = (min(x0, mx0), min(y0, my0), max(x1, mx1), max(y1, my1))
+                    found = True
+                    changed = True
+                    break
+            if not found:
+                new_merged.append(box)
+        merged = new_merged
+
+    if len(merged) > max_boxes:
+        merged = merged[:max_boxes]
+    return merged
 
 
 def _bbox_is_drawable(bbox: BBox) -> bool:
