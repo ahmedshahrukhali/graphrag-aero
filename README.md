@@ -2,13 +2,13 @@
 
 End-to-end Graph RAG over **Transport Canada Advisory Circulars** and
 **Transportation Safety Board (TSB) aviation investigation reports**, in
-**English and French**. PDF ingestion → dense retrieval + cross-encoder
+**English, French, and Chinese**. PDF ingestion → dense retrieval + cross-encoder
 rerank → Neo4j knowledge graph → LangGraph multi-hop agent with a
 Human-in-the-Loop gate → FastAPI backend with OpenTelemetry tracing →
-Next.js UI with PDF citation highlighting → Gradio HuggingFace Space.
+Gradio HuggingFace Space with PDF citation highlighting.
 
 All inference is local: BGE-M3 dense embeddings + `bge-reranker-v2-m3`
-cross-encoder + `qwen3:4b` via Ollama. The model budget is sequenced
+cross-encoder + `qwen3:4b` via Ollama + `Qwen2.5-VL` for figures. The model budget is sequenced
 for an 8GB GPU (3060Ti); see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Status
@@ -53,9 +53,9 @@ docker compose --profile agent run --rm agent python -m agent.run init-schema
 docker compose --profile agent run --rm agent python -m agent.run upsert-graph
 
 # 7. bring up the app
-docker compose up --build backend frontend
+docker compose up --build backend hf-space
 # → backend  http://localhost:8080  (also /docs for OpenAPI)
-# → frontend http://localhost:3000
+# → hf-space http://localhost:7860
 ```
 
 The full deployment guide — including the Hugging Face Space — is in
@@ -72,7 +72,6 @@ The full deployment guide — including the Hugging Face Space — is in
 | [agent/](agent/) | P4 | LangGraph multi-hop agent; PostgresSaver; HITL `interrupt_before("finalize")` |
 | [eval/](eval/) | P5 | Recall@k / MRR / nDCG@k over a curated JSONL dataset |
 | [backend/](backend/) | P6 | FastAPI app; `/retrieve`, `/query`, `/resume`, `/healthz`; OpenTelemetry |
-| [frontend/](frontend/) | P7 | Next.js 14 + TS; `react-pdf` bbox overlay; HITL draft editor |
 | [hf_space/](hf_space/) | P8 | Gradio shell over the backend; server-side PDF rendering |
 | [docs/](docs/) | P9 | [Architecture](docs/ARCHITECTURE.md), [Deployment](docs/DEPLOYMENT.md) |
 | [otel/](otel/) | — | OpenTelemetry collector config |
@@ -82,7 +81,6 @@ The full deployment guide — including the Hugging Face Space — is in
 
 ```bash
 python -m pytest                     # 221 backend tests (Python)
-cd frontend && npm install && npm test  # 18 frontend tests (Vitest)
 ```
 
 All tests run offline. Model loads are stubbed; Qdrant runs in-memory;
@@ -100,7 +98,7 @@ downloads, no live HTTP, no GPU required.
 | Graph | Neo4j 5 |
 | Agent framework | LangGraph + PostgresSaver |
 | LLM | `qwen3:4b` Q4_K_M via Ollama |
-| Languages | English + French |
+| Languages | English + French + Chinese |
 | Tracing | OpenTelemetry (OTLP gRPC) |
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the data flow, VRAM

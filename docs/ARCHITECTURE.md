@@ -39,11 +39,9 @@ flowchart LR
     BE -->|"OTLP gRPC"| OTC[("otel-collector")]
 
     subgraph "UI"
-        UI["Next.js frontend<br/>(react-pdf bbox overlay)"]
-        HF["Gradio HF Space<br/>(pdfplumber server-side render)"]
+        HF["Gradio HF Space<br/>(pdfplumber server-side render + citation highlighting)"]
     end
 
-    UI -->|"HTTP"| BE
     HF -->|"HTTP"| BE
 ```
 
@@ -51,7 +49,7 @@ flowchart LR
 
 A single `/query` HTTP call traces through the system as follows:
 
-1. **Frontend / HF Space** POSTs `{query, thread_id, max_hops}` to
+1. **HF Space** POSTs `{query, thread_id, max_hops}` to
    `backend /query`.
 2. **Backend** invokes the compiled LangGraph agent. The graph is:
    ```
@@ -84,7 +82,7 @@ A single `/query` HTTP call traces through the system as follows:
    the full audit log including the pause/resume boundary.
 
 Every node appends a `{node, elapsed_ms, ...}` entry to `state["trace"]`
-as it runs; the frontend renders this as a timeline and OTel manual
+as it runs; the HF Space UI renders this as a timeline and OTel manual
 spans wrap the same boundaries for distributed-trace correlation.
 
 ## Sequential VRAM discipline
@@ -155,8 +153,8 @@ phase logic rather than improvising it.
 
 - **Sparse retrieval** — Qdrant is configured dense-only. Hybrid search
   is intentionally out of scope.
-- **Image embeddings** — the HF Space is multimodal in *output* (PDF
-  page images with bbox highlights), not *input*. No CLIP / vision LLM.
+- **Image embeddings (Serving)** — the HF Space is multimodal in *output* (PDF
+  page images with bbox highlights), but not query *input*. Vision-Language processing (`Qwen2.5-VL`) is used during *ingestion* to caption figures, but not for live queries.
 - **Multi-tenant auth** — single-user local stack.
 - **Streaming responses** — the backend returns full paused-state JSON
   at the HITL boundary; SSE would require restructuring the agent loop.
