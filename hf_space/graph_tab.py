@@ -60,7 +60,7 @@ def build(client: "ApiClient") -> None:
     import gradio as gr
     from hf_space.api_client import ApiError
 
-    with gr.Tab("Graph"):
+    with gr.Column(visible=False) as page_col:
         gr.Markdown(
             "### Graph Viewer\n"
             "Look up the knowledge graph context for any document: "
@@ -92,3 +92,5 @@ def build(client: "ApiClient") -> None:
 
         lookup_btn.click(do_lookup, [doc_input], [result_md])
         doc_input.submit(do_lookup, [doc_input], [result_md])
+
+    return page_col

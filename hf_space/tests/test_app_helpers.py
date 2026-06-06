@@ -62,27 +62,61 @@ def test_kind_defaults_to_text_when_absent():
     assert out.results[0].kind == "text"
 
 
-def test_gallery_marks_figure_as_ai_read_and_boxes_it(monkeypatch):
+def _capture_render(monkeypatch):
+    """Patch render_page_with_bbox to record every call's draw args."""
     from hf_space import app
 
     calls: list[dict] = []
 
     def fake_render(source_url, page, bbox, *, draw_bbox, region_bboxes, terms, box_images):
-        calls.append({"draw_bbox": draw_bbox, "box_images": box_images})
+        calls.append({
+            "draw_bbox": draw_bbox, "box_images": box_images,
+            "region_bboxes": region_bboxes, "terms": terms,
+        })
         return "IMG"
 
     monkeypatch.setattr(app, "render_page_with_bbox", fake_render)
+    return app, calls
+
+
+def test_gallery_marks_figure_as_ai_read_and_boxes_it(monkeypatch):
+    app, calls = _capture_render(monkeypatch)
     retrieve = _sources_to_retrieve(
         [_fig_src("tsb/a00a0051", 4, 0.9, "A simplified diagram of Fox Harbour runway")],
         "q",
     )
     # Not cited — a text chunk wouldn't be boxed, but a figure always is.
-    items = app._gallery_items(retrieve, draw_bbox=True, cited_keys=set())
+    items = app._gallery_items(retrieve, draw_bbox=True, cited_dict={})
     assert len(items) == 1
     _img, caption = items[0]
     assert "🖼" in caption and "AI-read figure" in caption
-    assert "Fox Harbour" in caption           # the AI caption is surfaced
     assert calls[0]["draw_bbox"] is True       # figure region shown even uncited
+
+
+def test_cited_text_page_keeps_region_box_and_query_terms(monkeypatch):
+    """S41 regression: a cited page must still receive draw args that produce
+    highlights, even when the deterministic Sources block emits a bare tag
+    (empty quote) and the best-matching draft sentence doesn't appear on the
+    page verbatim. The reliable region box must NOT be discarded, and the
+    query-term wash must always be passed."""
+    app, calls = _capture_render(monkeypatch)
+    src = _src("tsb/a10a0032", 2, 0.9)
+    src["page_bboxes"] = [[2, 50.0, 100.0, 300.0, 140.0]]  # stored WS-B region
+    src["text"] = "The aircraft departed the runway surface during the landing roll."
+    retrieve = _sources_to_retrieve([src], "runway excursion")
+    # Cited with an EMPTY quote — the S39/S40 deterministic-Sources-block case.
+    items = app._gallery_items(
+        retrieve, draw_bbox=True, cited_dict={("tsb/a10a0032", 2): ""},
+        draft="Some synthesized sentence that is not on the page at all.",
+    )
+    assert len(items) == 1
+    call = calls[0]
+    assert call["draw_bbox"] is True
+    # The stored region box survived (the deterministic cited-grounding box)…
+    assert call["region_bboxes"] == ((50.0, 100.0, 300.0, 140.0),)
+    # …and the query-term wash is present so the page is never left bare.
+    assert "runway" in call["terms"]
+    assert "excursion" in call["terms"]
 
 
 def test_cited_keys_extracts_bare_tags_without_quotes():

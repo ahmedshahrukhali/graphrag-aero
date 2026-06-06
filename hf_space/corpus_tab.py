@@ -13,12 +13,16 @@ from hf_space.pdf_render import PdfRenderError, render_page_with_bbox
 logger = logging.getLogger(__name__)
 
 
-def _lang(choice: str) -> str | None:
-    return None if choice == "all" else choice
+def _lang(choice: list[str]) -> list[str] | None:
+    if not choice or len(choice) == 3:
+        return None
+    return [c.lower() for c in choice]
 
 
-def _source(choice: str) -> str | None:
-    return None if choice == "all" else choice
+def _source(choice: list[str]) -> list[str] | None:
+    if not choice or len(choice) == 4:
+        return None
+    return [c.lower() for c in choice]
 
 
 def _gallery_items(resp: RetrieveResponse) -> list[tuple[Any, str]]:
@@ -44,7 +48,7 @@ def build(client: "ApiClient") -> None:
     """Create the Corpus Viewer tab and wire its events."""
     import gradio as gr
 
-    with gr.Tab("Corpus"):
+    with gr.Column(visible=False) as page_col:
         gr.Markdown("### Corpus Viewer\nSearch the embedded corpus via dense retrieval + reranking.")
         with gr.Row():
             query = gr.Textbox(
@@ -53,8 +57,8 @@ def build(client: "ApiClient") -> None:
             )
             search_btn = gr.Button("Search", variant="primary", scale=1)
         with gr.Row():
-            c_lang = gr.Radio(["all", "en", "fr", "zh"], value="all", label="Language")
-            c_source = gr.Radio(["all", "tsb", "tc", "ttsb", "caac"], value="all", label="Source")
+            c_lang = gr.CheckboxGroup(["en", "fr", "zh"], value=["en", "fr", "zh"], label="Language")
+            c_source = gr.CheckboxGroup(["tsb", "tc", "ttsb", "caac"], value=["tsb", "tc", "ttsb", "caac"], label="Source")
             c_topk = gr.Slider(5, 50, value=10, step=5, label="Top-K")
 
         results_table = gr.Dataframe(
@@ -71,7 +75,7 @@ def build(client: "ApiClient") -> None:
                 show_label=False, height=700,
             )
 
-        def do_search(q: str, lang_v: str, src_v: str, topk: int):
+        def do_search(q: str, lang_v: list[str], src_v: list[str], topk: int):
             q = (q or "").strip()
             if not q:
                 return gr.update(), gr.update(), gr.update()
@@ -94,3 +98,5 @@ def build(client: "ApiClient") -> None:
                          [results_table, preview_gallery, preview_acc])
         query.submit(do_search, [query, c_lang, c_source, c_topk],
                      [results_table, preview_gallery, preview_acc])
+
+    return page_col

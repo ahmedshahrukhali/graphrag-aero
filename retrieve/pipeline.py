@@ -35,8 +35,8 @@ def retrieve_and_rerank(
     collection: str,
     ann_k: int = DEFAULT_ANN_K,
     top_k: int = DEFAULT_TOP_K,
-    lang: str | None = None,
-    source: str | None = None,
+    lang: list[str] | None = None,
+    source: list[str] | None = None,
     exclude_hashes: list[str] | None = None,
 ) -> list[ScoredChunk]:
     """Embed ``query``, ANN-search the dense collection, rerank, return top-K.
@@ -73,7 +73,7 @@ def hybrid_retrieve_and_rerank(
     ann_k: int = DEFAULT_ANN_K,
     top_k: int = DEFAULT_TOP_K,
     lang: str | None = None,
-    source: str | None = None,
+    source: list[str] | None = None,
     exclude_hashes: list[str] | None = None,
     rrf_k: int = 60,
 ) -> list[ScoredChunk]:
@@ -137,8 +137,8 @@ def anchored_retrieve(
     top_k: int = DEFAULT_TOP_K,
     top_n_docs: int = DEFAULT_TOP_N_DOCS,
     char_budget: int = DEFAULT_CHAR_BUDGET,
-    lang: str | None = None,
-    source: str | None = None,
+    lang: list[str] | None = None,
+    source: list[str] | None = None,
     exclude_hashes: list[str] | None = None,
 ) -> list[ScoredChunk]:
     """Document-anchored retrieval.

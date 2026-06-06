@@ -61,12 +61,16 @@ _patch_gradio_client_bool_schema()
 
 # ─── pure helpers ────────────────────────────────────────────────────────────
 
-def _lang_param(choice: str) -> str | None:
-    return None if choice in ("all",) else choice
+def _lang_param(choice: list[str]) -> list[str] | None:
+    if not choice or len(choice) == 3:
+        return None
+    return [c.lower() for c in choice]
 
 
-def _source_param(choice: str) -> str | None:
-    return None if choice in ("all",) else choice
+def _source_param(choice: list[str]) -> list[str] | None:
+    if not choice or len(choice) == 4:
+        return None
+    return [c.lower() for c in choice]
 
 
 def _sources_to_retrieve(sources: list[dict], query: str) -> RetrieveResponse:
@@ -272,27 +276,25 @@ def _gallery_items(
         if not chunks[0].source_url:
             continue
 
-        do_box = bool(draw_bbox and (is_cited or is_figure))
-        regions = []
+        do_box = bool(draw_bbox)
+        
+        terms_list = []
         if do_box:
+            # We use the full span of all chunks on this page as the highlight terms.
+            # Splitting by sentence ensures that a single PDF artifact doesn't break the regex for the whole chunk.
             for c in chunks:
-                regions.extend(_page_regions(c))
-                
-        terms = ()
-        if do_box:
-            if quote:
-                terms = (quote,)
-                if not is_figure:
-                    regions = []
-            elif retrieve.query:
-                terms = _query_terms(retrieve.query, max_terms=3)
+                if c.text:
+                    sents = [s.strip() for s in re.split(r'(?<=[.!?])\s+', c.text) if len(s.strip()) > 15]
+                    terms_list.extend(sents)
+            if not terms_list and retrieve.query:
+                terms_list = list(_query_terms(retrieve.query, max_terms=3))
 
         try:
             img = render_page_with_bbox(
                 chunks[0].source_url, page, chunks[0].bbox,
                 draw_bbox=do_box,
-                region_bboxes=tuple(regions),
-                terms=terms,
+                region_bboxes=(),  # The initial coordinate-based method does not work well, rely solely on fuzzy span matching
+                terms=tuple(terms_list),
                 box_images=do_box,
             )
             # Save the image so we can link directly to it via Gradio's static file serving
@@ -333,12 +335,8 @@ def _chunks_md(retrieve: RetrieveResponse) -> str:
             snippet = " ".join(c.text.split())[:150]
             section = f" § {c.section_title}" if c.section_title else ""
             
-            safe_doc = c.doc_id.replace('/', '_')
-            img_path = f"/file=/tmp/gradio_renders/{safe_query}_{safe_doc}_p{c.page}.png"
             pdf_link = f"({c.source_url}#page={c.page})" if c.source_url else "(#)"
-            
-            links = f"[🖼️ Highlighted Image]({img_path}) | [📄 Raw PDF]{pdf_link}"
-            chunk_lines.append(f"- **p.{c.page}{section}** ({links}): {snippet}…")
+            chunk_lines.append(f"- **p.{c.page}{section}** ([📄 Source]({pdf_link})): {snippet}…")
             
         out.append(doc_header + "\n".join(chunk_lines))
         
@@ -442,10 +440,6 @@ def _fmt_error(e: ApiError) -> str:
 # ─── minimal CSS ─────────────────────────────────────────────────────────────
 
 _CSS = """
-.gradio-container textarea {
-  color: #0f172a !important;
-  -webkit-text-fill-color: #0f172a !important;
-}
 /* Fill the viewport: the app is a flex column (fill_height=True), so let the
    chat pane grow to consume all space above the HITL row + composer instead of
    sitting at a fixed height with a dead gap below. min-height:0 lets it shrink
@@ -474,7 +468,8 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
 
     # Fixed message positions within a single answered turn. The optional
     # inline page gallery is appended after these (position 4+).
-    IDX_USER, IDX_THINK, IDX_SRC, IDX_ANS = 0, 1, 2, 3
+    IDX_USER, IDX_THINK, IDX_ANS = 0, 1, 2
+    IDX_SRC = 'sources'  # Use string key for artifacts dictionary
 
     # ── handlers ──────────────────────────────────────────────────────────
 
@@ -499,8 +494,6 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
             {"role": "user", "content": q},
             {"role": "assistant", "content": "",
              "metadata": {"title": "🧠 Thinking…", "status": "pending"}},
-            {"role": "assistant", "content": "_retrieving sources…_",
-             "metadata": {"title": "📑 Sources (0)"}},
             {"role": "assistant", "content": ""},
         ]
 
@@ -538,13 +531,6 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
 
                 elif et == "sources":
                     raw_sources = list(data.get("sources") or [])
-                    retrieve = _sources_to_retrieve(raw_sources, q)
-                    chat_list[IDX_SRC] = {
-                        "role": "assistant",
-                        "content": _chunks_md(retrieve),
-                        "metadata": {"title": f"📑 Sources ({len(retrieve.results)})",
-                                     "status": "done"},
-                    }
                     # Stash raw sources + query rather than pre-rendered images:
                     # the inline gallery is rendered after streaming (so PDF
                     # download/rasterise never delays tokens) and re-rendered on
@@ -571,13 +557,6 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                     }
                     # Fallback: if backend didn't send a separate sources event.
                     if not sources_done and data.get("sources"):
-                        retrieve = _sources_to_retrieve(data["sources"], q)
-                        chat_list[IDX_SRC] = {
-                            "role": "assistant",
-                            "content": _chunks_md(retrieve),
-                            "metadata": {"title": f"📑 Sources ({len(retrieve.results)})",
-                                         "status": "done"},
-                        }
                         artifacts[IDX_SRC] = {"sources": data["sources"], "query": q}
                     # Stash the finished answer so the inline gallery renderer can
                     # anchor highlights to the citations it contains.
@@ -641,7 +620,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                 cited[k] = ""
         return _gallery_items(retrieve, draw_bbox=bool(show_bbox), cited_dict=cited, draft=draft)
 
-    def render_pages(artifacts: dict, show_bbox: bool):
+    def render_pages(artifacts: dict, show_bbox: bool, chat_list: list[dict]):
         """Render source pages into the collapsible panel, and open it.
 
         Runs after a turn finishes (chained via ``.then``) or when the bbox
@@ -650,7 +629,19 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
         """
         art = (artifacts or {}).get(IDX_SRC) or {}
         items = _render_gallery(art, bool(show_bbox)) if art.get("sources") else []
-        return gr.update(value=items), gr.update(open=bool(items))
+        
+        links_md = ""
+        if items:
+            link_parts = []
+            for i, (filepath, caption) in enumerate(items):
+                link_parts.append(f"[{caption}](/file={filepath})")
+            links_md = "🟢 **View Full Size:** " + " | ".join(link_parts)
+            
+            # Add a static message to the chat
+            msg = "Source pages rendered with bboxes below" if show_bbox else "Source pages rendered without bboxes below"
+            chat_list.append({"role": "assistant", "content": f"_{msg}_"})
+            
+        return gr.update(value=items), gr.update(open=bool(items)), gr.update(value=links_md), chat_list
 
     def on_pick_sample(evt: gr.SelectData):
         """Click a sample → instant cached answer (no backend/LLM call).
@@ -721,10 +712,46 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
 
     # ── layout ────────────────────────────────────────────────────────────
 
+    NEW_CSS = """
+/* Compact Controls */
+.compact-control {
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 4px 8px !important;
+    gap: 24px !important;
+}
+.compact-control > .block {
+    flex-grow: 0 !important;
+    flex-shrink: 0 !important;
+    min-width: max-content !important;
+    width: auto !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+}
+.compact-control .wrap {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+}
+.compact-control .head { margin-bottom: 0 !important; padding-bottom: 0 !important; }
+.compact-control span[data-testid="block-info"] { margin-bottom: 0 !important; font-size: 1.1em !important; }
+.compact-control label > span { margin-bottom: 0 !important; }
+.compact-control input[type='radio'] { transform: scale(0.8) !important; }
+
+/* Hide regular tabs, sidebar navigation handles it */
+.nav-radio { margin-bottom: 1rem !important; }
+"""
+
     with gr.Blocks(
         title="GraphRAG Aero",
         theme=gr.themes.Default(primary_hue="blue", neutral_hue="slate"),
-        css=_CSS,
+        css=_CSS + "\n" + NEW_CSS,
         fill_height=True,
     ) as app:
         sess         = gr.State({})
@@ -735,7 +762,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
             history = gr.State([])
 
         # ── LEFT SIDEBAR ──────────────────────────────────────────────────
-        with gr.Sidebar(position="left", open=True):
+        with gr.Sidebar(position="left", open=False):
             gr.Markdown("## 🛩️ GraphRAG Aero")
             new_btn = gr.Button("＋ New chat", variant="primary")
             gr.HTML("<hr>")
@@ -755,24 +782,20 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                 type="values",
                 samples_per_page=10,
             )
-            gr.HTML("<hr>")
-            lang = gr.Radio(["all", "en", "fr", "zh"], value="all", label="Lang")
-            source = gr.Radio(["all", "tsb", "tc", "ttsb", "caac"], value="all", label="Corpus")
-            with gr.Accordion("Advanced", open=False):
-                max_hops = gr.Slider(1, 5, value=2, step=1, label="Max hops")
-                show_bbox = gr.Checkbox(
-                    value=True,
-                    label="Highlight bbox on pages",
-                    info="Draw the chunk's bounding box on rendered PDF pages.",
-                )
+            gr.Markdown("### Views")
+            nav = gr.Radio(
+                ["Chat", "Corpus", "Graph", "Embedding", "Eval", "About"],
+                value="Chat",
+                show_label=False,
+                elem_classes=["nav-radio"]
+            )
             gr.HTML("<hr>")
             health_md = gr.Markdown("_checking backend…_")
             gr.HTML("<div style='text-align: right; color: gray; font-size: 0.8em; margin-top: 10px;'>v0.0.1</div>")
 
-        # ── CENTER ────────────────────────────────────────────────────────
+        # ── CENTERED LAYOUT ────────────────────────────────────────────────────────
         with gr.Column(scale=1):
-          with gr.Tabs():
-            with gr.Tab("Chat"):
+            with gr.Column(visible=True) as page_chat:
                 chat = gr.Chatbot(
                     type="messages",
                     show_copy_button=True,
@@ -780,19 +803,26 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                     show_label=False,
                     elem_classes=["chat-pane"],
                 )
-                with gr.Row():
-                    query = gr.Textbox(
-                        placeholder="Ask in English or French…",
-                        lines=1,
-                        max_lines=4,
-                        scale=8,
-                        show_label=False,
-                        autofocus=True,
-                        container=False,
-                    )
-                    ask_btn  = gr.Button("Send ↑", variant="primary",   scale=0)
-                    stop_btn = gr.Button("⏹ Stop",  variant="secondary", scale=0)
+                with gr.Group():
+                    with gr.Row():
+                        query = gr.Textbox(
+                            placeholder="Ask in English or French…",
+                            lines=1,
+                            max_lines=4,
+                            scale=18,
+                            show_label=False,
+                            autofocus=True,
+                            container=False,
+                        )
+                        ask_btn  = gr.Button("↑", variant="primary", scale=2, min_width=1)
+                        stop_btn = gr.Button("⏸", variant="secondary", scale=1, min_width=1)
+                    with gr.Row(elem_classes=["compact-control"]):
+                        lang = gr.CheckboxGroup(["EN", "FR", "ZH"], value=["EN", "FR", "ZH"], label="🌐 Language", show_label=True)
+                        source = gr.CheckboxGroup(["TSB", "TC", "TTSB", "CAAC"], value=["TSB", "TC", "TTSB", "CAAC"], label="📖 Corpus", show_label=True)
+                        max_hops = gr.Slider(1, 5, value=2, step=1, label="🔗 Max hops", show_label=True)
+                        show_bbox = gr.Checkbox(value=True, label="Highlight Snapshots from Source")
                 with gr.Accordion("📄 Source pages", open=False) as pages_acc:
+                    gallery_links = gr.Markdown("")
                     pages_gallery = gr.Gallery(
                         value=[],
                         preview=True,
@@ -802,22 +832,29 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                         height=1000,
                         elem_classes="pdf-inline",
                     )
-            corpus_tab.build(client)
-            graph_tab.build(client)
-            embedding_tab.build(client)
-            eval_tab.build(client)
-            about_tab.build()
+            page_corpus = corpus_tab.build(client)
+            page_graph = graph_tab.build(client)
+            page_embedding = embedding_tab.build(client)
+            page_eval = eval_tab.build(client)
+            page_about = about_tab.build()
+
+            pages = [page_chat, page_corpus, page_graph, page_embedding, page_eval, page_about]
+            
+            def handle_nav(choice):
+                return [gr.update(visible=(choice == p)) for p in ["Chat", "Corpus", "Graph", "Embedding", "Eval", "About"]]
+                
+            nav.change(handle_nav, inputs=[nav], outputs=pages)
 
         # ── wiring ────────────────────────────────────────────────────────
         ask_outputs = [chat, sess, artifacts, history, recent]
         ask_inputs = [query, lang, source, max_hops, show_bbox, history, sess, artifacts]
-        pages_out = [pages_gallery, pages_acc]
-        clear_pages = (lambda: (gr.update(value=[]), gr.update(open=False)))
+        pages_out = [pages_gallery, pages_acc, gallery_links, chat]
+        clear_pages = (lambda: (gr.update(value=[]), gr.update(open=False), gr.update(value=""), gr.update()))
 
-        ask_event_a = ask_btn.click(on_ask, inputs=ask_inputs, outputs=ask_outputs)
-        ask_event_a.then(render_pages, [artifacts, show_bbox], pages_out)
-        ask_event_b = query.submit(on_ask, inputs=ask_inputs, outputs=ask_outputs)
-        ask_event_b.then(render_pages, [artifacts, show_bbox], pages_out)
+        ask_event_a = ask_btn.click(on_ask, inputs=ask_inputs, outputs=ask_outputs, show_progress="full")
+        ask_event_a.then(render_pages, [artifacts, show_bbox, chat], pages_out)
+        ask_event_b = query.submit(on_ask, inputs=ask_inputs, outputs=ask_outputs, show_progress="full")
+        ask_event_b.then(render_pages, [artifacts, show_bbox, chat], pages_out)
 
         def on_stop(chat_list):
             if not chat_list:
@@ -839,13 +876,14 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
             on_new, [sess], [chat, sess, artifacts]
         ).then(clear_pages, None, pages_out)
 
-        show_bbox.change(render_pages, [artifacts, show_bbox], pages_out)
+        show_bbox.change(render_pages, [artifacts, show_bbox, chat], pages_out)
         recent.select(on_pick_recent, [history], [query])
         samples.select(
             on_pick_sample,
             None,
             [query, lang, source, max_hops, chat, sess, artifacts],
-        ).then(render_pages, [artifacts, show_bbox], pages_out)
+            show_progress="full"
+        ).then(render_pages, [artifacts, show_bbox, chat], pages_out)
         app.load(on_load, [history], [recent, health_md])
 
     return app
@@ -857,7 +895,11 @@ def main() -> None:
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
     app = make_app()
-    app.launch(server_name="0.0.0.0", server_port=int(os.environ.get("PORT", 7860)))
+    app.launch(
+        server_name="0.0.0.0", 
+        server_port=int(os.environ.get("PORT", 7860)),
+        allowed_paths=["/tmp/gradio_renders"]
+    )
 
 
 if __name__ == "__main__":

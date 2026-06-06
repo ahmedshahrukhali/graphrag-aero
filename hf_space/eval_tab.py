@@ -87,7 +87,7 @@ def build(client: "ApiClient") -> None:
     import gradio as gr
     from hf_space.api_client import ApiError
 
-    with gr.Tab("Eval"):
+    with gr.Column(visible=False) as page_col:
         gr.Markdown(
             "### Retrieval Evaluation Bench\n"
             "Run the curated eval dataset against the **live** retrieve + rerank pipeline. "
@@ -170,3 +170,5 @@ def build(client: "ApiClient") -> None:
             return md, rows
 
         run_btn.click(do_eval, [topk_slider], [agg_md, results_table])
+
+    return page_col

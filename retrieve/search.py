@@ -30,21 +30,27 @@ logger = logging.getLogger(__name__)
 
 def _build_filter(
     *,
-    lang: str | None,
-    source: str | None,
+    lang: list[str] | None,
+    source: list[str] | None,
     exclude_hashes: list[str] | None = None,
 ) -> qm.Filter | None:
-    must: list[qm.FieldCondition] = []
-    if lang is not None:
-        must.append(qm.FieldCondition(key="lang", match=qm.MatchValue(value=lang)))
-    if source is not None:
-        # ``doc_id`` is "{source}/{stem}" — filter by prefix on the source segment.
-        # Storing source in payload separately would be cleaner but the existing
-        # P1 schema doesn't; we encode the prefix as a MatchText (substring).
-        must.append(qm.FieldCondition(
-            key="doc_id", match=qm.MatchText(text=f"{source}/"),
-        ))
-    must_not: list[qm.FieldCondition] = []
+    must: list[qm.Condition] = []
+    
+    if lang is not None and len(lang) > 0:
+        if len(lang) == 1:
+            must.append(qm.FieldCondition(key="lang", match=qm.MatchValue(value=lang[0])))
+        else:
+            lang_conds = [qm.FieldCondition(key="lang", match=qm.MatchValue(value=l)) for l in lang]
+            must.append(qm.Filter(should=lang_conds))
+            
+    if source is not None and len(source) > 0:
+        if len(source) == 1:
+            must.append(qm.FieldCondition(key="doc_id", match=qm.MatchText(text=f"{source[0]}/")))
+        else:
+            source_conds = [qm.FieldCondition(key="doc_id", match=qm.MatchText(text=f"{s}/")) for s in source]
+            must.append(qm.Filter(should=source_conds))
+
+    must_not: list[qm.Condition] = []
     if exclude_hashes:
         for h in exclude_hashes:
             must_not.append(qm.FieldCondition(
@@ -68,8 +74,8 @@ def dense_search(
     query_vector: Sequence[float],
     *,
     k: int = 50,
-    lang: str | None = None,
-    source: str | None = None,
+    lang: list[str] | None = None,
+    source: list[str] | None = None,
     exclude_hashes: list[str] | None = None,
 ) -> list[ScoredChunk]:
     """Top-``k`` ANN over ``collection`` with optional payload filters."""
@@ -96,11 +102,12 @@ def dense_search(
 def sparse_search(
     client: QdrantClient,
     collection: str,
-    sparse_weights: dict[int, float],
+    query_indices: list[int],
+    query_values: list[float],
     *,
     k: int = 50,
-    lang: str | None = None,
-    source: str | None = None,
+    lang: list[str] | None = None,
+    source: list[str] | None = None,
     exclude_hashes: list[str] | None = None,
 ) -> list[ScoredChunk]:
     """Top-``k`` sparse ANN over the named "sparse" vector with optional filters.

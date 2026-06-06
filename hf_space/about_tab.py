@@ -117,7 +117,7 @@ def build() -> None:
     """Create the About tab (static content, no API calls)."""
     import gradio as gr
 
-    with gr.Tab("About"):
+    with gr.Column(visible=False) as page_col:
         with gr.Row():
             with gr.Column(scale=1):
                 gr.Markdown(_WHAT_MD)
@@ -125,3 +125,5 @@ def build() -> None:
             with gr.Column(scale=1):
                 gr.Markdown(_HOW_MD)
                 gr.Markdown(_STACK_MD)
+
+    return page_col

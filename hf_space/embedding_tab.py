@@ -87,7 +87,7 @@ def build(client: Any | None = None) -> None:
 
     points, method = load_points()
 
-    with gr.Tab("Embedding Space"):
+    with gr.Column(visible=False) as page_col:
         if not points:
             gr.Markdown(
                 "### Embedding Space\n"
@@ -110,3 +110,5 @@ def build(client: Any | None = None) -> None:
         plot = gr.Plot(value=make_figure(points, "corpus"))
 
         color_by.change(lambda cb: make_figure(points, cb), [color_by], [plot])
+
+    return page_col
