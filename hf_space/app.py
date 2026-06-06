@@ -656,6 +656,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                 )
             gr.HTML("<hr>")
             health_md = gr.Markdown("_checking backend…_")
+            gr.HTML("<div style='text-align: right; color: gray; font-size: 0.8em; margin-top: 10px;'>v0.0.1</div>")
 
         # ── CENTER ────────────────────────────────────────────────────────
         with gr.Column(scale=1):
