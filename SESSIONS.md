@@ -13,7 +13,8 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 - 7 tests added/updated; full `agent/` suite green.
 - S40 (same session): user rebuilt via `aero`; live `/query` confirmed draft now ends with `**Sources:** [tsb/… p.N]`, `_CITED_TAG_RE` resolves 10 pairs (was 0). HF Space serving 200.
 - Hardened `aero` profile fn → `up -d --build` (backend + hf-space) so code edits are auto-picked-up.
-**Left:** optional visual check of PDF highlight boxes in HF Space UI (browser); rendering code unchanged + tested.
+- S40 visual check surfaced a real bug → logged as **S41** (open): citations land on front-matter, not content pages. "runway excursion" highlights 0 occurrences; cited section_titles are cover/date boilerplate. Root cause + 3 candidate fix directions in MANIFEST resume pointer. Not started — awaiting user direction.
+**Left:** S41 — pick a fix direction (content-page citation bias / deterministic section titles from known TSB+TC layout / decouple term-highlight from is_cited).
 
 ## Session 38 — 2026-06-06 — haiku-4.5
 **Commits:** `92da11c` (S37 completion), `ba032f7` (manifest close)
