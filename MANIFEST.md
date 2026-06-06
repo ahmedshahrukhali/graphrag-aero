@@ -77,7 +77,12 @@ None. All resolved.
 MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, otel/otel-collector-config.yaml, per-dir README placeholders
 
 ## Resume pointer
-**☑ S39 code DONE (by opus-4.8, 2026-06-06).** Deterministic Sources block — citation regression fixed in code; live-through-container verify deferred to a backend rebuild.
+**☑ S39 + S40 DONE (by opus-4.8, 2026-06-06).** Deterministic Sources block — citation regression fixed AND live-verified through the rebuilt backend container.
+- **S40 live confirm:** after `aero` rebuild, `/query "fuel exhaustion forced landing"` (thread `s40-verify`, HTTP 200, 46s) → draft ends with `**Sources:** [tsb/a03q0109 p.2], … [tsb/a13q0098 p.84]`; live `_CITED_TAG_RE` resolves **10** (doc,page) pairs (was 0). HF Space `:7860` serving 200 against rebuilt backend.
+- **Workflow fix:** `aero` profile function now uses `up -d --build` for backend + hf-space (idempotent when unchanged), so future code edits are picked up without a manual rebuild step.
+- **Only-open item:** visual confirmation of PDF highlight boxes in the HF Space UI (browser, not done here) — correctness already proven via the parser; rendering code is unchanged + unit-tested.
+
+**☑ S39 code (by opus-4.8, 2026-06-06).** Deterministic Sources block — citation regression fixed in code.
 - **S39 finding (live):** `/query "fuel exhaustion forced landing"` against the running backend (qwen3:4b) → good prose answer but **0** inline `[doc_id p.page]` citations (regression confirmed; raw draft parsed to 0 (doc,page) pairs by hf_space `_CITED_TAG_RE`).
 - **Decision (user):** revert to gemma2:9b is hardware-blocked (S37 GPU-VM crash); chose **deterministic Sources block** over prompt-tuning.
 - **Fix:** `agent/prompts.format_sources_block()` builds `**Sources:** [doc_id p.page], …` from retrieved candidates (dedup by (doc,page), rank order); `agent/nodes.synthesize_node` appends it to every draft. Tags are exactly what `_CITED_TAG_RE` parses → page-level highlighting now resolves (verified: 10 pairs from the live query output, 0→10).

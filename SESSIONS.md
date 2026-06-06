@@ -11,7 +11,9 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 - Root-cause: 4B model won't follow the (very explicit) bracket-citation prompt; gemma2:9b revert hardware-blocked (S37 GPU-VM crash). User chose deterministic Sources block.
 - Added `format_sources_block()` (prompts.py) + append in `synthesize_node` (nodes.py): `**Sources:** [doc_id p.page], …`, deduped by (doc,page) in rank order, matches `_CITED_TAG_RE`. Verified against live output: 0→10 highlightable pairs.
 - 7 tests added/updated; full `agent/` suite green.
-**Left:** live-through-container verify — backend code is baked in (not mounted), so **user must rebuild backend image**, then re-run query + check HF Space PDF highlighting. (S40)
+- S40 (same session): user rebuilt via `aero`; live `/query` confirmed draft now ends with `**Sources:** [tsb/… p.N]`, `_CITED_TAG_RE` resolves 10 pairs (was 0). HF Space serving 200.
+- Hardened `aero` profile fn → `up -d --build` (backend + hf-space) so code edits are auto-picked-up.
+**Left:** optional visual check of PDF highlight boxes in HF Space UI (browser); rendering code unchanged + tested.
 
 ## Session 38 — 2026-06-06 — haiku-4.5
 **Commits:** `92da11c` (S37 completion), `ba032f7` (manifest close)
