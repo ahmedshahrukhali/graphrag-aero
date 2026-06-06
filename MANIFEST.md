@@ -77,7 +77,10 @@ None. All resolved.
 MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, otel/otel-collector-config.yaml, per-dir README placeholders
 
 ## Resume pointer
-**⮕ S35 DONE. Figure chunks embedded (77,179 pts), WS-E eval confirmed exact parity. Awaiting next instruction.**
+**⮕ S36 DONE. About tab shipped (`0aed931`). 578 passed, 1 skipped.**
+**Next (S37):** Qwen3-8B vs gemma2:9b generation bake-off (VRAM confirmed 6.2 GB; quality-gated swap, needs live stack). No other open items.
+☑ S36 About tab (by sonnet-4.6, S36) — `0aed931`; hf_space/about_tab.py What/Why/How; wired into make_app(); 8 new tests; 578 passed, 1 skipped
+**⮕ (was S35) S35 DONE. Figure chunks embedded (77,179 pts), WS-E eval confirmed exact parity.**
 ☑ S32 eval A/B (by sonnet-4.6, S32) — hybrid n=11: R@5=0.7273 MRR=0.6818 nDCG@5=0.6937; by_lang: en=0.800, fr=0.250 MRR, zh=0.750 MRR; no regression vs §1 baseline
 ☑ S32 WS-C mock-verify (by sonnet-4.6, S32) — figure detected (a00a0051 p4), _figures.jsonl written, :Figure+:HAS_FIGURE in Neo4j; :Figure constraint applied to live schema
 ☑ WS-C figures (by sonnet-4.6, S31) — `33b3c90`; Qwen3-VL-8B figure tier:

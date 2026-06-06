@@ -4,6 +4,17 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 
 ---
 
+## Session 36 — 2026-06-05 — sonnet-4.6
+**Commits:** `0aed931` (About tab)
+**Achieved:**
+- Docker Desktop docs verified present in `7460fb4` (S35) — README.md + DEPLOYMENT.md both updated, no gap
+- About tab added to Gradio Space: `hf_space/about_tab.py` — What (corpus stats + figure chunks), Why (GraphRAG vs plain vector, regulatory-web motivation), How (pipeline diagram + design-decision table), Tech Stack
+- Wired `about_tab.build()` into `make_app()` after eval_tab; 8 new TestAboutTabContent assertions
+- Suite: 578 passed, 1 skipped (+8, 0 regressions vs 570+1 from S35)
+**Left:** Qwen3-8B vs gemma2:9b generation bake-off (needs live stack; next S37 task).
+
+---
+
 ## Session 35 — 2026-06-06 — sonnet-4.6
 **Commits:** 3d86c59 (figure embed + WS-E eval), 7460fb4 (Docker Desktop docs)
 **Achieved:**
