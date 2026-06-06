@@ -77,15 +77,12 @@ None. All resolved.
 MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, otel/otel-collector-config.yaml, per-dir README placeholders
 
 ## Resume pointer
-**⮕ S41 — OPEN BUG (found live S40, opus-4.8, 2026-06-06): citations resolve to front-matter, not content pages.**
-Symptoms (one root cause): (a) `section_title` is junk on cited pages — cover boilerplate ("AVIATION INVESTIGATION REPORT") and dates ("26 July 2003"); (b) querying "runway excursion" highlights **zero** on-page occurrences of the search term.
-Root cause: the Sources block (and anchored retrieval) cite low-numbered front-matter pages (p.2/p.3/p.4 cover + date pages). In `hf_space/pdf_render.py:search_page_terms`, query terms are searched **only on the page being rendered**, and `hf_space/app.py:234` (`do_box = draw_bbox and (is_cited or is_figure)`) gates the term-wash + render to cited/figure pages only (terms passed only `if do_box`, app.py:241). So the term is searched on cover pages where it never appears → no boxes. The pages that actually contain "runway excursion" aren't the cited ones.
-User context: the 2 doc types (TSB reports, TC ACs) follow a fixed format every time — section titles SHOULD be extractable deterministically from that known structure rather than the noisy font-size heuristic (`ingestion/processing/chunk.py:12-17`).
-Fix directions to weigh next session (NOT yet decided):
-  1. Bias citation/anchor selection toward content pages (skip front-matter: cover, masthead, date, TOC) so cited pages are where the answer's evidence — and the query terms — actually live.
-  2. Deterministic section-title extraction keyed to the known TSB/TC AC layout (replace/augment the font-size heuristic) so titles are real ("Findings as to Causes", numbered AC sections), not boilerplate.
-  3. Decouple term-highlighting from `is_cited`: search query terms across the rendered source pages regardless of whether they were cited, so coverage shows even when citations land on front-matter.
-NOTE: do NOT start coding until the user picks a direction.
+**⮕ S41 — OPEN BUG, NOT YET DIAGNOSED (found live S40, opus-4.8, 2026-06-06): term highlighting draws nothing.**
+Symptom: querying "runway excursion" → cited source pages render with ZERO highlight boxes (no term wash, not even the solid cited box).
+IMPORTANT — earlier "front-matter" theory was WRONG. User screenshot proved "Runway Excursion" is printed prominently on the cited p.2 pages (A10A0032, A10Q0213, A17O0025), yet nothing is boxed. So the bug is in the DRAW PATH, not page/citation selection. Do not reuse the front-matter story.
+Status: undiagnosed. Opus theorized twice and was wrong both times; STOP theorizing.
+Next session: actually RUN it, don't reason about it. Concrete first check: open A10A0032 p.2 with pdfplumber and call `page.search("runway", regex=True, case=False)` — does it raise or return empty? `hf_space/pdf_render.py:search_page_terms` swallows any exception (`except Exception: continue`), so a failing/empty search yields no boxes silently. Also confirm whether the solid cited box (region_bboxes / bbox) draws at all on these pages — if even that is absent, suspect show_bbox toggle / do_box gating, not term search. Verify live before claiming a cause.
+(Secondary, separate: `section_title` on these pages is cover/date boilerplate; the 2 doc types follow a fixed layout so titles could be extracted deterministically — `ingestion/processing/chunk.py:12-17`. Not the highlighting bug; revisit after.)
 
 ---
 
