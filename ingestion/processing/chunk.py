@@ -9,12 +9,10 @@ For each chunk we carry:
     - section_title    (most recent header-style line seen ≤ chunk's start)
     - chunk_hash       (sha256 of normalized text, for cross-doc dedup)
 
-Section title detection uses two layers:
-  1. Font-size heuristic: a line whose mean char size ≥ HEADER_SIZE_RATIO × doc
-     median is treated as a header. Works for PDFs with typographic hierarchy.
-  2. Content pattern fallback: TSB section headings (EN + FR) and numbered TC AC
-     section lines ("1.2 Title") are recognised even when all chars share the
-     same font size. Covers ~91% of corpus titles missed by the size heuristic.
+Section title detection uses content patterns:
+  TSB section headings (EN + FR) and numbered TC AC section lines 
+  (e.g., "1.2 Title") are recognised using deterministic regex patterns.
+  This avoids false positives from large cover/date boilerplate text.
 """
 from __future__ import annotations
 
@@ -110,10 +108,7 @@ def _join_pages(pages: list[PageExtract]) -> _Joined:
     char_bbox: list[tuple[float, float, float, float] | None] = []
     headers: list[tuple[int, str]] = []
 
-    # Document-level median char size, for the header heuristic.
-    all_sizes = [c.size for p in pages for c in p.chars if c.size > 0]
-    median_size = statistics.median(all_sizes) if all_sizes else 0.0
-    header_threshold = median_size * HEADER_SIZE_RATIO if median_size else float("inf")
+    headers: list[tuple[int, str]] = []
 
     cursor = 0
     for i, page in enumerate(pages):
@@ -145,20 +140,14 @@ def _join_pages(pages: list[PageExtract]) -> _Joined:
                 char_bbox.append(None)
             cursor += 1
 
-        # Header detection: font-size heuristic first; content patterns as fallback.
+        # Header detection: content patterns.
         line_start_offset = page_start
         for line in page_text.split("\n"):
             line_end_offset = line_start_offset + len(line)
             stripped = line.strip()
             if stripped and len(stripped) <= HEADER_MAX_CHARS:
                 is_header = False
-                line_sizes = [
-                    c.size for c in page.chars
-                    if c.size > 0 and stripped[:24] and c.text and c.text in stripped
-                ]
-                if line_sizes and statistics.fmean(line_sizes) >= header_threshold:
-                    is_header = True
-                elif _TSB_SECTION_RE.search(stripped) or _NUMBERED_SECTION_RE.match(stripped):
+                if _TSB_SECTION_RE.search(stripped) or _NUMBERED_SECTION_RE.match(stripped):
                     is_header = True
                 if is_header:
                     headers.append((line_start_offset, stripped))
