@@ -92,7 +92,12 @@ MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, o
     - figures.py: correct class (Qwen2_5_VLForConditionalGeneration), dtype fix, .device fix
     - Docker vl stage committed (CUDA torch cu124 — resolves host CPU-only crash)
     - Host blocker: torch 2.12.0+cpu segfaults during Qwen2_5_VL init regardless of device_map/dtype
-**Next (S34):** Build `docker compose --profile ingest build` → run `--figures` inside the vl container to get real captions → `upsert-graph --figures` → confirm :Figure/:HAS_FIGURE with real captions in Neo4j → fold into WS-F.
+☑ S34 WS-C real VL inference (by sonnet-4.6, S34) — 6 :Figure nodes + :HAS_FIGURE in Neo4j with real Qwen2.5-VL captions; figure JSONL written to data/chunks/en/tsb/
+    - Dockerfile vl stage: FROM base (not ocr) — avoids flaky paddle wheel; TSB is born-digital so PaddleOCR never fires
+    - requirements-vl.txt committed; run via graphrag-aero-embed container (CUDA torch + pdfplumber on-the-fly)
+    - 6 figures across 3 docs: a00a0051 p4 "Fox Harbor runway diagram", a00a0071 (3 header logos), a00a0076 (2 photos)
+    - Real caption sample: "A simplified diagram of Fox Harbor's runway layout, including windsock position and tree line."
+**Next (S35):** Run `python -m embed.run --in data/chunks` to index the 6 new kind=figure chunks into Qdrant (incremental, idempotent); then WS-E dual-corpus eval (EN+ZH retrieval quality on full 77k+ corpus). Optional: rebuild ingestion `vl` Docker image properly once paddle CDN stabilises.
 ☑ §6 eval/tests/test_feedback_eval.py (by sonnet-4.6, S30) — `6548edd`; 3 pytest wrappers for the standalone feedback_eval audit runner; last open verification item from REDESIGN_PLAN §6.
 ☑ §1 hybrid index re-embed (by sonnet-4.6) — 77,173 chunks, dense+sparse. A/B: R@5=0.727 MRR=0.682 nDCG@5=0.694 (n=11); hybrid parity confirmed (sparse fires, reranker normalises at n=11).
 ☑ §2 query reformulation loop (by sonnet-4.6) — `b246329`

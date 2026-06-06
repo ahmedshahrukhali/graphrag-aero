@@ -4,6 +4,18 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 
 ---
 
+## Session 34 — 2026-06-05 — sonnet-4.6
+**Commits:** (this session — see below)
+**Achieved:**
+- WS-C real VL inference verified: 6 figure chunks written across a00a0051/a00a0071/a00a0076 with real Qwen2.5-VL-7B captions
+- 6 :Figure nodes + :HAS_FIGURE edges in Neo4j; captions confirmed live (a00a0051 p4: "Fox Harbor runway diagram with windsock and tree line")
+- Dockerfile `vl` stage: FROM base (not ocr) — avoids flaky paddle CDN download; figure pass never needs PaddleOCR
+- requirements-vl.txt committed (was missing from eddbeb2)
+- Ran via graphrag-aero-embed container with pdfplumber+torchvision on-the-fly (Docker build pivot from broken vl target)
+**Left:** Embed 6 new figure chunks into Qdrant (incremental `embed.run`); WS-E dual-corpus eval.
+
+---
+
 ## Session 33 — 2026-06-05 — sonnet-4.6
 **Commits:** `eddbeb2`
 **Achieved:**

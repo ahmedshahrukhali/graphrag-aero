@@ -48,11 +48,14 @@ RUN pip install --no-cache-dir paddlepaddle-gpu==3.0.0 \
 COPY ingestion/processing/requirements-ocr.txt /tmp/requirements-ocr.txt
 RUN pip install --no-cache-dir -r /tmp/requirements-ocr.txt
 
-# ─── vl stage: adds PyTorch + HF transformers for Qwen2.5-VL figure captioning ──
-FROM ocr AS vl
-# cu124 torch wheel bundles its own CUDA libs — forward-compat with cu126 driver.
+# ─── vl stage: adds PyTorch + torchvision + HF transformers for Qwen2.5-VL ────
+# Builds from base (not ocr) — figure extraction doesn't invoke PaddleOCR.
+# TSB docs are 100% born-digital; ocr_page is lazy-imported and never fires.
+# torch brings numpy; PIL is already present (via pdfplumber's deps).
+FROM base AS vl
+# cu124 torch + torchvision wheels bundle their own CUDA libs — forward-compat with cu126 driver.
 RUN pip install --no-cache-dir \
       --index-url https://download.pytorch.org/whl/cu124 \
-      "torch>=2.2,<3"
+      "torch>=2.2,<3" torchvision
 COPY ingestion/processing/requirements-vl.txt /tmp/requirements-vl.txt
 RUN pip install --no-cache-dir -r /tmp/requirements-vl.txt

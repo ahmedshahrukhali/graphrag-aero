@@ -1,0 +1,5 @@
+# WS-C: VL model inference for figure captioning (Qwen2.5-VL-7B-Instruct via HF transformers).
+# torch + torchvision are installed separately in the Dockerfile (GPU wheels from pytorch.org/whl/cu124).
+transformers>=4.45,<5
+accelerate>=0.26
+qwen-vl-utils>=0.0.10
