@@ -291,7 +291,7 @@ def _gallery_items(
 
         try:
             img = render_page_with_bbox(
-                chunks[0].source_url, page, chunks[0].bbox,
+                chunks[0].source_url, page, (0.0, 0.0, 0.0, 0.0),
                 doc_id=doc_id,
                 draw_bbox=do_box,
                 region_bboxes=(),  # The initial coordinate-based method does not work well, rely solely on fuzzy span matching
@@ -750,6 +750,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
 /* Sidebar Dataset styling */
 .text-list { border: none !important; background: transparent !important; box-shadow: none !important; padding: 0 !important; }
 .text-list > label { display: none !important; }
+.text-list svg { display: none !important; }
 .text-list .wrap { flex-direction: column !important; gap: 4px !important; margin: 0 !important; }
 .text-list button { 
     background: transparent !important; 
