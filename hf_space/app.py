@@ -280,14 +280,8 @@ def _gallery_items(
         
         terms_list = []
         if do_box:
-            # We use the full span of all chunks on this page as the highlight terms.
-            # Splitting by sentence ensures that a single PDF artifact doesn't break the regex for the whole chunk.
-            for c in chunks:
-                if c.text:
-                    sents = [s.strip() for s in re.split(r'(?<=[.!?])\s+', c.text) if len(s.strip()) > 15]
-                    terms_list.extend(sents)
-            if not terms_list and retrieve.query:
-                terms_list = list(_query_terms(retrieve.query, max_terms=3))
+            if retrieve.query:
+                terms_list = list(_query_terms(retrieve.query))
 
         try:
             img = render_page_with_bbox(
