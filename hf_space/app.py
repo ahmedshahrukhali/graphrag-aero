@@ -461,7 +461,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
 
     # Fixed message positions within a single answered turn. The optional
     # inline page gallery is appended after these (position 4+).
-    IDX_USER, IDX_THINK, IDX_ANS = 0, 1, 2
+    IDX_USER, IDX_THINK = 0, 1
     IDX_SRC = 'sources'  # Use string key for artifacts dictionary
 
     # ── handlers ──────────────────────────────────────────────────────────
@@ -486,8 +486,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
         chat_list: list[dict] = [
             {"role": "user", "content": q},
             {"role": "assistant", "content": "",
-             "metadata": {"title": "🧠 Thought", "status": "pending"}},
-            {"role": "assistant", "content": ""},
+             "metadata": {"title": "🧠 Thinking process", "id": "main", "status": "pending"}},
         ]
 
         def _yield(chat=None, s=None, a=None, hist=None, rec=None):
@@ -501,6 +500,8 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
 
         import time
         start_time = time.time()
+        last_child_idx = -1
+        last_status_time = start_time
 
         yield _yield(chat=chat_list)
 
@@ -519,12 +520,24 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
 
                 if et == "status":
                     msg = data.get("msg", "")
-                    prev = chat_list[IDX_THINK].get("content") or ""
-                    chat_list[IDX_THINK] = {
-                        **chat_list[IDX_THINK],
-                        "content": (prev + f"\n- {msg}").lstrip(),
-                        "metadata": {"title": "🧠 Thought", "status": "pending", "duration": duration},
-                    }
+                    
+                    # Mark previous child as done
+                    if last_child_idx != -1 and chat_list[last_child_idx].get("metadata", {}).get("status") == "pending":
+                        chat_list[last_child_idx]["metadata"]["status"] = "done"
+                        chat_list[last_child_idx]["metadata"]["duration"] = round(time.time() - last_status_time, 1)
+                        
+                    last_status_time = time.time()
+                    
+                    # Append new child thought
+                    chat_list.append({
+                        "role": "assistant",
+                        "content": "",
+                        "metadata": {"title": msg, "parent_id": "main", "status": "pending"}
+                    })
+                    last_child_idx = len(chat_list) - 1
+                    
+                    # Ensure main thought stays pending
+                    chat_list[IDX_THINK]["metadata"]["duration"] = duration
                     yield _yield(chat=list(chat_list))
 
                 elif et == "sources":
@@ -535,25 +548,36 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
 
                 elif et == "token":
                     text_buf.append(data.get("text", ""))
-                    chat_list[IDX_THINK] = {
-                        **chat_list[IDX_THINK],
-                        "metadata": {"title": "🧠 Thought", "status": "pending", "duration": duration},
-                    }
-                    chat_list[IDX_ANS] = {**chat_list[IDX_ANS], "content": "".join(text_buf)}
+                    
+                    # Mark thoughts as done when the first token arrives
+                    if last_child_idx != -1 and chat_list[last_child_idx].get("metadata", {}).get("status") == "pending":
+                        chat_list[last_child_idx]["metadata"]["status"] = "done"
+                        chat_list[last_child_idx]["metadata"]["duration"] = round(time.time() - last_status_time, 1)
+                    if chat_list[IDX_THINK]["metadata"]["status"] == "pending":
+                        chat_list[IDX_THINK]["metadata"]["status"] = "done"
+                        chat_list[IDX_THINK]["metadata"]["duration"] = duration
+                        
+                    # Create answer block if it doesn't exist
+                    if chat_list[-1].get("metadata", {}).get("parent_id") == "main" or chat_list[-1].get("metadata", {}).get("id") == "main":
+                        chat_list.append({"role": "assistant", "content": ""})
+                        
+                    chat_list[-1] = {**chat_list[-1], "content": "".join(text_buf)}
                     yield _yield(chat=list(chat_list))
 
                 elif et == "done":
                     final_thread_id = data.get("thread_id") or thread_id
-                    n_steps = (chat_list[IDX_THINK].get("content") or "").count("- ")
-                    chat_list[IDX_THINK] = {
-                        "role": "assistant",
-                        "content": chat_list[IDX_THINK].get("content") or "",
-                        "metadata": {
-                            "title": f"🧠 Thought ({n_steps} step{'s' if n_steps != 1 else ''})",
-                            "status": "done",
-                            "duration": duration,
-                        },
-                    }
+                    
+                    # Ensure all thoughts are closed
+                    if last_child_idx != -1 and chat_list[last_child_idx].get("metadata", {}).get("status") == "pending":
+                        chat_list[last_child_idx]["metadata"]["status"] = "done"
+                        chat_list[last_child_idx]["metadata"]["duration"] = round(time.time() - last_status_time, 1)
+                    if chat_list[IDX_THINK]["metadata"]["status"] == "pending":
+                        chat_list[IDX_THINK]["metadata"]["status"] = "done"
+                        chat_list[IDX_THINK]["metadata"]["duration"] = duration
+                        
+                    n_steps = sum(1 for c in chat_list if c.get("metadata", {}).get("parent_id") == "main")
+                    chat_list[IDX_THINK]["metadata"]["title"] = f"🧠 Thought ({n_steps} step{'s' if n_steps != 1 else ''})"
+
                     # Fallback: if backend didn't send a separate sources event.
                     if not sources_done and data.get("sources"):
                         artifacts[IDX_SRC] = {"sources": data["sources"], "query": q}
@@ -571,7 +595,11 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                         retrieve = _sources_to_retrieve(data["sources"], q)
                         display_text = _linkify_citations(display_text, retrieve)
                         
-                    chat_list[IDX_ANS] = {
+                    # Create answer block if it doesn't exist (e.g. empty response)
+                    if chat_list[-1].get("metadata", {}).get("parent_id") == "main" or chat_list[-1].get("metadata", {}).get("id") == "main":
+                        chat_list.append({"role": "assistant", "content": ""})
+                        
+                    chat_list[-1] = {
                         "role": "assistant",
                         "content": display_text,
                     }
