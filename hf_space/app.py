@@ -375,12 +375,12 @@ def _push_history(history: list[dict] | None, query: str, thread_id: str) -> lis
 
 
 SAMPLE_QUERIES: list[tuple[str, str, str, int]] = [
-    ("fuel exhaustion forced landing", "en", "tsb", 2),
-    ("engine failure after takeoff", "en", "tsb", 2),
-    ("alimentation en carburant", "fr", "tsb", 2),
-    ("vol VFR en conditions IMC", "fr", "tsb", 2),
-    ("安捷飛航訓練中心 DA-40NG 發動機失效迫降高雄外海", "zh", "ttsb", 2),
-    ("民用航空器维修计划和控制 CCAR-121", "zh", "caac", 2),
+    ("fuel exhaustion forced landing", "EN", "tsb", 2),
+    ("engine failure after takeoff", "EN", "tsb", 2),
+    ("alimentation en carburant", "FR", "tsb", 2),
+    ("vol VFR en conditions IMC", "FR", "tsb", 2),
+    ("安捷飛航訓練中心 DA-40NG 發動機失效迫降高雄外海", "ZH", "ttsb", 2),
+    ("民用航空器维修计划和控制 CCAR-121", "ZH", "caac", 2),
 ]
 
 
