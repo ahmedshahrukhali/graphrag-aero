@@ -521,21 +521,28 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
 
                 if et == "status":
                     msg = data.get("msg", "")
+                    is_result = msg.startswith("Retrieved") or msg.startswith("Graph context") or msg.startswith("Synthesised")
                     
-                    # Mark previous child as done
-                    if last_child_idx != -1 and chat_list[last_child_idx].get("metadata", {}).get("status") == "pending":
-                        chat_list[last_child_idx]["metadata"]["status"] = "done"
-                        chat_list[last_child_idx]["metadata"]["duration"] = round(time.time() - last_status_time, 1)
+                    if is_result and last_child_idx != -1:
+                        chat_list[last_child_idx]["content"] = msg
+                        if chat_list[last_child_idx].get("metadata", {}).get("status") == "pending":
+                            chat_list[last_child_idx]["metadata"]["status"] = "done"
+                            chat_list[last_child_idx]["metadata"]["duration"] = round(time.time() - last_status_time, 1)
+                    else:
+                        # Mark previous child as done
+                        if last_child_idx != -1 and chat_list[last_child_idx].get("metadata", {}).get("status") == "pending":
+                            chat_list[last_child_idx]["metadata"]["status"] = "done"
+                            chat_list[last_child_idx]["metadata"]["duration"] = round(time.time() - last_status_time, 1)
+                            
+                        last_status_time = time.time()
                         
-                    last_status_time = time.time()
-                    
-                    # Append new child thought
-                    chat_list.append({
-                        "role": "assistant",
-                        "content": "",
-                        "metadata": {"title": msg, "parent_id": "main", "status": "pending"}
-                    })
-                    last_child_idx = len(chat_list) - 1
+                        # Append new child thought
+                        chat_list.append({
+                            "role": "assistant",
+                            "content": "",
+                            "metadata": {"title": msg, "parent_id": "main", "status": "pending"}
+                        })
+                        last_child_idx = len(chat_list) - 1
                     
                     # Ensure main thought stays pending
                     chat_list[IDX_THINK]["metadata"]["duration"] = duration
