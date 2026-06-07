@@ -98,6 +98,18 @@ def main() -> None:
     for vec, pl in _scroll_all(client, args.collection):
         if vec is None:
             continue
+        if isinstance(vec, dict):
+            # Qdrant's default unnamed vector is keyed by "" in the python client
+            if "" in vec:
+                vec = vec[""]
+            elif "dense" in vec:
+                vec = vec["dense"]
+            else:
+                # Filter out 'sparse' explicitly if we must guess
+                vec = next((v for k, v in vec.items() if k != "sparse"), None)
+                
+            if not vec:
+                continue
         doc_id = pl.get("doc_id", "")
         rows.append({
             "doc_id": doc_id,

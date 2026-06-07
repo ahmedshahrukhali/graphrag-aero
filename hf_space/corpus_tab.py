@@ -36,7 +36,7 @@ def _gallery_items(resp: RetrieveResponse) -> list[tuple[Any, str]]:
             continue
         try:
             img = render_page_with_bbox(
-                c.source_url, c.page, c.bbox, draw_bbox=True,
+                c.source_url, c.page, c.bbox, doc_id=c.doc_id, draw_bbox=True,
             )
             items.append((img, caption))
         except PdfRenderError as e:

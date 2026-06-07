@@ -292,6 +292,7 @@ def _gallery_items(
         try:
             img = render_page_with_bbox(
                 chunks[0].source_url, page, chunks[0].bbox,
+                doc_id=doc_id,
                 draw_bbox=do_box,
                 region_bboxes=(),  # The initial coordinate-based method does not work well, rely solely on fuzzy span matching
                 terms=tuple(terms_list),
@@ -588,7 +589,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                         s=new_sess,
                         a=dict(artifacts),
                         hist=new_history,
-                        rec=gr.update(samples=_recent_samples(new_history)),
+                        rec=gr.update(value=_recent_samples(new_history)),
                     )
                     # Source pages render into the collapsible "Source pages"
                     # panel via the chained render_pages handler (.then) once
@@ -708,7 +709,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
         return f"{flag} backend · " + " · ".join(bits)
 
     def on_load(history: list[dict] | None):
-        return gr.update(samples=_recent_samples(history or [])), on_healthz()
+        return gr.update(value=_recent_samples(history or [])), on_healthz()
 
     # ── layout ────────────────────────────────────────────────────────────
 
@@ -746,7 +747,16 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
 
 /* Hide regular tabs, sidebar navigation handles it */
 .nav-radio { margin-bottom: 1rem !important; }
+/* Sidebar Dataset styling */
+.gradio-dataset > label { display: none !important; }
+.gradio-dataset .wrap { flex-direction: column !important; }
 """
+
+    import importlib
+    importlib.reload(about_tab)
+    importlib.reload(eval_tab)
+    importlib.reload(graph_tab)
+    importlib.reload(corpus_tab)
 
     with gr.Blocks(
         title="GraphRAG Aero",
@@ -767,20 +777,20 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
             new_btn = gr.Button("＋ New chat", variant="primary")
             gr.HTML("<hr>")
             gr.Markdown("### Recent")
-            recent = gr.Dataset(
-                components=[gr.Textbox(visible=False)],
-                samples=[],
-                label=None,
-                type="values",
-                samples_per_page=10,
+            recent = gr.Dataframe(
+                headers=["Recent Queries"],
+                value=[],
+                interactive=False,
+                type="array",
+                show_label=False,
             )
             gr.Markdown("### Sample queries")
-            samples = gr.Dataset(
-                components=[gr.Textbox(visible=False)],
-                samples=_sample_rows(),
-                label=None,
-                type="values",
-                samples_per_page=10,
+            samples = gr.Dataframe(
+                headers=["Sample Queries"],
+                value=_sample_rows(),
+                interactive=False,
+                type="array",
+                show_label=False,
             )
             gr.Markdown("### Views")
             nav = gr.Radio(

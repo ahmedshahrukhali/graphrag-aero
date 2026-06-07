@@ -23,6 +23,19 @@ from typing import Tuple
 
 import httpx
 from PIL import Image, ImageDraw
+import json
+import os
+
+_DOC_MAP = None
+def _get_doc_path(doc_id: str) -> str | None:
+    global _DOC_MAP
+    if _DOC_MAP is None:
+        try:
+            with open(os.path.join(os.path.dirname(__file__), "doc_map.json")) as f:
+                _DOC_MAP = json.load(f)
+        except Exception:
+            _DOC_MAP = {}
+    return _DOC_MAP.get(doc_id)
 
 
 logger = logging.getLogger(__name__)
@@ -211,6 +224,7 @@ def render_page_with_bbox(
     page: int,
     bbox: BBox,
     *,
+    doc_id: str = "",
     dpi: int = DEFAULT_DPI,
     draw_bbox: bool = True,
     region_bboxes: tuple[BBox, ...] = (),
@@ -240,9 +254,21 @@ def render_page_with_bbox(
     """
     import pdfplumber  # lazy: heavy import
 
-    raw = _download_pdf(pdf_url)
+    pdf_to_open = None
+    if doc_id:
+        hf_path = _get_doc_path(doc_id)
+        if hf_path:
+            try:
+                from huggingface_hub import hf_hub_download
+                pdf_to_open = hf_hub_download(repo_id="ahmedsali/graphaero-corpus", repo_type="dataset", filename=hf_path)
+            except Exception as e:
+                logger.warning("hf_hub_download failed for %s: %s", doc_id, e)
+
+    if not pdf_to_open:
+        pdf_to_open = io.BytesIO(_download_pdf(pdf_url))
+
     try:
-        with pdfplumber.open(io.BytesIO(raw)) as pdf:
+        with pdfplumber.open(pdf_to_open) as pdf:
             if page < 1 or page > len(pdf.pages):
                 raise PdfRenderError(f"page {page} out of range (1..{len(pdf.pages)})")
             p = pdf.pages[page - 1]

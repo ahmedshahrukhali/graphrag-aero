@@ -166,8 +166,8 @@ class ApiClient:
         self,
         query: str,
         *,
-        lang: str | None = None,
-        source: str | None = None,
+        lang: list[str] | None = None,
+        source: list[str] | None = None,
         ann_k: int = 50,
         top_k: int = 10,
     ) -> RetrieveResponse:

@@ -117,8 +117,9 @@ def build(client: "ApiClient") -> None:
 
             for item in EVAL_DATASET:
                 try:
+                    lang_args = [item.lang] if item.lang else None
                     resp = client.retrieve(
-                        item.query, lang=item.lang, top_k=topk, ann_k=max(topk * 5, 50),
+                        item.query, lang=lang_args, top_k=topk, ann_k=max(topk * 5, 50),
                     )
                     ids = [c.doc_id for c in resp.results]
                 except ApiError as e:

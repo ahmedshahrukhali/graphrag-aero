@@ -63,13 +63,13 @@ def build(client: "ApiClient") -> None:
     with gr.Column(visible=False) as page_col:
         gr.Markdown(
             "### Graph Viewer\n"
-            "Look up the knowledge graph context for any document: "
+            "Look up the knowledge graph context for any document in EN, FR, or ZH: "
             "findings, recommendations, regulations, and advisory circulars.\n\n"
-            "Enter a doc ID like `tsb/a13q0098` or bare `a13q0098`."
+            "Enter a doc ID like `tsb/a13q0098` or `ttsb/3287_ttsb-aor-19-11-001`."
         )
         with gr.Row():
             doc_input = gr.Textbox(
-                placeholder="e.g. tsb/a13q0098",
+                placeholder="e.g. tsb/a13q0098 (EN/FR) or ttsb/3287_ttsb-aor-19-11-001 (ZH)",
                 label="Document ID", scale=6, show_label=False,
             )
             lookup_btn = gr.Button("Lookup", variant="primary", scale=1)
