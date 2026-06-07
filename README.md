@@ -1,3 +1,13 @@
+---
+title: GraphRAG Aero
+emoji: 🛩️
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # Graph RAG over Aerospace Documents
 
 End-to-end Graph RAG over **Transport Canada Advisory Circulars** and

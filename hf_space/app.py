@@ -589,7 +589,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                         s=new_sess,
                         a=dict(artifacts),
                         hist=new_history,
-                        rec=gr.update(value=_recent_samples(new_history)),
+                        rec=gr.update(samples=_recent_samples(new_history)),
                     )
                     # Source pages render into the collapsible "Source pages"
                     # panel via the chained render_pages handler (.then) once
@@ -709,7 +709,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
         return f"{flag} backend · " + " · ".join(bits)
 
     def on_load(history: list[dict] | None):
-        return gr.update(value=_recent_samples(history or [])), on_healthz()
+        return gr.update(samples=_recent_samples(history or [])), on_healthz()
 
     # ── layout ────────────────────────────────────────────────────────────
 
@@ -748,8 +748,23 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
 /* Hide regular tabs, sidebar navigation handles it */
 .nav-radio { margin-bottom: 1rem !important; }
 /* Sidebar Dataset styling */
-.gradio-dataset > label { display: none !important; }
-.gradio-dataset .wrap { flex-direction: column !important; }
+.text-list { border: none !important; background: transparent !important; box-shadow: none !important; padding: 0 !important; }
+.text-list > label { display: none !important; }
+.text-list .wrap { flex-direction: column !important; gap: 4px !important; margin: 0 !important; }
+.text-list button { 
+    background: transparent !important; 
+    border: none !important; 
+    box-shadow: none !important; 
+    text-align: left !important; 
+    padding: 6px 10px !important; 
+    font-weight: normal !important; 
+    justify-content: flex-start !important;
+    border-radius: 6px !important;
+    white-space: normal !important;
+    height: auto !important;
+    min-height: 0 !important;
+}
+.text-list button:hover { background: rgba(128, 128, 128, 0.15) !important; }
 """
 
     import importlib
@@ -777,20 +792,22 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
             new_btn = gr.Button("＋ New chat", variant="primary")
             gr.HTML("<hr>")
             gr.Markdown("### Recent")
-            recent = gr.Dataframe(
-                headers=["Recent Queries"],
-                value=[],
-                interactive=False,
-                type="array",
-                show_label=False,
+            recent = gr.Dataset(
+                components=[gr.Textbox(visible=False)],
+                samples=[],
+                label="",
+                type="values",
+                samples_per_page=10,
+                elem_classes=["text-list"]
             )
             gr.Markdown("### Sample queries")
-            samples = gr.Dataframe(
-                headers=["Sample Queries"],
-                value=_sample_rows(),
-                interactive=False,
-                type="array",
-                show_label=False,
+            samples = gr.Dataset(
+                components=[gr.Textbox(visible=False)],
+                samples=_sample_rows(),
+                label="",
+                type="values",
+                samples_per_page=10,
+                elem_classes=["text-list"]
             )
             gr.Markdown("### Views")
             nav = gr.Radio(
