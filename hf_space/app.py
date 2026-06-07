@@ -486,7 +486,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
         chat_list: list[dict] = [
             {"role": "user", "content": q},
             {"role": "assistant", "content": "",
-             "metadata": {"title": "🧠 Thinking…", "status": "pending"}},
+             "metadata": {"title": "🧠 Thought", "status": "pending"}},
             {"role": "assistant", "content": ""},
         ]
 
@@ -523,7 +523,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                     chat_list[IDX_THINK] = {
                         **chat_list[IDX_THINK],
                         "content": (prev + f"\n- {msg}").lstrip(),
-                        "metadata": {"title": f"🧠 Thinking ({duration}s)…", "status": "pending"},
+                        "metadata": {"title": "🧠 Thought", "status": "pending", "duration": duration},
                     }
                     yield _yield(chat=list(chat_list))
 
@@ -537,7 +537,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                     text_buf.append(data.get("text", ""))
                     chat_list[IDX_THINK] = {
                         **chat_list[IDX_THINK],
-                        "metadata": {"title": f"🧠 Thinking ({duration}s)…", "status": "pending"},
+                        "metadata": {"title": "🧠 Thought", "status": "pending", "duration": duration},
                     }
                     chat_list[IDX_ANS] = {**chat_list[IDX_ANS], "content": "".join(text_buf)}
                     yield _yield(chat=list(chat_list))
@@ -549,8 +549,9 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                         "role": "assistant",
                         "content": chat_list[IDX_THINK].get("content") or "",
                         "metadata": {
-                            "title": f"🧠 Thought for {duration}s ({n_steps} step{'s' if n_steps != 1 else ''})",
+                            "title": f"🧠 Thought ({n_steps} step{'s' if n_steps != 1 else ''})",
                             "status": "done",
+                            "duration": duration,
                         },
                     }
                     # Fallback: if backend didn't send a separate sources event.
