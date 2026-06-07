@@ -667,9 +667,17 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
         
         links_md = ""
         if items:
+            doc_urls = {s.get("doc_id"): s.get("source_url") for s in art.get("sources", []) if s.get("doc_id") and s.get("source_url")}
+            
             link_parts = []
             for i, (filepath, caption) in enumerate(items):
-                link_parts.append(f"[{caption}](/file={filepath})")
+                url = f"/file={filepath}"
+                for doc_id, s_url in doc_urls.items():
+                    if f"· {doc_id} ·" in caption:
+                        url = s_url
+                        break
+                link_parts.append(f"[{caption}]({url})")
+                
             links_md = "🟢 **View Full Size:** " + " | ".join(link_parts)
             
             # Add a static message to the chat
