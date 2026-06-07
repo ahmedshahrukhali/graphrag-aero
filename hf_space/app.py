@@ -499,6 +499,9 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                 rec if rec is not None else gr.update(),
             )
 
+        import time
+        start_time = time.time()
+
         yield _yield(chat=chat_list)
 
         text_buf: list[str] = []
@@ -512,6 +515,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                 lang=_lang_param(lang_v), source=_source_param(source_v),
             ):
                 et, data = ev.get("event"), ev.get("data") or {}
+                duration = int(time.time() - start_time)
 
                 if et == "status":
                     msg = data.get("msg", "")
@@ -519,21 +523,22 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                     chat_list[IDX_THINK] = {
                         **chat_list[IDX_THINK],
                         "content": (prev + f"\n- {msg}").lstrip(),
+                        "metadata": {"title": f"🧠 Thinking ({duration}s)…", "status": "pending"},
                     }
                     yield _yield(chat=list(chat_list))
 
                 elif et == "sources":
                     raw_sources = list(data.get("sources") or [])
-                    # Stash raw sources + query rather than pre-rendered images:
-                    # the inline gallery is rendered after streaming (so PDF
-                    # download/rasterise never delays tokens) and re-rendered on
-                    # bbox-toggle from this stash + the finished answer's citations.
                     artifacts[IDX_SRC] = {"sources": raw_sources, "query": q}
                     sources_done = True
                     yield _yield(chat=list(chat_list), a=dict(artifacts))
 
                 elif et == "token":
                     text_buf.append(data.get("text", ""))
+                    chat_list[IDX_THINK] = {
+                        **chat_list[IDX_THINK],
+                        "metadata": {"title": f"🧠 Thinking ({duration}s)…", "status": "pending"},
+                    }
                     chat_list[IDX_ANS] = {**chat_list[IDX_ANS], "content": "".join(text_buf)}
                     yield _yield(chat=list(chat_list))
 
@@ -544,7 +549,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                         "role": "assistant",
                         "content": chat_list[IDX_THINK].get("content") or "",
                         "metadata": {
-                            "title": f"🧠 Thought ({n_steps} step{'s' if n_steps != 1 else ''})",
+                            "title": f"🧠 Thought for {duration}s ({n_steps} step{'s' if n_steps != 1 else ''})",
                             "status": "done",
                         },
                     }
