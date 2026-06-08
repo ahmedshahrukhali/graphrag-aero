@@ -345,7 +345,7 @@ is now subsumed by REDESIGN_PLAN §6.
 - Finished + committed unlogged WIP from a token-limited session: hf-space **Corpus / Graph / Eval tabs** alongside Chat (`gr.Tabs()` in center pane), all over the existing FastAPI backend — no new ML in the Space.
 - corpus_tab = retrieve+rerank search w/ PDF bbox preview; graph_tab = per-doc KG lookup via new `ApiClient.graph_lookup` → `GET /graph/{doc_id}`; eval_tab = live Recall@k/MRR/nDCG bench w/ embedded 4-query dataset (metrics inlined, no eval/ dep).
 - Verified: 15 new tab tests green on host; `make_app()` builds all 4 tabs in the hf-space image (gradio 5.50.0, offline stub client).
-- **Deployed live** to HF Space `ahmedsali/graphaero-rag`: stack up (backend healthz all-green), cloudflared tunnel → `BACKEND_URL` secret, uploaded hf_space/. Config now = 64 comps / 4 tabs (Chat·Corpus·Graph·Eval); `/graph/tsb/a13q0098` returns 23 findings / 5 regs.
+- **Deployed live** to HF Space `ahmedsali/graphaero-rag`: stack up (backend healthz all-green), local tunnel → `BACKEND_URL` secret, uploaded hf_space/. Config now = 64 comps / 4 tabs (Chat·Corpus·Graph·Eval); `/graph/tsb/a13q0098` returns 23 findings / 5 regs.
 - **Deploy gotcha found** (wasted one cycle): Space Dockerfile `COPY hf_space /app/hf_space` + `python -m hf_space.app` → only the `hf_space/` SUBDIR is build-authoritative. Must upload `path_in_repo="hf_space"`, NOT `"."`. Saved as project memory.
 - **Undeployed** on request: Space PAUSED, tunnel killed; rebuilt local hf-space image + brought up at **http://localhost:7860** (4 tabs verified).
 - **PDF highlight Phase 1 shipped** (`1411efd`): two-tier multi-occurrence highlight. `search_page_terms` boxes every on-page query-term hit (title + all mentions, light wash) under the solid cited box; `_query_terms` (EN+FR stopword filter) feeds them. Render-only, no re-ingest. Live-verified on tsb/a13q0098 p.3 (8 boxes incl. all 4 title words; title solid, body washed — screenshot inspected). +13 tests, full hf_space suite green in-image.
@@ -506,7 +506,7 @@ is now subsumed by REDESIGN_PLAN §6.
 - Graph populated: 1,199 Occurrences + 13,124 Findings + 2,136 Recommendations via regex+LLM extractor
 - GPU passthrough enabled; full embed 54,280 pts in ~26 min (was CPU-only, would have taken hours)
 - Eval: Recall@5=1.0, MRR=1.0, nDCG@5=1.0 on all 4 queries
-- HF Space published + cloudflared tunnel; end-to-end verified from public URL
+- HF Space published + local tunnel; end-to-end verified from public URL
 - TC corpus completion: fixed ConnectionError catch; pulled 367 new PDFs
 - 307 pytest + 18 Vitest passed (all mocked/offline)
 **Left:** LLM extraction (--extract) running in background (PID 27324); TC corpus not yet re-chunked/embedded

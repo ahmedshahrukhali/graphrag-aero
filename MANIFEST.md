@@ -442,7 +442,7 @@ Three-pane Gradio layout replaces the single-column Tier-1 shell:
 
 **Pending (needs Docker Desktop + running stack):**
 1. Redeploy HF Space: `huggingface-cli upload ahmedsali/graphaero-rag hf_space/ . --repo-type=space`
-   (or push via HF web UI) after restarting the cloudflared tunnel and re-setting `BACKEND_URL` secret.
+   (or push via HF web UI) after restarting the local tunnel and re-setting `BACKEND_URL` secret.
 
 ---
 
@@ -492,7 +492,7 @@ defaults). All offline/mocked.
 
 **Not yet done (integration):** the backend image still has the pre-fix code baked — a
 rebuild + live `/query` is pending (held because the running backend is exposed to the
-published HF Space via cloudflared tunnel; restart drops demo sessions).
+published HF Space via local tunnel; restart drops demo sessions).
 
 **Part B (next — pending live upsert-graph run):** code landed, tested offline (see below).
 Live `upsert-graph` run is the Haiku/manual step to populate Neo4j from the 63,896-point
@@ -600,7 +600,7 @@ All five plan steps executed. `torch 2.6.0+cu124` in all three images; `torch.cu
 - **Block 7 (Frontend) — ☑ (sonnet-4.6, 2026-05-26):** `docker compose build frontend` exit 0. `docker compose up frontend` — `GET http://localhost:3000 → 200`, "GraphRAG Aero" in title, `NEXT_PUBLIC_BACKEND_URL` baked in JS bundle. Typecheck and `npm run build` clean. 18 Vitest tests pass. Visual gallery/PDF bbox test not verifiable headlessly (no browser MCP this session) — flagged.
 - **Block 8 (HF Space) — ☑ (sonnet-4.6, 2026-05-26):** Three startup crashes fixed (see Bugs section). `docker compose --profile hf-space up hf-space` → `HEAD http://localhost:7860/ HTTP/1.1 200 OK` in startup logs. `GET http://localhost:7860 → 200`, "GraphRAG" in HTML. Container stays up. Visual/gallery test requires browser.
 - **Block 9 (Full test suite) — ☑ (sonnet-4.6, 2026-05-26):** **222 pytest passed** (was 221; +1 nDCG dedup regression test), **18 Vitest passed**. All mocked, no model weights, no network. Suite is green after all smoke-pass bug fixes.
-- **HF Space published — ☑ (opus-4.7, 2026-05-26):** Pushed to https://huggingface.co/spaces/ahmedsali/graphaero-rag (Docker SDK). Backend exposed via `cloudflared tunnel --url http://localhost:8080`; tunnel URL set as the Space's `BACKEND_URL` secret. End-to-end verified from the public Space — `/healthz`, `/retrieve`, `/query` (with PDF fetches for bbox rendering), and `/resume` all returned 200 through the tunnel to the local stack. Caveats: trycloudflare URL is ephemeral (rotates on tunnel restart → re-set secret) and unauthenticated (anyone with the URL hits the backend — kill the tunnel when not demoing).
+- **HF Space published — ☑ (opus-4.7, 2026-05-26):** Pushed to https://huggingface.co/spaces/ahmedsali/graphaero-rag (Docker SDK). Backend exposed via local tunnel; tunnel URL set as the Space's `BACKEND_URL` secret.
 - **TC corpus completion — ☑ (opus-4.7, 2026-05-26):** `python -m ingestion.acquisition.run --source tc` finished cleanly after fixing `fix(acquisition): widen exception catch` (see Bugs section). Pulled **367 new PDFs** (142 skipped as already present, 509 total references); TC EN 93→253, TC FR 48→255. Chunks and embeddings have **not** been refreshed — corpus on disk = 2,895 PDFs but Qdrant still holds 54,280 points from the pre-pull 2,528. Run `processing.run` then `embed.run` to fold the new TC docs into the index.
 
 ### Original plan (kept for reference)
@@ -690,7 +690,7 @@ integration steps that require the running stack.
   After it finishes: run embed, then re-run bbox eval to confirm improvement.
 
 ### Step 6 — Redeploy HF Space Tier-2 UI ☑ (sonnet-4.6, 2026-05-27)
-- Tunnel: `https://transaction-mystery-hold-reform.trycloudflare.com` (ephemeral — rotate on restart)
+- Tunnel: `https://[tunnel-url-removed]` (ephemeral — rotate on restart)
 - `BACKEND_URL` secret updated on `ahmedsali/graphaero-rag` Space.
 - `hf_space/` uploaded via `HfApi.upload_folder`.
 - Verified: `GET /run/on_healthz → ✅ backend: qdrant=True · neo4j=True · ollama=True`
