@@ -425,7 +425,8 @@ _CSS = """
    inside the flex parent so its own scrollbar (not the page) handles overflow. */
 .chat-pane {
   flex-grow: 1 !important;
-  min-height: 0 !important;
+  flex-shrink: 0 !important;
+  min-height: 400px !important;
 }
 /* Source-pages panel: a standalone gr.Gallery in preview mode (one full-width
    page + thumbnail reel) inside a collapsible accordion below the chat. Give
@@ -672,7 +673,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                 
             links_md = "**View Original:** " + " | ".join(link_parts)
             
-        return gr.update(value=items), gr.update(open=bool(items)), gr.update(value=links_md), chat_list
+        return gr.update(value=items), gr.update(), gr.update(value=links_md), chat_list
 
     def on_pick_sample(evt: gr.SelectData):
         """Click a sample → instant cached answer (no backend/LLM call).
@@ -889,7 +890,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                         source = gr.CheckboxGroup(["TSB", "TC", "TTSB", "CAAC"], value=["TSB", "TC", "TTSB", "CAAC"], label="📖 Corpus", show_label=True)
                         max_hops = gr.Slider(1, 5, value=2, step=1, label="🔗 Max hops", show_label=True)
                         show_bbox = gr.Checkbox(value=True, label="Highlight Snapshots from Source")
-                with gr.Accordion("📄 Source pages", open=False) as pages_acc:
+                with gr.Accordion("📄 Source pages", open=True) as pages_acc:
                     gallery_links = gr.Markdown("")
                     pages_gallery = gr.Gallery(
                         value=[],
@@ -917,12 +918,12 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
         ask_outputs = [chat, sess, artifacts, history, recent, query]
         ask_inputs = [query, lang, source, max_hops, show_bbox, history, sess, artifacts]
         pages_out = [pages_gallery, pages_acc, gallery_links, chat]
-        clear_pages = (lambda: (gr.update(value=[]), gr.update(open=False), gr.update(value=""), gr.update()))
+        clear_pages = (lambda: (gr.update(value=[]), gr.update(), gr.update(value=""), gr.update()))
 
-        ask_event_a = ask_btn.click(on_ask, inputs=ask_inputs, outputs=ask_outputs, show_progress="full")
-        ask_event_a.then(render_pages, [artifacts, show_bbox, chat], pages_out)
-        ask_event_b = query.submit(on_ask, inputs=ask_inputs, outputs=ask_outputs, show_progress="full")
-        ask_event_b.then(render_pages, [artifacts, show_bbox, chat], pages_out)
+        ask_event_a = ask_btn.click(on_ask, inputs=ask_inputs, outputs=ask_outputs, show_progress="full", scroll_to_output=False)
+        ask_event_a.then(render_pages, [artifacts, show_bbox, chat], pages_out, scroll_to_output=False)
+        ask_event_b = query.submit(on_ask, inputs=ask_inputs, outputs=ask_outputs, show_progress="full", scroll_to_output=False)
+        ask_event_b.then(render_pages, [artifacts, show_bbox, chat], pages_out, scroll_to_output=False)
 
         def on_stop(chat_list):
             if not chat_list:
@@ -951,7 +952,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
             None,
             [query, lang, source, max_hops, chat, sess, artifacts],
             show_progress="full"
-        ).then(render_pages, [artifacts, show_bbox, chat], pages_out)
+        ).then(render_pages, [artifacts, show_bbox, chat], pages_out, scroll_to_output=False)
         app.load(on_load, [history], [recent, health_md])
 
     return app
