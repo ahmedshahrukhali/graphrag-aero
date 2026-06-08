@@ -649,11 +649,11 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
         return _gallery_items(retrieve, draw_bbox=bool(show_bbox), cited_dict=cited, draft=draft)
 
     def render_pages(artifacts: dict, show_bbox: bool, chat_list: list[dict]):
-        """Render source pages into the collapsible panel, and open it.
+        """Render source pages into the inline gallery.
 
         Runs after a turn finishes (chained via ``.then``) or when the bbox
         toggle flips. Local PDF raster only — never blocks the answer. Returns
-        (gallery value, accordion open-state); empty + closed when no sources.
+        (gallery value, links markdown, chat_list).
         """
         art = (artifacts or {}).get(IDX_SRC) or {}
         items = _render_gallery(art, bool(show_bbox)) if art.get("sources") else []
@@ -673,7 +673,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                 
             links_md = "**View Original:** " + " | ".join(link_parts)
             
-        return gr.update(value=items), gr.update(), gr.update(value=links_md), chat_list
+        return gr.update(value=items), gr.update(value=links_md), chat_list
 
     def on_pick_sample(evt: gr.SelectData):
         """Click a sample → instant cached answer (no backend/LLM call).
@@ -869,7 +869,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                     show_copy_button=True,
                     label=None,
                     show_label=False,
-                    height="65vh",
+                    height=600,
                     elem_classes=["chat-pane"],
                 )
                 with gr.Group():
@@ -890,17 +890,17 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                         source = gr.CheckboxGroup(["TSB", "TC", "TTSB", "CAAC"], value=["TSB", "TC", "TTSB", "CAAC"], label="📖 Corpus", show_label=True)
                         max_hops = gr.Slider(1, 5, value=2, step=1, label="🔗 Max hops", show_label=True)
                         show_bbox = gr.Checkbox(value=True, label="Highlight Snapshots from Source")
-                with gr.Accordion("📄 Source pages", open=True) as pages_acc:
-                    gallery_links = gr.Markdown("")
-                    pages_gallery = gr.Gallery(
-                        value=[],
-                        preview=True,
-                        object_fit="contain",
-                        allow_preview=True,
-                        show_label=False,
-                        height=1000,
-                        elem_classes="pdf-inline",
-                    )
+                gr.Markdown("### 📄 Source pages")
+                gallery_links = gr.Markdown("")
+                pages_gallery = gr.Gallery(
+                    value=[],
+                    preview=True,
+                    object_fit="contain",
+                    allow_preview=True,
+                    show_label=False,
+                    height=1000,
+                    elem_classes="pdf-inline",
+                )
             page_corpus = corpus_tab.build(client)
             page_graph = graph_tab.build(client)
             page_embedding = embedding_tab.build(client)
@@ -917,8 +917,8 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
         # ── wiring ────────────────────────────────────────────────────────
         ask_outputs = [chat, sess, artifacts, history, recent, query]
         ask_inputs = [query, lang, source, max_hops, show_bbox, history, sess, artifacts]
-        pages_out = [pages_gallery, pages_acc, gallery_links, chat]
-        clear_pages = (lambda: (gr.update(value=[]), gr.update(), gr.update(value=""), gr.update()))
+        pages_out = [pages_gallery, gallery_links, chat]
+        clear_pages = (lambda: (gr.update(value=[]), gr.update(value=""), gr.update()))
 
         ask_event_a = ask_btn.click(on_ask, inputs=ask_inputs, outputs=ask_outputs, show_progress="full", scroll_to_output=False)
         ask_event_a.then(render_pages, [artifacts, show_bbox, chat], pages_out, scroll_to_output=False)
