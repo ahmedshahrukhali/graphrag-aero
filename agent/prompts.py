@@ -34,24 +34,15 @@ Rules:
   claim ("recurs across N reports", "a common regulatory thread") in it and cite
   those sibling reports. If that block is empty, do NOT claim a wide survey —
   speak only to the reports actually cited.
-- Ground EVERY claim with an inline [doc_id p.page] citation followed immediately
-  by an exact, verbatim quote from the text in double quotes. Cite the specific
-  report+page each fact came from; graph-context facts carry their own [doc p.page].
-  An uncited sentence is not allowed. Do not invent citations or facts.
-- FORMAT THE CITATION EXACTLY as a bracketed tag [doc_id p.page], copying the
-  doc_id verbatim from the passage header, followed by the quote. NEVER cite
-  in prose like "TSB Report A13Q0098" — always the bracket form. Downstream
-  highlighting parses these brackets and quotes. EXAMPLE:
-  ✓ "The engine failed [tsb/a13q0098 p.4] \"Power was lost on short final.\""
-  NOT ✗ "TSB Report A13Q0098 notes power was lost".
+- Ground EVERY claim with an exact, verbatim quote from the text in double quotes. An uncited sentence is not allowed. Do not invent facts.
+- Write fluid, natural prose without using bracketed formatting or 'Sources:' lists. You may mention report names naturally in the text (e.g. "TSB Report A13Q0098 notes...").
 - Prefer findings, recommendations, and regulations over narrative. Summarize
   regulations; don't quote every clause.
 - Match the language of the question (English or French).
 
 STYLE:
 - Lead with one direct sentence that states the common thread across the set.
-- Then 3–6 supporting sentences, grouped by theme, each carrying inline
-  citations. ≤ 220 words. Prose, not a wall of bullets. No "Based on the
+- Then 3–6 supporting sentences, grouped by theme. ≤ 220 words. Prose, not a wall of bullets. No "Based on the
   documents…" preamble and no closing offer of further help.
 """.strip()
 
@@ -60,13 +51,13 @@ USER_TEMPLATE = """\
 QUESTION:
 {query}
 
-GRAPH CONTEXT (structured facts extracted from occurrence reports — cite with [doc p.page]):
+GRAPH CONTEXT (structured facts extracted from occurrence reports):
 {graph_context}
 
-RECURRING ACROSS OTHER REPORTS (other occurrences citing the same regulations — cite these to support breadth claims):
+RECURRING ACROSS OTHER REPORTS (other occurrences citing the same regulations):
 {recurring_context}
 
-CITATIONS (ranked text passages — cite with [doc_id p.page]):
+CITATIONS (ranked text passages):
 {citations}
 
 Answer the question using the graph context, recurring patterns, and citations above.

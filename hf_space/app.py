@@ -338,25 +338,7 @@ def _chunks_md(retrieve: RetrieveResponse) -> str:
         
     return "\n\n".join(out)
 
-def _linkify_citations(text: str, retrieve: RetrieveResponse) -> str:
-    """Convert LLM citations [doc_id p.page] to links pointing to rendered gallery images."""
-    # Hide the backend-appended **Sources:** block from the chat UI
-    text = re.sub(r'\n\n\*\*Sources:\*\*.*$', '', text)
-    
-    if not retrieve.results:
-        return text
-        
-    safe_query = re.sub(r'[^a-zA-Z0-9]', '_', retrieve.query or '')[:20]
-    
-    def repl(m):
-        doc_id = m.group(1).strip()
-        page_str = m.group(2)
-        safe_doc = doc_id.replace('/', '_')
-        img_path = f"/file=/tmp/gradio_renders/{safe_query}_{safe_doc}_p{page_str}.png"
-        return f"[{doc_id} p.{page_str}]({img_path})"
 
-    # match [tsb/a11o0098 p.2]
-    return re.sub(r'\[([a-zA-Z0-9_/-]+)\s+p\.(\d+)\]', repl, text)
 
 
 def _recent_samples(history: list[dict]) -> list[list[str]]:
@@ -601,11 +583,17 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                             "draft": "".join(text_buf),
                         }
                         
-                    # Linkify citations for the UI chat display
+                    # Clean citations for the UI chat display
                     display_text = "".join(text_buf)
-                    if sources_done and data.get("sources"):
-                        retrieve = _sources_to_retrieve(data["sources"], q)
-                        display_text = _linkify_citations(display_text, retrieve)
+                    
+                    # Hide the backend-appended **Sources:** block (and any separator)
+                    display_text = re.sub(r'\n*---\n*\*\*Sources:\*\*.*$', '', display_text, flags=re.DOTALL)
+                    
+                    # Hide spontaneous LLM "Sources:" blocks
+                    display_text = re.sub(r'\n*Sources:\s*\[.*$', '', display_text, flags=re.DOTALL|re.IGNORECASE)
+                    
+                    # Remove inline tags [doc_id p.page] completely from the chat prose
+                    display_text = re.sub(r'\s*\[([a-zA-Z0-9_/-]+)\s+p\.(\d+)\]', '', display_text)
                         
                     # Create answer block if it doesn't exist (e.g. empty response)
                     if chat_list[-1].get("metadata", {}).get("parent_id") == "main" or chat_list[-1].get("metadata", {}).get("id") == "main":
@@ -710,6 +698,12 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
         retrieve = _sources_to_retrieve(cached.get("sources", []), q)
         thought, n_steps = _thought_from_trace(cached.get("trace", []))
         draft = cached.get("draft", "")
+        
+        display_draft = draft
+        display_draft = re.sub(r'\n*---\n*\*\*Sources:\*\*.*$', '', display_draft, flags=re.DOTALL)
+        display_draft = re.sub(r'\n*Sources:\s*\[.*$', '', display_draft, flags=re.DOTALL|re.IGNORECASE)
+        display_draft = re.sub(r'\s*\[([a-zA-Z0-9_/-]+)\s+p\.(\d+)\]', '', display_draft)
+        
         chat_list: list[dict] = [
             {"role": "user", "content": q},
             {"role": "assistant", "content": thought,
@@ -719,7 +713,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
             {"role": "assistant", "content": _chunks_md(retrieve),
              "metadata": {"title": f"📑 Sources ({len(retrieve.results)})",
                           "status": "done"}},
-            {"role": "assistant", "content": _linkify_citations(draft, retrieve)},
+            {"role": "assistant", "content": display_draft},
         ]
         new_artifacts = {IDX_SRC: {"sources": cached.get("sources", []), "query": q, "draft": draft}}
         new_sess = {"thread_id": cached.get("thread_id", ""), "draft": draft, "query": q}

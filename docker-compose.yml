@@ -154,6 +154,7 @@ services:
       - "8081:8080"
     volumes:
       - ./data:/app/data
+      - ./agent:/app/agent
     deploy:
       resources:
         reservations:
@@ -173,6 +174,8 @@ services:
       - backend
     ports:
       - "7860:7860"
+    volumes:
+      - ./hf_space:/app/hf_space
 
 volumes:
   qdrant_data:
