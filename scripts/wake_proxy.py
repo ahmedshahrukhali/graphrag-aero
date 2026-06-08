@@ -40,9 +40,9 @@ async def ensure_awake():
     global is_awake
     if not is_awake:
         logger.info("Containers are asleep. Waking them up...")
-        # Start the backend explicitly, which respects depends_on for DBs
+        # Start the backend and hf-space explicitly (brings up all default services)
         subprocess.run(
-            ["docker", "compose", "up", "-d", "backend"], 
+            ["docker", "compose", "up", "-d"], 
             cwd=DOCKER_CWD, 
             check=False
         )
