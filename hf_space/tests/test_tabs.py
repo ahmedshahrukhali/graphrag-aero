@@ -120,7 +120,7 @@ class TestRenderGraph:
 
 # ── about tab content ────────────────────────────────────────────────────
 
-from hf_space.about_tab import _WHAT_MD, _WHY_MD, _HOW_MD, _STACK_MD
+from hf_space.about_tab import _WHAT_MD, _HOW_MD
 
 
 class TestAboutTabContent:
@@ -133,27 +133,14 @@ class TestAboutTabContent:
         assert "figure" in _WHAT_MD.lower()
         assert "Qwen2.5-VL" in _WHAT_MD
 
-    def test_why_explains_regulatory_web(self):
-        assert "CAR 602.115" in _WHY_MD
-        assert "Neo4j" in _WHY_MD
-        assert "multi-hop" in _WHY_MD.lower()
-
-    def test_why_mentions_multilingual(self):
-        assert "multilingual" in _WHY_MD.lower() or "BGE-M3" in _WHY_MD
-
     def test_how_contains_pipeline_steps(self):
-        for step in ("Qdrant", "reranker", "Neo4j", "LangGraph", "HITL"):
+        for step in ("Qdrant", "reranker", "Neo4j", "LangGraph"):
             assert step in _HOW_MD, f"missing pipeline step: {step}"
 
-    def test_how_contains_design_table(self):
-        assert "page_bboxes" in _HOW_MD
-        assert "Cosine" in _HOW_MD
-
-    def test_stack_lists_key_components(self):
-        for component in ("pdfplumber", "PaddleOCR", "FlagEmbedding", "FastAPI", "Gradio"):
-            assert component in _STACK_MD, f"missing stack component: {component}"
+    def test_how_lists_key_components(self):
+        for component in ("pdfplumber", "PaddleOCR", "FlagEmbedding", "FastAPI", "Gradio", "auto-fallback"):
+            assert component in _HOW_MD, f"missing stack component: {component}"
 
     def test_all_sections_are_nonempty_strings(self):
-        for name, val in [("WHAT", _WHAT_MD), ("WHY", _WHY_MD),
-                          ("HOW", _HOW_MD), ("STACK", _STACK_MD)]:
+        for name, val in [("WHAT", _WHAT_MD), ("HOW", _HOW_MD)]:
             assert isinstance(val, str) and len(val) > 100, f"{name} content too short"
