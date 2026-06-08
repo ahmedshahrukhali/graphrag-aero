@@ -102,10 +102,15 @@ async def proxy_request(request: Request, path: str):
     # Send and stream the response back
     # This handles both normal JSON responses and Server-Sent Events (Streaming)
     resp = await client.send(req, stream=True)
+    
+    # Filter hop-by-hop and encoding headers that Starlette handles or conflicts with
+    excluded_headers = {"content-encoding", "content-length", "transfer-encoding", "connection"}
+    headers = {name: value for name, value in resp.headers.items() if name.lower() not in excluded_headers}
+    
     return StreamingResponse(
-        resp.aiter_raw(),
+        resp.aiter_bytes(),
         status_code=resp.status_code,
-        headers=resp.headers,
+        headers=headers,
         background=BackgroundTask(resp.aclose)
     )
 
