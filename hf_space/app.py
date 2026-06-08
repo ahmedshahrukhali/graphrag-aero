@@ -248,7 +248,8 @@ def _gallery_items(
             grouped[key] = []
         grouped[key].append(c)
 
-    for key, chunks in grouped.items():
+    for key in sorted(grouped.keys(), key=lambda k: (k[0], k[1])):
+        chunks = grouped[key]
         doc_id, page = key
         is_cited = key in cited_dict
         quote = cited_dict.get(key)
@@ -339,6 +340,9 @@ def _chunks_md(retrieve: RetrieveResponse) -> str:
 
 def _linkify_citations(text: str, retrieve: RetrieveResponse) -> str:
     """Convert LLM citations [doc_id p.page] to links pointing to rendered gallery images."""
+    # Hide the backend-appended **Sources:** block from the chat UI
+    text = re.sub(r'\n\n\*\*Sources:\*\*.*$', '', text)
+    
     if not retrieve.results:
         return text
         
@@ -678,11 +682,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                         break
                 link_parts.append(f"[{caption}]({url})")
                 
-            links_md = "🟢 **View Full Size:** " + " | ".join(link_parts)
-            
-            # Add a static message to the chat
-            msg = "Source pages rendered with bboxes below" if show_bbox else "Source pages rendered without bboxes below"
-            chat_list.append({"role": "assistant", "content": f"_{msg}_"})
+            links_md = "**View Original:** " + " | ".join(link_parts)
             
         return gr.update(value=items), gr.update(open=bool(items)), gr.update(value=links_md), chat_list
 
@@ -756,6 +756,9 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
     # ── layout ────────────────────────────────────────────────────────────
 
     NEW_CSS = """
+/* Fill screen width */
+.gradio-container { max-width: 100% !important; }
+
 /* Compact Controls */
 .compact-control {
     align-items: center !important;
@@ -820,7 +823,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
         title="GraphRAG Aero",
         theme=gr.themes.Default(primary_hue="blue", neutral_hue="slate"),
         css=_CSS + "\n" + NEW_CSS,
-        fill_height=True,
+        fill_height=False,
     ) as app:
         sess         = gr.State({})
         artifacts    = gr.State({})
@@ -830,7 +833,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
             history = gr.State([])
 
         # ── LEFT SIDEBAR ──────────────────────────────────────────────────
-        with gr.Sidebar(position="left", open=False):
+        with gr.Sidebar(position="left", open=True, width=352):
             gr.Markdown("## 🛩️ GraphRAG Aero")
             new_btn = gr.Button("＋ New chat", variant="primary")
             gr.HTML("<hr>")
@@ -871,6 +874,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                     show_copy_button=True,
                     label=None,
                     show_label=False,
+                    height="65vh",
                     elem_classes=["chat-pane"],
                 )
                 with gr.Group():

@@ -64,8 +64,11 @@ class BGE_RerankerV2M3:
         # (the sum crashes the WSL GPU VM). Env RERANK_DEVICE overrides.
         if device is None:
             device = os.environ.get("RERANK_DEVICE") or None
-        if device == "cpu":
-            use_fp16 = False  # fp16 is a GPU optimization — invalid/slow on CPU.
+        
+        # Disable fp16 globally to prevent the 'expected scalar type Float but found Half' PyTorch bug
+        # that occurs when model.half() is called inside FlagReranker on specific Transformers versions.
+        use_fp16 = False
+        
         logger.info("loading reranker (%s, fp16=%s, device=%s)", name, use_fp16, device or "auto")
         self._model = FlagReranker(name, use_fp16=use_fp16, devices=device)
         self._max_length = max_length
