@@ -4,6 +4,15 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 
 ---
 
+## Session 40 — 2026-06-08 — antigravity
+**Commits:** `ded9596`, `e296212`
+**Achieved:**
+- Implemented dual-backend architecture with auto-fallback to Hugging Face Inference API for LLM, Embedder, and Reranker.
+- Fixed `sparse_search` parameter mismatch and multiple test suite bugs.
+- Updated `hf_space/about_tab.py` to reflect the deployment tech stack without the Why and the table, and ensured tests pass.
+- Successfully pushed the `hf_space` subtree to the Hugging Face Space.
+**Left:** P9 (Docs) and addressing the undiagnosed `S41` runway excursion bug from the previous session's log.
+
 ## Session 39 — 2026-06-06 — opus-4.8
 **Commits:** (this commit) — deterministic Sources block
 **Achieved:**
