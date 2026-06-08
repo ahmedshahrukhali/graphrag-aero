@@ -34,8 +34,8 @@ logger = logging.getLogger(__name__)
 
 def _default_embedder(batch_size: int) -> DenseEmbedder:
     """Real BGE-M3 — import lazily so tests don't trigger the FlagEmbedding load."""
-    from .bge_m3 import BGE_M3Embedder
-    return BGE_M3Embedder(batch_size=batch_size)
+    from .bge_m3 import get_embedder
+    return get_embedder(batch_size=batch_size)
 
 
 def embed_and_upsert(

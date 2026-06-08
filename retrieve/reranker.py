@@ -106,3 +106,69 @@ def rerank(
     if top_k is not None:
         rescored = rescored[:top_k]
     return rescored
+
+
+class HuggingFaceReranker:
+    """Calls Hugging Face Inference API for cross-encoder reranking.
+    Used as an automatic fallback when local PyTorch is unavailable.
+    """
+
+    def __init__(self, model_name: str | None = None) -> None:
+        self._model = model_name or os.environ.get("RERANK_MODEL", "BAAI/bge-reranker-v2-m3")
+        self._client = None
+
+    def _ensure_client(self):
+        if self._client is None:
+            from huggingface_hub import InferenceClient  # type: ignore
+            token = os.environ.get("HF_TOKEN")
+            if not token:
+                logger.warning("HF_TOKEN not set; HuggingFaceReranker will use unauthenticated limits")
+            logger.info("connecting to HF Inference API: %s", self._model)
+            self._client = InferenceClient(model=self._model, token=token)
+        return self._client
+
+    def score(self, query: str, passages: Sequence[str]) -> list[float]:
+        if not passages:
+            return []
+        
+        # Inference API for text classification expects `inputs: "text"` or pairs depending on model.
+        # But bge-reranker requires pairs. We will send raw HTTP post as hf_hub InferenceClient
+        # doesn't elegantly support pair classification payloads natively for all rerankers.
+        import requests
+        url = f"https://api-inference.huggingface.co/models/{self._model}"
+        headers = {}
+        token = os.environ.get("HF_TOKEN")
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+            
+        payload = {"inputs": {"source_sentence": query, "sentences": list(passages)}}
+        resp = requests.post(url, headers=headers, json=payload)
+        
+        if resp.status_code != 200:
+            logger.error("HF reranker failed: %s", resp.text)
+            return [0.0] * len(passages)
+            
+        data = resp.json()
+        
+        # Depending on the endpoint, it could be a list of floats or list of dicts.
+        if isinstance(data, list) and len(data) > 0 and isinstance(data[0], float):
+            return data
+            
+        # Fallback naive parse if the format is [{"label": "...", "score": 0.99}, ...]
+        try:
+            return [float(x.get("score", 0.0)) if isinstance(x, dict) else float(x) for x in data]
+        except Exception:
+            logger.error("Failed to parse HF reranker response: %s", data)
+            return [0.0] * len(passages)
+
+
+def get_reranker(device: str | None = None, **kwargs) -> CrossEncoderReranker:
+    """Auto-fallback factory: local PyTorch if available or forced, else HF API."""
+    try:
+        import torch
+        if device == "cpu" or torch.cuda.is_available():
+            return BGE_RerankerV2M3(device=device, **kwargs)
+    except ImportError:
+        pass
+    logger.info("Local GPU unavailable or PyTorch missing, falling back to HuggingFaceReranker")
+    return HuggingFaceReranker()

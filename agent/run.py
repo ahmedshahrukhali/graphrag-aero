@@ -61,7 +61,7 @@ def _build_deps(collection: str):
     from embed.qdrant import QdrantConfig
     from graph.client import make_driver
 
-    from .llm import OllamaLLM
+    from .llm import get_llm
     from .nodes import AgentDeps
 
     cfg = QdrantConfig.from_env()
@@ -73,12 +73,12 @@ def _build_deps(collection: str):
     retr_device = os.environ.get("RETRIEVE_DEVICE") or None
 
     def embedder_factory():
-        from embed.bge_m3 import BGE_M3Embedder
-        return BGE_M3Embedder(device=retr_device)
+        from embed.bge_m3 import get_embedder
+        return get_embedder(device=retr_device)
 
     def reranker_factory():
-        from retrieve.reranker import BGE_RerankerV2M3
-        return BGE_RerankerV2M3(device=retr_device)
+        from retrieve.reranker import get_reranker
+        return get_reranker(device=retr_device)
 
     lazy_embed = LazySessionModel(embedder_factory, "bge-m3")
     lazy_rerank = LazySessionModel(reranker_factory, "bge-reranker-v2-m3")
@@ -88,7 +88,7 @@ def _build_deps(collection: str):
         reranker=LazyReranker(lazy_rerank),
         qdrant=qdrant,
         neo4j=make_driver(),
-        llm=OllamaLLM(),
+        llm=get_llm(),
         collection=collection or cfg.collection,
     )
 
@@ -125,9 +125,9 @@ def cmd_upsert_graph(args) -> int:
         print(f"upserted {n_ac} AC nodes from TC corpus")
 
         if args.extract:
-            from .llm import OllamaLLM
+            from .llm import get_llm
             from graph.extract import HybridExtractor
-            extractor = HybridExtractor(OllamaLLM())
+            extractor = HybridExtractor(get_llm())
             print("running HybridExtractor (regex + LLM) over chunks…")
         else:
             from graph.extract import RegexExtractor

@@ -121,7 +121,7 @@ def test_lang_filter_narrows_candidates(client: QdrantClient):
         "q",
         embedder=StubEmbedder(0),
         reranker=StubReranker({"fr1": 0.5}),
-        client=client, collection=COLL, ann_k=10, top_k=10, lang="fr",
+        client=client, collection=COLL, ann_k=10, top_k=10, lang=["fr"],
     )
     assert len(out) == 1
     assert out[0].record.lang == "fr"
@@ -220,7 +220,7 @@ def test_anchored_lang_filter_excludes_other_language(client: QdrantClient):
         embedder=StubEmbedder(0),
         reranker=StubReranker({en.text: 0.9, fr.text: 0.8}),
         client=client, collection=COLL,
-        ann_k=10, top_k=2, top_n_docs=1, lang="en",
+        ann_k=10, top_k=2, top_n_docs=1, lang=["en"],
     )
     assert [c.record.lang for c in out] == ["en"]
 

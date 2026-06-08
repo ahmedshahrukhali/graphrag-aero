@@ -116,11 +116,9 @@ def sparse_search(
     (i.e. created with ``ensure_collection(..., with_sparse=True)``).
     Returns an empty list on a dense-only collection rather than raising.
     """
-    if not sparse_weights:
+    if not query_indices or not query_values:
         return []
-    indices = sorted(sparse_weights.keys())
-    values = [sparse_weights[i] for i in indices]
-    q_vec = qm.SparseVector(indices=indices, values=values)
+    q_vec = qm.SparseVector(indices=query_indices, values=query_values)
     q_filter = _build_filter(lang=lang, source=source, exclude_hashes=exclude_hashes)
     try:
         resp = client.query_points(

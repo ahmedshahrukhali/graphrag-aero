@@ -103,7 +103,7 @@ def build_default_deps() -> BackendDeps:
     from qdrant_client import QdrantClient
 
     from agent.checkpoint import make_memory_saver, make_postgres_saver
-    from agent.llm import OllamaLLM
+    from agent.llm import get_llm
     from agent.nodes import AgentDeps
     from embed.qdrant import QdrantConfig
     from graph.client import make_driver
@@ -119,17 +119,17 @@ def build_default_deps() -> BackendDeps:
     retr_device = os.environ.get("RETRIEVE_DEVICE") or None
 
     def embedder_factory():
-        from embed.bge_m3 import BGE_M3Embedder
-        return BGE_M3Embedder(device=retr_device)
+        from embed.bge_m3 import get_embedder
+        return get_embedder(device=retr_device)
 
     def reranker_factory():
-        from retrieve.reranker import BGE_RerankerV2M3
-        return BGE_RerankerV2M3(device=retr_device)
+        from retrieve.reranker import get_reranker
+        return get_reranker(device=retr_device)
 
     embedder = LazyEmbedder(_LazySession(embedder_factory, "bge-m3"))
     reranker = LazyReranker(_LazySession(reranker_factory, "bge-reranker-v2-m3"))
     neo4j = make_driver()
-    llm = OllamaLLM()
+    llm = get_llm()
 
     agent_deps = AgentDeps(
         embedder=embedder, reranker=reranker,

@@ -51,14 +51,14 @@ def test_build_filter_none():
 
 
 def test_build_filter_lang_only():
-    f = _build_filter(lang="fr", source=None)
+    f = _build_filter(lang=["fr"], source=None)
     assert f is not None
     assert len(f.must) == 1
     assert f.must[0].key == "lang"
 
 
 def test_build_filter_both():
-    f = _build_filter(lang="en", source="tsb")
+    f = _build_filter(lang=["en"], source=["tsb"])
     assert f is not None
     assert {c.key for c in f.must} == {"lang", "doc_id"}
 
@@ -94,7 +94,7 @@ def test_search_lang_filter(client: QdrantClient):
     ]
     vectors = [_unit_vec(0), _unit_vec(1), _unit_vec(2)]
     upsert_batch(client, COLL, records, vectors)
-    fr_hits = dense_search(client, COLL, _unit_vec(0), k=10, lang="fr")
+    fr_hits = dense_search(client, COLL, _unit_vec(0), k=10, lang=["fr"])
     assert len(fr_hits) == 1
     assert fr_hits[0].record.lang == "fr"
 
@@ -107,7 +107,7 @@ def test_search_source_filter(client: QdrantClient):
     ]
     vectors = [_unit_vec(0), _unit_vec(1), _unit_vec(2)]
     upsert_batch(client, COLL, records, vectors)
-    tc_hits = dense_search(client, COLL, _unit_vec(0), k=10, source="tc")
+    tc_hits = dense_search(client, COLL, _unit_vec(0), k=10, source=["tc"])
     assert len(tc_hits) == 1
     assert tc_hits[0].record.doc_id.startswith("tc/")
 
@@ -121,7 +121,7 @@ def test_search_combined_filter(client: QdrantClient):
     ]
     vectors = [_unit_vec(i) for i in range(4)]
     upsert_batch(client, COLL, records, vectors)
-    hits = dense_search(client, COLL, _unit_vec(0), k=10, lang="fr", source="tsb")
+    hits = dense_search(client, COLL, _unit_vec(0), k=10, lang=["fr"], source=["tsb"])
     assert len(hits) == 1
     assert hits[0].record.text == "b"
 
@@ -195,19 +195,19 @@ def test_sparse_search_returns_hits(hybrid_client: QdrantClient):
     dense = _unit_vec(0)
     # token 5 (e.g. "fuel") has high weight → sparse query on token 5 should score high
     upsert_hybrid_batch(hybrid_client, HYBRID_COLL, [rec], [dense], [{5: 0.9, 10: 0.3}])
-    hits = sparse_search(hybrid_client, HYBRID_COLL, {5: 1.0}, k=5)
+    hits = sparse_search(hybrid_client, HYBRID_COLL, [5], [1.0], k=5)
     assert len(hits) == 1
     assert hits[0].record.text == "CAR 605.38 fuel"
     assert hits[0].ann_score > 0
 
 
 def test_sparse_search_empty_weights_returns_empty(hybrid_client: QdrantClient):
-    assert sparse_search(hybrid_client, HYBRID_COLL, {}, k=5) == []
+    assert sparse_search(hybrid_client, HYBRID_COLL, [], [], k=5) == []
 
 
 def test_sparse_search_graceful_on_dense_only_collection(client: QdrantClient):
     # dense-only collection: sparse_search degrades to empty, not an exception
-    results = sparse_search(client, COLL, {0: 1.0}, k=5)
+    results = sparse_search(client, COLL, [0], [1.0], k=5)
     assert results == []
 
 

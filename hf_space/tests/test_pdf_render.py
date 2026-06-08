@@ -108,10 +108,10 @@ def test_search_page_terms_collects_all_hits_across_terms():
     fake_page = MagicMock()
     fake_page.search.side_effect = [
         # term "fuel" → two hits
-        [{"x0": 10.0, "top": 10.0, "x1": 40.0, "bottom": 22.0},
-         {"x0": 10.0, "top": 80.0, "x1": 40.0, "bottom": 92.0}],
+        [{"chars": [{"x0": 10.0, "top": 10.0, "x1": 40.0, "bottom": 22.0}]},
+         {"chars": [{"x0": 10.0, "top": 80.0, "x1": 40.0, "bottom": 92.0}]}],
         # term "landing" → one hit (e.g. in the title)
-        [{"x0": 60.0, "top": 5.0, "x1": 120.0, "bottom": 18.0}],
+        [{"chars": [{"x0": 60.0, "top": 5.0, "x1": 120.0, "bottom": 18.0}]}],
     ]
     boxes = search_page_terms(fake_page, ("fuel", "landing"))
     assert len(boxes) == 3
@@ -122,9 +122,9 @@ def test_search_page_terms_collects_all_hits_across_terms():
 def test_search_page_terms_dedupes_identical_boxes():
     fake_page = MagicMock()
     fake_page.search.side_effect = [
-        [{"x0": 10.0, "top": 10.0, "x1": 40.0, "bottom": 22.0}],
+        [{"chars": [{"x0": 10.0, "top": 10.0, "x1": 40.0, "bottom": 22.0}]}],
         # "fuels" matches the same span as "fuel" — should not double-count.
-        [{"x0": 10.0, "top": 10.0, "x1": 40.0, "bottom": 22.0}],
+        [{"chars": [{"x0": 10.0, "top": 10.0, "x1": 40.0, "bottom": 22.0}]}],
     ]
     boxes = search_page_terms(fake_page, ("fuel", "fuels"))
     assert len(boxes) == 1
@@ -133,7 +133,7 @@ def test_search_page_terms_dedupes_identical_boxes():
 def test_search_page_terms_caps_box_count():
     fake_page = MagicMock()
     fake_page.search.return_value = [
-        {"x0": float(i), "top": float(i), "x1": float(i) + 5, "bottom": float(i) + 5}
+        {"chars": [{"x0": float(i), "top": float(i), "x1": float(i) + 5, "bottom": float(i) + 5}]}
         for i in range(100)
     ]
     boxes = search_page_terms(fake_page, ("fuel",), max_boxes=10)
@@ -144,7 +144,7 @@ def test_search_page_terms_swallows_search_errors_per_term():
     fake_page = MagicMock()
     fake_page.search.side_effect = [
         RuntimeError("boom"),
-        [{"x0": 1.0, "top": 1.0, "x1": 2.0, "bottom": 2.0}],
+        [{"chars": [{"x0": 1.0, "top": 1.0, "x1": 2.0, "bottom": 2.0}]}],
     ]
     # First term raises, second still contributes its hit.
     boxes = search_page_terms(fake_page, ("bad", "good"))
@@ -263,7 +263,7 @@ def test_render_terms_wash_still_works():
     """Term washes remain (the only path that still calls page.search)."""
     pdf_render.render_page_with_bbox.cache_clear()
     fake_pdf, fake_page = _fake_pdf_one_page()
-    fake_page.search.return_value = [{"x0": 100.0, "top": 100.0, "x1": 300.0, "bottom": 120.0}]
+    fake_page.search.return_value = [{"chars": [{"x0": 100.0, "top": 100.0, "x1": 300.0, "bottom": 120.0}]}]
 
     with patch.object(pdf_render, "_download_pdf", return_value=b"%PDF\n%%EOF"), \
          patch("pdfplumber.open", return_value=fake_pdf):

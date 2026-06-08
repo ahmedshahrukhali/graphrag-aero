@@ -96,8 +96,10 @@ def hybrid_retrieve_and_rerank(
         client, collection, q_dense, k=ann_k, lang=lang, source=source,
         exclude_hashes=exclude_hashes,
     )
+    q_sparse_indices = list(q_sparse.keys())
+    q_sparse_values = list(q_sparse.values())
     sparse_hits = sparse_search(
-        client, collection, q_sparse, k=ann_k, lang=lang, source=source,
+        client, collection, q_sparse_indices, q_sparse_values, k=ann_k, lang=lang, source=source,
         exclude_hashes=exclude_hashes,
     )
 

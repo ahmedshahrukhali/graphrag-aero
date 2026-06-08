@@ -156,10 +156,10 @@ def _real_query_runner(
     Imports the heavy deps lazily so test runs (which inject a stub runner)
     never pay the import cost or trigger weight downloads.
     """
-    from embed.bge_m3 import BGE_M3Embedder
+    from embed.bge_m3 import get_embedder
     from embed.qdrant import QdrantConfig, make_client
     from retrieve.pipeline import hybrid_retrieve_and_rerank, retrieve_and_rerank
-    from retrieve.reranker import BGE_RerankerV2M3
+    from retrieve.reranker import get_reranker
     from retrieve.vram import ModelSession
 
     cfg = QdrantConfig.from_env()
@@ -167,8 +167,8 @@ def _real_query_runner(
     client.get_collections()  # fail fast if Qdrant isn't reachable
 
     def run(query: str, lang: str | None) -> list[str]:
-        with ModelSession(BGE_M3Embedder, name="bge-m3") as embedder, \
-             ModelSession(BGE_RerankerV2M3, name="bge-reranker-v2-m3") as reranker:
+        with ModelSession(get_embedder, name="bge-m3") as embedder, \
+             ModelSession(get_reranker, name="bge-reranker-v2-m3") as reranker:
             if mode == "hybrid":
                 results = hybrid_retrieve_and_rerank(
                     query,

@@ -114,3 +114,64 @@ class OllamaLLM:
             piece = (chunk.get("message") or {}).get("content") or ""
             if piece:
                 yield piece
+
+
+class HuggingFaceLLM:
+    """Calls Hugging Face Inference API for text generation.
+    Used as an automatic fallback when Ollama is unavailable.
+    """
+
+    def __init__(self, model: str | None = None) -> None:
+        self._model = model or os.environ.get("HF_LLM_MODEL", "Qwen/Qwen2.5-7B-Instruct")
+        self._client = None
+        self._think = os.environ.get("OLLAMA_THINK", "0") == "1"
+
+    def _user_content(self, user: str) -> str:
+        return user if self._think else f"{user}\n\n/no_think"
+
+    def _ensure_client(self):
+        if self._client is None:
+            from huggingface_hub import InferenceClient  # type: ignore
+            token = os.environ.get("HF_TOKEN")
+            if not token:
+                logger.warning("HF_TOKEN not set; HuggingFaceLLM will use unauthenticated limits")
+            logger.info("connecting to HF Inference API: %s", self._model)
+            self._client = InferenceClient(model=self._model, token=token)
+        return self._client
+
+    def chat(self, system: str, user: str) -> str:
+        client = self._ensure_client()
+        resp = client.chat_completion(
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": self._user_content(user)},
+            ],
+            max_tokens=2048,
+        )
+        return _THINK_RE.sub("", resp.choices[0].message.content or "")
+
+    def chat_stream(self, system: str, user: str) -> Iterator[str]:
+        client = self._ensure_client()
+        for chunk in client.chat_completion(
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": self._user_content(user)},
+            ],
+            max_tokens=2048,
+            stream=True,
+        ):
+            piece = chunk.choices[0].delta.content or ""
+            if piece:
+                yield piece
+
+
+def get_llm() -> LLM:
+    """Auto-fallback factory: ping local Ollama, fallback to Hugging Face API if dead."""
+    import urllib.request
+    host = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
+    try:
+        urllib.request.urlopen(f"{host.rstrip('/')}/api/tags", timeout=1.0)
+        return OllamaLLM()
+    except Exception:
+        logger.info("Ollama unreachable at %s, falling back to HuggingFaceLLM", host)
+        return HuggingFaceLLM()

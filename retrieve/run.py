@@ -26,13 +26,13 @@ logger = logging.getLogger(__name__)
 
 
 def _default_embedder(batch_size: int = 1):
-    from embed.bge_m3 import BGE_M3Embedder
-    return BGE_M3Embedder(batch_size=batch_size)
+    from embed.bge_m3 import get_embedder
+    return get_embedder(batch_size=batch_size)
 
 
 def _default_reranker():
-    from .reranker import BGE_RerankerV2M3
-    return BGE_RerankerV2M3()
+    from .reranker import get_reranker
+    return get_reranker()
 
 
 def _format_text(results: list[ScoredChunk]) -> str:

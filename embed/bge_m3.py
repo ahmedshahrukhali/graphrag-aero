@@ -93,3 +93,52 @@ class BGE_M3Embedder:
         )
         raw: list[dict] = out["lexical_weights"]
         return [{int(k): float(v) for k, v in w.items()} for w in raw]
+
+
+class HuggingFaceEmbedder:
+    """Calls Hugging Face Inference API for dense embeddings.
+    Used as an automatic fallback when local PyTorch is unavailable.
+    """
+
+    def __init__(self, model_name: str | None = None) -> None:
+        self._model = model_name or os.environ.get("EMBED_MODEL", "BAAI/bge-m3")
+        self._client = None
+
+    def _ensure_client(self):
+        if self._client is None:
+            from huggingface_hub import InferenceClient  # type: ignore
+            token = os.environ.get("HF_TOKEN")
+            if not token:
+                logger.warning("HF_TOKEN not set; HuggingFaceEmbedder will use unauthenticated limits")
+            logger.info("connecting to HF Inference API: %s", self._model)
+            self._client = InferenceClient(model=self._model, token=token)
+        return self._client
+
+    def embed(self, texts: Sequence[str]) -> list[list[float]]:
+        if not texts:
+            return []
+        client = self._ensure_client()
+        out = client.feature_extraction(list(texts))
+        import numpy as np
+        arr = np.array(out)
+        if arr.ndim == 3:
+            # Pooling: use CLS token (first token) if unpooled
+            arr = arr[:, 0, :]
+        return [list(map(float, row)) for row in arr]
+
+    def embed_sparse(self, texts: Sequence[str]) -> list[SparseWeights]:
+        # The Inference API does not natively expose the lexical weights for BGE-M3.
+        # Return empty sparse weights to fall back to dense-only retrieval.
+        return [{} for _ in texts]
+
+
+def get_embedder(device: str | None = None, **kwargs) -> DenseEmbedder:
+    """Auto-fallback factory: local PyTorch if available or forced, else HF API."""
+    try:
+        import torch
+        if device == "cpu" or torch.cuda.is_available():
+            return BGE_M3Embedder(device=device, **kwargs)
+    except ImportError:
+        pass
+    logger.info("Local GPU unavailable or PyTorch missing, falling back to HuggingFaceEmbedder")
+    return HuggingFaceEmbedder()
