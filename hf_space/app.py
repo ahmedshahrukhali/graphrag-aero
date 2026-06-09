@@ -662,16 +662,18 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
         if items:
             doc_urls = {s.get("doc_id"): s.get("source_url") for s in art.get("sources", []) if s.get("doc_id") and s.get("source_url")}
             
-            link_parts = []
+            unique_docs = {}
             for i, (filepath, caption) in enumerate(items):
-                url = f"/file={filepath}"
                 for doc_id, s_url in doc_urls.items():
                     if f"· {doc_id} ·" in caption:
-                        url = s_url
+                        if doc_id not in unique_docs:
+                            unique_docs[doc_id] = s_url
                         break
-                link_parts.append(f"[{caption}]({url})")
-                
-            links_md = "**View Original:** " + " | ".join(link_parts)
+                        
+            link_parts = [f"[{doc_id}]({url})" for doc_id, url in unique_docs.items()]
+            
+            if link_parts:
+                links_md = "**View Original:** " + " | ".join(link_parts)
             
         return gr.update(value=items), gr.update(value=links_md), chat_list
 
@@ -806,6 +808,14 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
     min-height: 0 !important;
 }
 .text-list button:hover { background: rgba(128, 128, 128, 0.15) !important; }
+
+/* Prevents gallery images from capturing auto-focus on render */
+.gradio-container .gallery-item {
+    outline: none !important;
+}
+.gradio-container {
+    overflow-anchor: none !important; /* Stops the browser from scroll-snapping to new content */
+}
 """
 
     import importlib
@@ -939,14 +949,14 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                 new_chat.append(m)
             return new_chat
 
-        stop_btn.click(on_stop, inputs=[chat], outputs=[chat], cancels=[ask_event_a, ask_event_b])
+        stop_btn.click(on_stop, inputs=[chat], outputs=[chat], cancels=[ask_event_a, ask_event_b], scroll_to_output=False)
 
         new_btn.click(
             on_new, [sess], [chat, sess, artifacts]
         ).then(clear_pages, None, pages_out)
 
-        show_bbox.change(render_pages, [artifacts, show_bbox, chat], pages_out)
-        recent.select(on_pick_recent, [history], [query])
+        show_bbox.change(render_pages, [artifacts, show_bbox, chat], pages_out, scroll_to_output=False)
+        recent.select(on_pick_recent, [history], [query], scroll_to_output=False)
         samples.select(
             on_pick_sample,
             None,
