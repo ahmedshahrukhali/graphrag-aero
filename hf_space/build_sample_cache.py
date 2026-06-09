@@ -20,14 +20,12 @@ import httpx
 
 # Mirror of hf_space.app.SAMPLE_QUERIES: (query, lang, source, max_hops).
 SAMPLE_QUERIES: list[tuple[str, str, str, int]] = [
-    ("fuel exhaustion forced landing", "en", "tsb", 2),
-    ("engine failure after takeoff", "en", "tsb", 2),
-    ("carburetor icing", "en", "all", 2),
-    ("VFR flight into IMC", "en", "tsb", 2),
-    ("alimentation en carburant", "fr", "tsb", 2),
-    ("approach procedures helicopter", "en", "tc", 2),
-    ("安捷飛航訓練中心 DA-40NG 發動機失效迫降高雄外海", "zh", "ttsb", 2),
-    ("民用航空器维修计划和控制 CCAR-121", "zh", "caac", 2),
+    ("fuel exhaustion forced landing", "EN", "TSB", 2),
+    ("engine failure after takeoff", "EN", "TSB", 2),
+    ("alimentation en carburant", "FR", "TSB", 2),
+    ("vol VFR en conditions IMC", "FR", "TSB", 2),
+    ("安捷飛航訓練中心 DA-40NG 發動機失效迫降高雄外海", "ZH", "TTSB", 2),
+    ("民用航空器维修计划和控制 CCAR-121", "ZH", "CAAC", 2),
 ]
 
 CACHE_PATH = Path(__file__).with_name("sample_cache.json")
@@ -44,8 +42,8 @@ def main() -> None:
         for i, (q, lang, source, hops) in enumerate(SAMPLE_QUERIES, 1):
             body = {
                 "query": q, "thread_id": f"cache-{i}", "max_hops": hops,
-                "lang": None if lang == "all" else lang,
-                "source": None if source == "all" else source,
+                "lang": [lang.lower()] if lang and lang != "all" else None,
+                "source": [source.lower()] if source and source != "all" else None,
             }
             print(f"[{i}/{len(SAMPLE_QUERIES)}] {q!r} (lang={lang}, source={source}) …", flush=True)
             r = client.post(f"{args.backend}/query", json=body)
