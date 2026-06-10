@@ -4,6 +4,14 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 
 ---
 
+## Session 43 — 2026-06-10 — fable-5
+**Commits:** `bc61f7a`
+**Achieved:**
+- Space 503 (graphrag-aero-cocko.loca.lt) was just both pm2 apps stopped — `pm2 start ecosystem.config.js`, live-verified public `/healthz` → 200 all-green. (Not a recurrence of the S41 `/c` bug.)
+- New `scripts/tray/` (force-added past `scripts/` gitignore): AHK v2 tray controller wrapping pm2 + docker compose, hidden terminal. Green/amber/gray/blue, 15s poll, double-click toggle, Exit = stop stack, `--no-start` monitor mode, `make_icons.ps1` generates gitignored icons. Live-verified both detections (partial→on flip).
+- Tray left running on the user's machine (green). README covers `shell:startup` autostart.
+**Left:** P9 docs refresh (unchanged from S42). User may want the startup shortcut created.
+
 ## Session 42 — 2026-06-10 — opus-4.8
 **Commits:** `09de9c6`, `218579a`, (this log)
 **Achieved:**
