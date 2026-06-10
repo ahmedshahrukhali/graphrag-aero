@@ -189,6 +189,7 @@ def _register_routes(app: FastAPI) -> None:
                     query_emb=q_emb,
                     excluded_chunk_hashes=excluded_hashes,
                     rejected_prior=rejected_prior,
+                    chat_history=req.history,
                 ),
                 config=config,
             )
@@ -221,6 +222,7 @@ def _register_routes(app: FastAPI) -> None:
             state = dict(initial_state(
                 req.query, max_hops=req.max_hops,
                 lang=req.lang, source=req.source,
+                chat_history=req.history,
             ))
 
             yield _sse("status", {"node": "retrieve", "msg": "Retrieving relevant chunks…"})
@@ -250,7 +252,7 @@ def _register_routes(app: FastAPI) -> None:
                 state["query"], state.get("candidates", []), state.get("graph_context", []),
             )
             pieces: list[str] = []
-            for chunk in ad.llm.chat_stream(SYSTEM_PROMPT, prompt):
+            for chunk in ad.llm.chat_stream(SYSTEM_PROMPT, prompt, history=state.get("chat_history")):
                 pieces.append(chunk)
                 yield _sse("token", {"text": chunk})
             draft = "".join(pieces)

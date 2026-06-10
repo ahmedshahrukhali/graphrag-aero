@@ -287,7 +287,7 @@ def make_synthesize_node(deps: AgentDeps) -> Callable[[AgentState], dict]:
             state.get("graph_context", []),
             state.get("recurring_context", []),
         )
-        draft = deps.llm.chat(system, user)
+        draft = deps.llm.chat(system, user, history=state.get("chat_history"))
         # Deterministic citation guarantee: qwen3:4b won't emit inline
         # [doc_id p.page] tags, so append a Sources block built from the
         # retrieved candidates. This is what downstream PDF highlighting

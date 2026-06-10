@@ -69,6 +69,7 @@ class AgentState(TypedDict, total=False):
     # Dense embedding of the query — stored so /reject can retrieve it from the
     # checkpoint without re-loading the embedder.
     query_emb: list[float] | None
+    chat_history: list[dict] | None
 
 
 def initial_state(
@@ -80,6 +81,7 @@ def initial_state(
     excluded_chunk_hashes: list[str] | None = None,
     rejected_prior: str | None = None,
     query_emb: list[float] | None = None,
+    chat_history: list[dict] | None = None,
 ) -> AgentState:
     return AgentState(
         query=query,
@@ -97,4 +99,5 @@ def initial_state(
         excluded_chunk_hashes=excluded_chunk_hashes or [],
         rejected_prior=rejected_prior,
         query_emb=query_emb,
+        chat_history=chat_history or [],
     )

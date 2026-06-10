@@ -177,16 +177,18 @@ class ApiClient:
     def query(
         self, query: str, thread_id: str, *, max_hops: int = 2,
         lang: str | None = None, source: str | None = None,
+        history: list[dict] | None = None,
     ) -> QueryPausedResponse:
         body = {
             "query": query, "thread_id": thread_id, "max_hops": max_hops,
-            "lang": lang, "source": source,
+            "lang": lang, "source": source, "history": history,
         }
         return QueryPausedResponse.from_dict(self._request("POST", "/query", json=body))
 
     def query_stream(
         self, query: str, thread_id: str, *, max_hops: int = 2,
         lang: str | None = None, source: str | None = None,
+        history: list[dict] | None = None,
     ) -> Iterator[dict]:
         """POST /query/stream. Yields parsed SSE events as ``{event, data}``.
 
@@ -199,7 +201,7 @@ class ApiClient:
         """
         body = {
             "query": query, "thread_id": thread_id, "max_hops": max_hops,
-            "lang": lang, "source": source,
+            "lang": lang, "source": source, "history": history,
         }
         # Use a fresh stream-aware client; the default client may have a
         # short timeout that doesn't suit long generations.

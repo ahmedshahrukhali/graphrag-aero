@@ -462,6 +462,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
         history: list[dict] | None,
         sess: dict,
         artifacts: dict,
+        chat: list[dict] | None,
     ):
         """Streaming generator. Yields (chat, sess, artifacts, history, recent)."""
         q = (query_text or "").strip()
@@ -469,6 +470,14 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
             return
 
         thread_id = str(uuid.uuid4())
+
+        # Prior turns for the LLM: plain user/assistant messages only —
+        # thought/sources blocks carry metadata and are display-only.
+        api_history = [
+            {"role": m["role"], "content": m["content"]}
+            for m in (chat or [])
+            if m.get("content") and not m.get("metadata")
+        ]
 
         chat_list: list[dict] = [
             {"role": "user", "content": q},
@@ -502,6 +511,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
             for ev in client.query_stream(
                 q, thread_id, max_hops=max_hops_v,
                 lang=_lang_param(lang_v), source=_source_param(source_v),
+                history=api_history,
             ):
                 et, data = ev.get("event"), ev.get("data") or {}
                 duration = int(time.time() - start_time)
@@ -677,7 +687,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
             
         return gr.update(value=items), gr.update(value=links_md), chat_list
 
-    def on_pick_sample(evt: gr.SelectData):
+    def on_pick_sample(evt: gr.SelectData, chat: list[dict] | None):
         """Click a sample → instant cached answer (no backend/LLM call).
 
         Returns the answered chat (user + thought + sources + answer) from the
@@ -707,7 +717,8 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
         display_draft = re.sub(r'\n*Sources:\s*\[.*$', '', display_draft, flags=re.DOTALL|re.IGNORECASE)
         display_draft = re.sub(r'\s*\[([a-zA-Z0-9_/-]+)\s+p\.(\d+)\]', '', display_draft)
         
-        chat_list: list[dict] = [
+        chat_list = list(chat or [])
+        chat_list.extend([
             {"role": "user", "content": q},
             {"role": "assistant", "content": thought,
              "metadata": {
@@ -717,11 +728,11 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
              "metadata": {"title": f"📑 Sources ({len(retrieve.results)})",
                           "status": "done"}},
             {"role": "assistant", "content": display_draft},
-        ]
+        ])
         new_artifacts = {IDX_SRC: {"sources": cached.get("sources", []), "query": q, "draft": draft}}
         new_sess = {"thread_id": cached.get("thread_id", ""), "draft": draft, "query": q}
         return (q, lang_v, source_v, hops_v,
-                list(chat_list), new_sess, new_artifacts)
+                chat_list, new_sess, new_artifacts)
 
     def on_pick_recent(history: list[dict] | None, evt: gr.SelectData):
         if not history:
@@ -926,7 +937,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
 
         # ── wiring ────────────────────────────────────────────────────────
         ask_outputs = [chat, sess, artifacts, history, recent, query]
-        ask_inputs = [query, lang, source, max_hops, show_bbox, history, sess, artifacts]
+        ask_inputs = [query, lang, source, max_hops, show_bbox, history, sess, artifacts, chat]
         pages_out = [pages_gallery, gallery_links, chat]
         clear_pages = (lambda: (gr.update(value=[]), gr.update(value=""), gr.update()))
 
@@ -959,7 +970,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
         recent.select(on_pick_recent, [history], [query], scroll_to_output=False)
         samples.select(
             on_pick_sample,
-            None,
+            [chat],
             [query, lang, source, max_hops, chat, sess, artifacts],
             show_progress="full"
         ).then(render_pages, [artifacts, show_bbox, chat], pages_out, scroll_to_output=False)

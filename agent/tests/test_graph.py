@@ -53,7 +53,7 @@ class StubReranker:
 
 class StubLLM:
     def __init__(self, reply="DRAFT"): self.reply = reply
-    def chat(self, s, u): return self.reply
+    def chat(self, s, u, history=None): return self.reply
 
 
 class FakeGraphSession:

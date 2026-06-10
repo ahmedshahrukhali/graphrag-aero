@@ -32,9 +32,9 @@ def _default_options() -> dict:
 
 
 class LLM(Protocol):
-    def chat(self, system: str, user: str) -> str: ...
+    def chat(self, system: str, user: str, history: list[dict] | None = None) -> str: ...
 
-    def chat_stream(self, system: str, user: str) -> Iterator[str]: ...
+    def chat_stream(self, system: str, user: str, history: list[dict] | None = None) -> Iterator[str]: ...
 
 
 class OllamaLLM:
@@ -79,21 +79,23 @@ class OllamaLLM:
             self._client = Client(host=self._host)
         return self._client
 
-    def chat(self, system: str, user: str) -> str:
+    def chat(self, system: str, user: str, history: list[dict] | None = None) -> str:
         client = self._ensure_client()
+        messages = [{"role": "system", "content": system}]
+        if history:
+            messages.extend(history)
+        messages.append({"role": "user", "content": self._user_content(user)})
+
         resp = client.chat(
             model=self._model,
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": self._user_content(user)},
-            ],
+            messages=messages,
             options=self._options,
             keep_alive=self._keep_alive,
         )
         # Ollama's response shape: {"message": {"role": "assistant", "content": ...}, ...}
         return _THINK_RE.sub("", resp["message"]["content"] or "")
 
-    def chat_stream(self, system: str, user: str) -> Iterator[str]:
+    def chat_stream(self, system: str, user: str, history: list[dict] | None = None) -> Iterator[str]:
         """Yield assistant content chunks as Ollama emits them.
 
         Uses the same chat call with stream=True; each yielded item is a
@@ -101,12 +103,14 @@ class OllamaLLM:
         ``st.write_stream`` or any incremental writer.
         """
         client = self._ensure_client()
+        messages = [{"role": "system", "content": system}]
+        if history:
+            messages.extend(history)
+        messages.append({"role": "user", "content": self._user_content(user)})
+
         for chunk in client.chat(
             model=self._model,
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": self._user_content(user)},
-            ],
+            messages=messages,
             options=self._options,
             keep_alive=self._keep_alive,
             stream=True,
@@ -139,24 +143,28 @@ class HuggingFaceLLM:
             self._client = InferenceClient(model=self._model, token=token)
         return self._client
 
-    def chat(self, system: str, user: str) -> str:
+    def chat(self, system: str, user: str, history: list[dict] | None = None) -> str:
         client = self._ensure_client()
+        messages = [{"role": "system", "content": system}]
+        if history:
+            messages.extend(history)
+        messages.append({"role": "user", "content": self._user_content(user)})
+
         resp = client.chat_completion(
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": self._user_content(user)},
-            ],
+            messages=messages,
             max_tokens=2048,
         )
         return _THINK_RE.sub("", resp.choices[0].message.content or "")
 
-    def chat_stream(self, system: str, user: str) -> Iterator[str]:
+    def chat_stream(self, system: str, user: str, history: list[dict] | None = None) -> Iterator[str]:
         client = self._ensure_client()
+        messages = [{"role": "system", "content": system}]
+        if history:
+            messages.extend(history)
+        messages.append({"role": "user", "content": self._user_content(user)})
+
         for chunk in client.chat_completion(
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": self._user_content(user)},
-            ],
+            messages=messages,
             max_tokens=2048,
             stream=True,
         ):

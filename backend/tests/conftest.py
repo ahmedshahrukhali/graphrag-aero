@@ -73,11 +73,11 @@ class StubLLM:
         self.reply = reply
         self.calls: list[tuple[str, str]] = []
 
-    def chat(self, system: str, user: str) -> str:
+    def chat(self, system: str, user: str, history: list[dict] | None = None) -> str:
         self.calls.append((system, user))
         return self.reply
 
-    def chat_stream(self, system: str, user: str):
+    def chat_stream(self, system: str, user: str, history: list[dict] | None = None):
         self.calls.append((system, user))
         yield self.reply
 

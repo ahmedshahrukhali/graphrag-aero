@@ -52,6 +52,7 @@ class QueryRequest(BaseModel):
     max_hops: int = Field(2, ge=1, le=5)
     lang: list[Literal["en", "fr", "zh"]] | None = None
     source: list[Literal["tsb", "tc", "ttsb", "caac"]] | None = None
+    history: list[dict] | None = None
 
 
 class QueryPausedResponse(BaseModel):

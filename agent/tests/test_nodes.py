@@ -59,8 +59,10 @@ class StubLLM:
     def __init__(self, reply: str = "stub answer"):
         self.reply = reply
         self.calls: list[tuple[str, str]] = []
-    def chat(self, system, user):
+        self.histories: list[list[dict] | None] = []
+    def chat(self, system, user, history=None):
         self.calls.append((system, user))
+        self.histories.append(history)
         return self.reply
 
 
@@ -416,6 +418,20 @@ def test_synthesize_calls_llm_with_prompt(qclient):
     assert "what?" in user
     assert "alpha" in user
     assert update["trace"][-1]["node"] == "synthesize"
+
+
+def test_synthesize_forwards_chat_history_to_llm(qclient):
+    llm = StubLLM("draft text")
+    deps = _make_deps(qclient, llm=llm)
+    node = make_synthesize_node(deps)
+    turns = [{"role": "user", "content": "earlier q"},
+             {"role": "assistant", "content": "earlier a"}]
+    state = initial_state("what?", chat_history=turns)
+    state["candidates"] = [
+        scored_chunk_to_dict(ScoredChunk(_rec("alpha", idx=0), 0.5, 0.5)),
+    ]
+    node(state)
+    assert llm.histories == [turns]
 
 
 def test_synthesize_appends_deterministic_sources_block(qclient):
