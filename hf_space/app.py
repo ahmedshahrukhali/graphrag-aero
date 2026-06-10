@@ -347,6 +347,22 @@ def _recent_samples(history: list[dict]) -> list[list[str]]:
     return [[h.get("query", "")] for h in history]
 
 
+def _adopt_prior(chat: list[dict] | None) -> list[dict]:
+    """Carry a Chatbot transcript into a new turn for display.
+
+    Gradio hands the ``gr.Chatbot(type="messages")`` value back with an explicit
+    ``metadata=None`` on plain user/assistant turns. The turn-rendering logic
+    does ``msg.get("metadata", {}).get(...)`` in several places, which raises
+    ``'NoneType' object has no attribute 'get'`` on a present-but-None value
+    (the default only kicks in when the key is *absent*). Drop null metadata as
+    we adopt the transcript; real thought/source blocks keep their dict metadata.
+    """
+    return [
+        {k: v for k, v in m.items() if not (k == "metadata" and v is None)}
+        for m in (chat or [])
+    ]
+
+
 def _push_history(history: list[dict] | None, query: str, thread_id: str) -> list[dict]:
     h = list(history or [])
     h = [x for x in h if x.get("query") != query]
@@ -446,9 +462,9 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
     """Build the Gradio app. Tests pass a stubbed ``api``."""
     client = api or make_client()
 
-    # Fixed message positions within a single answered turn. The optional
-    # inline page gallery is appended after these (position 4+).
-    IDX_USER, IDX_THINK = 0, 1
+    # The current turn's user + thinking blocks are appended after any prior
+    # turns, so their positions are computed per-turn (``think_idx``) rather
+    # than fixed — the chat pane holds the whole transcript, not one turn.
     IDX_SRC = 'sources'  # Use string key for artifacts dictionary
 
     # ── handlers ──────────────────────────────────────────────────────────
@@ -473,17 +489,25 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
 
         # Prior turns for the LLM: plain user/assistant messages only —
         # thought/sources blocks carry metadata and are display-only.
+        prior = _adopt_prior(chat)
         api_history = [
             {"role": m["role"], "content": m["content"]}
-            for m in (chat or [])
+            for m in prior
             if m.get("content") and not m.get("metadata")
         ]
 
-        chat_list: list[dict] = [
+        # Carry prior turns forward so the chat pane stays a continuous
+        # transcript instead of resetting to just this turn (the visible
+        # "starts a new chat" bug). Each turn gets a unique thought id
+        # (turn-N) — reusing a constant id makes Gradio nest THIS turn's child
+        # thoughts under the PREVIOUS turn's collapsible panel.
+        turn_id = f"turn-{len(prior)}"
+        chat_list: list[dict] = prior + [
             {"role": "user", "content": q},
             {"role": "assistant", "content": "",
-             "metadata": {"title": "🧠 Thinking process", "id": "main", "status": "pending"}},
+             "metadata": {"title": "🧠 Thinking process", "id": turn_id, "status": "pending"}},
         ]
+        think_idx = len(prior) + 1
 
         def _yield(chat=None, s=None, a=None, hist=None, rec=None, clear_q=False):
             return (
@@ -537,12 +561,12 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                         chat_list.append({
                             "role": "assistant",
                             "content": "",
-                            "metadata": {"title": msg, "parent_id": "main", "status": "pending"}
+                            "metadata": {"title": msg, "parent_id": turn_id, "status": "pending"}
                         })
                         last_child_idx = len(chat_list) - 1
                     
                     # Ensure main thought stays pending
-                    chat_list[IDX_THINK]["metadata"]["duration"] = duration
+                    chat_list[think_idx]["metadata"]["duration"] = duration
                     yield _yield(chat=list(chat_list))
 
                 elif et == "sources":
@@ -558,12 +582,12 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                     if last_child_idx != -1 and chat_list[last_child_idx].get("metadata", {}).get("status") == "pending":
                         chat_list[last_child_idx]["metadata"]["status"] = "done"
                         chat_list[last_child_idx]["metadata"]["duration"] = round(time.time() - last_status_time, 1)
-                    if chat_list[IDX_THINK]["metadata"]["status"] == "pending":
-                        chat_list[IDX_THINK]["metadata"]["status"] = "done"
-                        chat_list[IDX_THINK]["metadata"]["duration"] = duration
+                    if chat_list[think_idx]["metadata"]["status"] == "pending":
+                        chat_list[think_idx]["metadata"]["status"] = "done"
+                        chat_list[think_idx]["metadata"]["duration"] = duration
                         
                     # Create answer block if it doesn't exist
-                    if chat_list[-1].get("metadata", {}).get("parent_id") == "main" or chat_list[-1].get("metadata", {}).get("id") == "main":
+                    if chat_list[-1].get("metadata", {}).get("parent_id") == turn_id or chat_list[-1].get("metadata", {}).get("id") == turn_id:
                         chat_list.append({"role": "assistant", "content": ""})
                         
                     chat_list[-1] = {**chat_list[-1], "content": "".join(text_buf)}
@@ -576,12 +600,12 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                     if last_child_idx != -1 and chat_list[last_child_idx].get("metadata", {}).get("status") == "pending":
                         chat_list[last_child_idx]["metadata"]["status"] = "done"
                         chat_list[last_child_idx]["metadata"]["duration"] = round(time.time() - last_status_time, 1)
-                    if chat_list[IDX_THINK]["metadata"]["status"] == "pending":
-                        chat_list[IDX_THINK]["metadata"]["status"] = "done"
-                        chat_list[IDX_THINK]["metadata"]["duration"] = duration
+                    if chat_list[think_idx]["metadata"]["status"] == "pending":
+                        chat_list[think_idx]["metadata"]["status"] = "done"
+                        chat_list[think_idx]["metadata"]["duration"] = duration
                         
-                    n_steps = sum(1 for c in chat_list if c.get("metadata", {}).get("parent_id") == "main")
-                    chat_list[IDX_THINK]["metadata"]["title"] = f"🧠 Thought ({n_steps} step{'s' if n_steps != 1 else ''})"
+                    n_steps = sum(1 for c in chat_list if c.get("metadata", {}).get("parent_id") == turn_id)
+                    chat_list[think_idx]["metadata"]["title"] = f"🧠 Thought ({n_steps} step{'s' if n_steps != 1 else ''})"
 
                     # Fallback: if backend didn't send a separate sources event.
                     if not sources_done and data.get("sources"):
@@ -607,7 +631,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                     display_text = re.sub(r'\s*\[([a-zA-Z0-9_/-]+)\s+p\.(\d+)\]', '', display_text)
                         
                     # Create answer block if it doesn't exist (e.g. empty response)
-                    if chat_list[-1].get("metadata", {}).get("parent_id") == "main" or chat_list[-1].get("metadata", {}).get("id") == "main":
+                    if chat_list[-1].get("metadata", {}).get("parent_id") == turn_id or chat_list[-1].get("metadata", {}).get("id") == turn_id:
                         chat_list.append({"role": "assistant", "content": ""})
                         
                     chat_list[-1] = {

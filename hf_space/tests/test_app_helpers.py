@@ -10,12 +10,47 @@ import pytest
 pytest.importorskip("gradio")
 
 from hf_space.app import (
+    _adopt_prior,
     _cited_keys,
     _parse_citations,
     _query_terms,
     _sources_to_retrieve,
     _thought_from_trace,
 )
+
+
+# ── _adopt_prior: carry the transcript into a new turn (multi-turn) ──────────
+
+def test_adopt_prior_none_returns_empty():
+    assert _adopt_prior(None) == []
+
+
+def test_adopt_prior_drops_explicit_none_metadata():
+    """Gradio normalises plain turns to metadata=None; carrying that forward
+    crashed the turn-rendering logic (.get('metadata', {}).get(...))."""
+    chat = [
+        {"role": "user", "content": "landing gear", "metadata": None},
+        {"role": "assistant", "content": "an answer", "metadata": None},
+    ]
+    out = _adopt_prior(chat)
+    assert all("metadata" not in m for m in out)
+    # Every accessor in on_ask does .get("metadata", {}).get(...) — prove it's
+    # now safe (the bug was a present-but-None value defeating the {} default).
+    assert all(m.get("metadata", {}).get("parent_id") is None for m in out)
+    # role/content preserved.
+    assert out[0] == {"role": "user", "content": "landing gear"}
+
+
+def test_adopt_prior_preserves_real_metadata_blocks():
+    chat = [
+        {"role": "assistant", "content": "steps",
+         "metadata": {"title": "🧠 Thought", "id": "turn-0", "status": "done"}},
+        {"role": "assistant", "content": "child",
+         "metadata": {"title": "Retrieved", "parent_id": "turn-0"}},
+    ]
+    out = _adopt_prior(chat)
+    assert out[0]["metadata"]["id"] == "turn-0"
+    assert out[1]["metadata"]["parent_id"] == "turn-0"
 
 
 def _src(doc_id: str, page: int, rerank: float | None) -> dict:
