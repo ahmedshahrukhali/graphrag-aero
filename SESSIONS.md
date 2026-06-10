@@ -10,7 +10,9 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 - Root-caused turn-2 "200s retrieval" as **query-dependent, NOT multi-turn**: `anchored_retrieve` reranks ALL chunks of the top-N anchor docs uncapped; broad queries anchor to large TC circulars (308-chunk pool) → FlagReranker default batch=256 → 8 GB 3060Ti WDDM-pages → 292 s. Fix `RERANK_BATCH_SIZE` (default 32): live faithful repro 292 s→14 s, peak VRAM 8192→5468 MiB, identical scores. (First hypothesis "Ollama stays resident" was disproven by the GPU trace — kept measuring.)
 - Fixed multi-turn UI "starts a new chat": `on_ask` now carries the transcript forward with per-turn thought ids (avoids Gradio nesting); `_adopt_prior()` strips Gradio's `metadata=None` (was crashing `'NoneType'.get`).
 - Tests green offline (retrieve+hf_space+agent); +6 new. Both fixes live-verified by user (turn-2 ~26 s, both turns shown, no crash).
-**Left:** S41 highlight-draw bug (unchanged). P9 docs. User testing deployed HF Space.
+- **S41 highlight bug RESOLVED (vision-verified):** rendered A10A0032 p.2 through the live draw path and read the PNG — term wash boxes the title "Runway Excursion" + all "runway" mentions; "zero boxes" no longer reproduces. Re-wiring the cited box (`_page_regions`→`region_bboxes`) tested WORSE (stored regions land on the top boilerplate), so it stays off by design. No code change.
+- **Backfilled post-v1 phases P10–P15** in MANIFEST from the session log (contiguous ranges: P10 bring-up S3–12, P11 UI S13–17, P12 multilingual corpus S18–24, P13 retrieval/agent redesign S25–30, P14 figure tier S31–35, P15 hardening S36–42).
+**Left:** Refresh P9 docs (README/ARCHITECTURE/DEPLOYMENT drifted from qwen3:4b + HF fallback + RERANK_BATCH_SIZE + multi-turn). User testing deployed HF Space.
 
 ## Session 41 — 2026-06-10 — fable-5
 **Commits:** `d666dc7`, `707eca8`, `a5d0063`

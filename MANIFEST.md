@@ -64,6 +64,19 @@ None. All resolved.
 | P8 | HF Space: Gradio multimodal, EN+FR | ☑ (by opus-4.7) |
 | P9 | Docs | ☑ (by opus-4.7) |
 
+### Post-v1 phases (backfilled S42 from the session log)
+P0–P9 was the **offline v1 build** (S1–S2), then live-verified. Everything after grew
+as emergent work-streams; grouped here into contiguous phases for the record. All ☑ (live).
+
+| # | Phase | Sessions | What shipped |
+|---|-------|----------|--------------|
+| P10 | Live bring-up & integration | S3–S12 | Real stack + GPU passthrough; full embed (54k pts); live `/healthz`·`/retrieve`·`/query`·`/resume`; HF Space published + tunnel; bbox-eval iteration (20%→); anchored retrieval + `num_ctx` synthesis fixes; TC two-pass crawl corpus completion. Foundation made real. |
+| P11 | UI/UX & Space evolution | S13–S17 | Streamlit→Gradio pivot → `gr.Chatbot` three-zone → citation-anchored inline PDF gallery → Corpus/Graph/Eval tabs → 3D embedding-space viz; backend `/query/stream` sources event; graph outward-hop v1. |
+| P12 | Corpus expansion: multilingual + curated re-ingest | S18–S24 | WS-0 schema freeze (`page_bboxes`/`corpus`/`kind`); ZH corpus (Taiwan TTSB Traditional + CAAC Simplified) + per-language GPU PaddleOCR Chinese OCR; curation pipeline; region-level bbox grounding; curated re-ingest → 77,173 dense+sparse vectors. |
+| P13 | Retrieval & agent redesign | S25–S30 | Hybrid dense+sparse (RRF); real query-reformulation loop; HITL→negative-feedback store (`unaccepted_qa`, `/reject`·`/resolve`); Document-rooted graph schema + deeper traversal; gemma2→qwen3; eval kept in-scope per change. |
+| P14 | Multimodal figure tier | S31–S35 (decided S19) | Qwen2.5-VL-7B figure captioning at ingest; `:Figure`+`HAS_FIGURE` in Neo4j; figure chunks embedded + retrievable; 🖼 AI-read-figure render in the Space. |
+| P15 | Hardening, ops & deployment | S36–S42 | About tab; VRAM-crash root-cause + qwen3:4b + sequential-unload discipline; deterministic Sources-block citations; dual-backend HF-Inference auto-fallback; localtunnel/wake-proxy deploy fix; multi-turn chat; reranker batch-size fix; highlight draw-path verified. |
+
 ## Where things run
 - **This chat:** config, logic, unit tests (mocked models)
 - **Claude Code on machine:** real models, live services, docker build/up, data download
@@ -77,12 +90,9 @@ None. All resolved.
 MANIFEST.md, CLAUDE.md, README.md, docker-compose.yml, .env.example, Makefile, otel/otel-collector-config.yaml, per-dir README placeholders
 
 ## Resume pointer
-**⮕ S41 — OPEN BUG, NOT YET DIAGNOSED (found live S40, opus-4.8, 2026-06-06): term highlighting draws nothing.**
-Symptom: querying "runway excursion" → cited source pages render with ZERO highlight boxes (no term wash, not even the solid cited box).
-IMPORTANT — earlier "front-matter" theory was WRONG. User screenshot proved "Runway Excursion" is printed prominently on the cited p.2 pages (A10A0032, A10Q0213, A17O0025), yet nothing is boxed. So the bug is in the DRAW PATH, not page/citation selection. Do not reuse the front-matter story.
-Status: undiagnosed. Opus theorized twice and was wrong both times; STOP theorizing.
-Next session: actually RUN it, don't reason about it. Concrete first check: open A10A0032 p.2 with pdfplumber and call `page.search("runway", regex=True, case=False)` — does it raise or return empty? `hf_space/pdf_render.py:search_page_terms` swallows any exception (`except Exception: continue`), so a failing/empty search yields no boxes silently. Also confirm whether the solid cited box (region_bboxes / bbox) draws at all on these pages — if even that is absent, suspect show_bbox toggle / do_box gating, not term search. Verify live before claiming a cause.
-(Secondary, separate: `section_title` on these pages is cover/date boilerplate; the 2 doc types follow a fixed layout so titles could be extracted deterministically — `ingestion/processing/chunk.py:12-17`. Not the highlighting bug; revisit after.)
+**✅ S41 — RESOLVED (S42, opus-4.8, 2026-06-10, vision-verified): term highlighting works; no code change.**
+The "zero boxes" symptom no longer reproduces. Live render of A10A0032 p.2 through the actual draw path shows the term wash lighting up the title "Runway Excursion" + every "runway" mention (rasterised PNG read directly — `page.search` returns hits, doesn't raise). The only missing tier is the solid CITED box: `_gallery_items` passes `region_bboxes=()` ([app.py:292], commit 148ceda) and the `_page_regions()` helper is dead code. Re-wiring it was tested live and is WORSE — the stored `page_bboxes` point to the chunk's start region, which on these reports is the top "Transportation Safety Board…" boilerplate, so the cited box lands on the disclaimer, not the content. User confirmed the term-wash-only behaviour is "the best we can get"; cited box stays disabled by design.
+(Secondary, separate, still open: `section_title` on these pages is cover/date boilerplate; the 2 doc types follow a fixed layout so titles could be extracted deterministically — `ingestion/processing/chunk.py:12-17`. Not the highlighting bug.)
 
 ---
 
@@ -368,7 +378,7 @@ the hop. Stack **stopped** this session to free CPU/RAM — resume with
 
 **S42 (2026-06-10, opus-4.8) DONE:** multi-turn chat now persists across turns in the UI (`on_ask` carries the transcript; `_adopt_prior` survives Gradio's `metadata=None`); retrieval no longer WDDM-pages on broad queries (`RERANK_BATCH_SIZE`, default 32, bounds the anchored-pool rerank — 292 s→14 s). Both live-verified. See SESSIONS S42.
 
-**Resume pointer:** `S41` — live-diagnose the highlight draw path for "runway excursion". Bug is in the draw path, not page selection. Must run a live pdfplumber `page.search` check first. Additionally, complete `P9` (Docs).
+**Resume pointer:** `S41` ✅ RESOLVED (vision-verified, S42 — see top of file). **Next: refresh `P9` docs** — `README.md` / `docs/ARCHITECTURE.md` / `docs/DEPLOYMENT.md` are ☑ but drifted from as-built reality (predate qwen3:4b generation, the dual-backend HF-Inference fallback, `RERANK_BATCH_SIZE`, and multi-turn chat). Update them to match.
 
 **Queued for Haiku (mechanical, no logic authoring).** Run top-to-bottom — each block depends on the previous.
 
