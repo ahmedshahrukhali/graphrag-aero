@@ -119,13 +119,34 @@ def _draw_boxes(
 _MAX_TERM_BOXES = 25
 
 
+def _hit_line_boxes(hit) -> list[BBox]:
+    """Group one ``page.search`` hit's chars into per-line bboxes.
+
+    A span that wraps across lines must not become one page-wide rectangle —
+    chars are bucketed by top coordinate (2-point tolerance) and each line
+    gets its own tight box.
+    """
+    line_groups: dict[int, list] = {}
+    for c in hit.get("chars", []):
+        line_y = round(float(c["top"]) / 2) * 2
+        line_groups.setdefault(line_y, []).append(c)
+    out: list[BBox] = []
+    for chars in line_groups.values():
+        x0 = min(float(c["x0"]) for c in chars)
+        top = min(float(c["top"]) for c in chars)
+        x1 = max(float(c["x1"]) for c in chars)
+        bottom = max(float(c["bottom"]) for c in chars)
+        out.append((x0, top, x1, bottom))
+    return out
+
+
 def search_page_terms(
     page, terms: tuple[str, ...], *, max_boxes: int = _MAX_TERM_BOXES
 ) -> list[BBox]:
     """Return the bbox of every occurrence of each term in ``terms`` on
     ``page`` (case-insensitive), deduped and capped at ``max_boxes``.
 
-    Unlike :func:`search_page_bbox` (which keeps only the first hit of one
+    Unlike :func:`search_page_span` (which keeps only the first hit of one
     span), this collects *all* hits — that's what lights up the title and the
     repeated mentions, demonstrating retrieval coverage on the page.
     """
@@ -135,31 +156,17 @@ def search_page_terms(
         t = term.strip()
         if not t:
             continue
-            
+
         # Make search robust against newlines/extra spaces in PDF text
         parts = [re.escape(w) for w in t.split()]
         robust_pattern = r'\s+'.join(parts)
-        
+
         try:
             hits = page.search(robust_pattern, regex=True, case=False)
         except Exception:  # noqa: BLE001 — pdfplumber search is best-effort
             continue
         for h in hits:
-            line_groups = {}
-            for c in h.get("chars", []):
-                # group chars by approximate top coordinate (2 points tolerance)
-                line_y = round(float(c["top"]) / 2) * 2
-                if line_y not in line_groups:
-                    line_groups[line_y] = []
-                line_groups[line_y].append(c)
-                
-            for chars in line_groups.values():
-                x0 = min(float(c["x0"]) for c in chars)
-                top = min(float(c["top"]) for c in chars)
-                x1 = max(float(c["x1"]) for c in chars)
-                bottom = max(float(c["bottom"]) for c in chars)
-                
-                bb = (x0, top, x1, bottom)
+            for bb in _hit_line_boxes(h):
                 key = (round(bb[0]), round(bb[1]), round(bb[2]), round(bb[3]))
                 if key in seen:
                     continue
@@ -168,6 +175,39 @@ def search_page_terms(
                 if len(boxes) >= max_boxes:
                     return boxes
     return boxes
+
+
+# Probe length for the fallback windows when a full quote doesn't match the
+# page text (hyphenation, ligatures, LLM paraphrase drift at the edges).
+_SPAN_PROBE_WORDS = 8
+
+
+def search_page_span(page, span: str, *, max_boxes: int = _MAX_TERM_BOXES) -> list[BBox]:
+    """Locate the answer's cited quote on ``page`` → per-line bboxes of the
+    FIRST occurrence (the grounding box, not a coverage tint).
+
+    Robust to whitespace AND punctuation differences between the LLM's quote
+    and the PDF char stream: words are extracted and rejoined with a ``\\W+``
+    gap. If the full span misses, fall back to its first — then last —
+    :data:`_SPAN_PROBE_WORDS` words, so a quote that drifts at one edge still
+    anchors somewhere real. Returns ``[]`` when nothing matches.
+    """
+    words = re.findall(r"[\w'’-]+", span or "")
+    if not words:
+        return []
+    probes = [words]
+    if len(words) > _SPAN_PROBE_WORDS:
+        probes.append(words[:_SPAN_PROBE_WORDS])
+        probes.append(words[-_SPAN_PROBE_WORDS:])
+    for probe in probes:
+        pattern = r"\W+".join(re.escape(w) for w in probe)
+        try:
+            hits = page.search(pattern, regex=True, case=False)
+        except Exception:  # noqa: BLE001 — pdfplumber search is best-effort
+            continue
+        if hits:
+            return _hit_line_boxes(hits[0])[:max_boxes]
+    return []
 
 
 def page_image_bboxes(page, *, max_boxes: int = _MAX_TERM_BOXES) -> list[BBox]:
@@ -228,6 +268,7 @@ def render_page_with_bbox(
     dpi: int = DEFAULT_DPI,
     draw_bbox: bool = True,
     region_bboxes: tuple[BBox, ...] = (),
+    cited_spans: tuple[str, ...] = (),
     terms: tuple[str, ...] = (),
     box_images: bool = False,
 ) -> Image.Image:
@@ -242,11 +283,17 @@ def render_page_with_bbox(
       the cited box. This is the only path that still calls ``page.search``.
     - ``box_images=True`` → red outline around every raster image (figure) on
       the page. We don't interpret the image; this just marks it as captured.
+    - **Cited spans (generation-anchored):** ``cited_spans`` — the quote(s) the
+      answer attributed to this page. Each is located via
+      :func:`search_page_span` (first occurrence, per-line boxes) and drawn
+      solid CITED on top. This is what ties the highlight to what the model
+      actually generated, not just to the user's query.
     - **Cited box (WS-B, region-level):** ``region_bboxes`` — the chunk's stored
       regions for *this* page (PDF points, ``(x0, top, x1, bottom)``) — are drawn
       solid on top. These come from ingest (``page_bboxes``); no page search, no
-      desync. If ``region_bboxes`` is empty, fall back to the legacy single
-      ``bbox`` (when it's drawable and we're not in image-only mode).
+      desync. If both ``region_bboxes`` and ``cited_spans`` produce nothing, fall
+      back to the legacy single ``bbox`` (when it's drawable and we're not in
+      image-only mode).
 
     All args are part of the LRU cache key (tuples required for hashing).
 
@@ -276,6 +323,10 @@ def render_page_with_bbox(
             pil = page_image.original.copy()
             term_boxes = search_page_terms(p, terms) if (draw_bbox and terms) else []
             img_boxes = page_image_bboxes(p) if (draw_bbox and box_images) else []
+            span_boxes: list[BBox] = []
+            if draw_bbox:
+                for s in cited_spans:
+                    span_boxes.extend(search_page_span(p, s))
     except PdfRenderError:
         raise
     except Exception as e:  # noqa: BLE001
@@ -292,11 +343,11 @@ def render_page_with_bbox(
     for ib in img_boxes:
         draw_list.append((bbox_to_pixels(ib, dpi=dpi), _STYLE_IMAGE))
 
-    # Cited regions: the stored page_bboxes for this page, drawn solid on top.
+    # Cited boxes, solid on top: located quote spans + stored page regions.
     cited = [rb for rb in region_bboxes if _bbox_is_drawable(rb)]
-    if not cited and not box_images and _bbox_is_drawable(bbox):
+    if not cited and not span_boxes and not box_images and _bbox_is_drawable(bbox):
         cited = [bbox]  # legacy single-rect fallback
-    for rb in cited:
+    for rb in cited + span_boxes:
         draw_list.append((bbox_to_pixels(rb, dpi=dpi), _STYLE_CITED))
 
     if not draw_list:

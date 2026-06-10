@@ -278,18 +278,26 @@ def _gallery_items(
             continue
 
         do_box = bool(draw_bbox)
-        
+
         terms_list = []
         if do_box:
             if retrieve.query:
                 terms_list = list(_query_terms(retrieve.query))
+
+        # The generation's own evidence: the quote the answer attributed to
+        # this page (or the fuzzy best-matching chunk sentence). Located on
+        # the page by span search and drawn as the solid CITED box.
+        cited_spans = (quote,) if (do_box and quote) else ()
 
         try:
             img = render_page_with_bbox(
                 chunks[0].source_url, page, (0.0, 0.0, 0.0, 0.0),
                 doc_id=doc_id,
                 draw_bbox=do_box,
-                region_bboxes=(),  # The initial coordinate-based method does not work well, rely solely on fuzzy span matching
+                # Stored WS-B regions stay off — verified S42: they land on
+                # header boilerplate. Grounding comes from cited_spans instead.
+                region_bboxes=(),
+                cited_spans=cited_spans,
                 terms=tuple(terms_list),
                 box_images=do_box,
             )
@@ -368,6 +376,34 @@ def _push_history(history: list[dict] | None, query: str, thread_id: str) -> lis
     h = [x for x in h if x.get("query") != query]
     h.insert(0, {"query": query, "thread_id": thread_id, "ts": datetime.utcnow().isoformat()})
     return h[:12]
+
+
+# Re-rendering every past turn's source pages would grow the gallery (and the
+# PDF rasterising) without bound, so the gallery shows the LATEST turn only and
+# earlier turns keep a one-line hyperlink trail instead. Cap the trail too.
+_MAX_TURN_LINKS = 8
+
+
+def _append_turn_links(artifacts: dict, query: str, answer: str) -> dict:
+    """Record this turn's cited-document links under ``artifacts["turn_links"]``.
+
+    Docs the answer actually cites (via ``_cited_keys``) are preferred; when the
+    answer carries no citation tags, fall back to all retrieved docs so the
+    turn still leaves a trail. No sources → artifacts returned unchanged.
+    """
+    art = artifacts.get("sources") or {}
+    doc_urls: dict[str, str] = {}
+    for s in art.get("sources") or []:
+        d, u = s.get("doc_id"), s.get("source_url")
+        if d and u and d not in doc_urls:
+            doc_urls[d] = u
+    if not doc_urls:
+        return artifacts
+    cited = {d for d, _ in _cited_keys(answer)}
+    links = [(d, doc_urls[d]) for d in sorted(cited) if d in doc_urls] or sorted(doc_urls.items())
+    turns = list(artifacts.get("turn_links") or [])
+    turns.append({"q": query, "links": links})
+    return {**artifacts, "turn_links": turns[-_MAX_TURN_LINKS:]}
 
 
 SAMPLE_QUERIES: list[tuple[str, str, str, int]] = [
@@ -617,7 +653,12 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
                             **artifacts[IDX_SRC],
                             "draft": "".join(text_buf),
                         }
-                        
+                        # Leave this turn's citation links in the trail — the
+                        # gallery shows only the latest turn, the trail keeps
+                        # earlier turns' cited docs reachable.
+                        artifacts = _append_turn_links(artifacts, q, "".join(text_buf))
+
+
                     # Clean citations for the UI chat display
                     display_text = "".join(text_buf)
                     
@@ -691,24 +732,27 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
         """
         art = (artifacts or {}).get(IDX_SRC) or {}
         items = _render_gallery(art, bool(show_bbox)) if art.get("sources") else []
-        
+
+        # Hyperlink trail: one line per turn (oldest first), so citations from
+        # earlier turns stay reachable while the gallery shows only the latest.
         links_md = ""
-        if items:
+        turns = (artifacts or {}).get("turn_links") or []
+        if turns:
+            lines = []
+            for i, t in enumerate(turns, 1):
+                links = " · ".join(f"[{d}]({u})" for d, u in (t.get("links") or []))
+                qtxt = " ".join((t.get("q") or "").split())
+                if len(qtxt) > 60:
+                    qtxt = qtxt[:57] + "…"
+                lines.append(f"{i}. _{qtxt}_ — {links}")
+            links_md = "**Cited documents by turn:**  \n" + "  \n".join(lines)
+        elif items:
+            # No trail yet (e.g. cached sample pick) — single view-original line.
             doc_urls = {s.get("doc_id"): s.get("source_url") for s in art.get("sources", []) if s.get("doc_id") and s.get("source_url")}
-            
-            unique_docs = {}
-            for i, (filepath, caption) in enumerate(items):
-                for doc_id, s_url in doc_urls.items():
-                    if f"· {doc_id} ·" in caption:
-                        if doc_id not in unique_docs:
-                            unique_docs[doc_id] = s_url
-                        break
-                        
-            link_parts = [f"[{doc_id}]({url})" for doc_id, url in unique_docs.items()]
-            
+            link_parts = [f"[{doc_id}]({url})" for doc_id, url in doc_urls.items()]
             if link_parts:
                 links_md = "**View Original:** " + " | ".join(link_parts)
-            
+
         return gr.update(value=items), gr.update(value=links_md), chat_list
 
     def on_pick_sample(evt: gr.SelectData, chat: list[dict] | None):

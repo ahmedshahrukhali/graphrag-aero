@@ -18,6 +18,7 @@ from hf_space.pdf_render import (
     bbox_to_pixels,
     page_image_bboxes,
     render_page_with_bbox,
+    search_page_span,
     search_page_terms,
 )
 
@@ -157,6 +158,75 @@ def test_search_page_terms_empty_terms_returns_empty():
     fake_page.search.assert_not_called()
 
 
+def test_search_page_span_first_hit_only():
+    """The cited span is a grounding box — only the FIRST occurrence counts."""
+    fake_page = MagicMock()
+    fake_page.search.return_value = [
+        {"chars": [{"x0": 10.0, "top": 10.0, "x1": 90.0, "bottom": 22.0}]},
+        {"chars": [{"x0": 10.0, "top": 400.0, "x1": 90.0, "bottom": 412.0}]},
+    ]
+    boxes = search_page_span(fake_page, "the aircraft departed the runway")
+    assert boxes == [(10.0, 10.0, 90.0, 22.0)]
+    assert fake_page.search.call_count == 1
+
+
+def test_search_page_span_groups_wrapped_quote_per_line():
+    """A quote wrapping across two lines yields one tight box per line, not a
+    page-wide rectangle."""
+    fake_page = MagicMock()
+    fake_page.search.return_value = [{
+        "chars": [
+            {"x0": 200.0, "top": 100.0, "x1": 500.0, "bottom": 112.0},
+            {"x0": 50.0, "top": 114.0, "x1": 260.0, "bottom": 126.0},
+        ],
+    }]
+    boxes = search_page_span(fake_page, "speed decayed and the aircraft stalled")
+    assert len(boxes) == 2
+    assert (200.0, 100.0, 500.0, 112.0) in boxes
+    assert (50.0, 114.0, 260.0, 126.0) in boxes
+
+
+def test_search_page_span_falls_back_to_word_windows():
+    """A long quote that doesn't match verbatim retries with its first 8 — then
+    last 8 — words (hyphenation / paraphrase drift at one edge)."""
+    fake_page = MagicMock()
+    fake_page.search.side_effect = [
+        [],  # full span misses
+        [{"chars": [{"x0": 5.0, "top": 5.0, "x1": 50.0, "bottom": 15.0}]}],  # first-8 window hits
+    ]
+    span = "one two three four five six seven eight nine ten eleven twelve"
+    boxes = search_page_span(fake_page, span)
+    assert boxes == [(5.0, 5.0, 50.0, 15.0)]
+    assert fake_page.search.call_count == 2
+
+
+def test_search_page_span_is_punctuation_robust():
+    """LLM quote 'engine, fuel' must still match — words joined with \\W+."""
+    fake_page = MagicMock()
+    fake_page.search.return_value = [
+        {"chars": [{"x0": 1.0, "top": 1.0, "x1": 2.0, "bottom": 2.0}]}
+    ]
+    search_page_span(fake_page, 'the “engine, fuel” system')
+    pattern = fake_page.search.call_args[0][0]
+    assert "engine" in pattern and "fuel" in pattern
+    assert r"\W+" in pattern
+    assert "“" not in pattern  # curly quotes never reach the regex
+
+
+def test_search_page_span_empty_or_no_match_returns_empty():
+    fake_page = MagicMock()
+    assert search_page_span(fake_page, "") == []
+    fake_page.search.assert_not_called()
+    fake_page.search.return_value = []
+    assert search_page_span(fake_page, "nothing on page") == []
+
+
+def test_search_page_span_swallows_search_errors():
+    fake_page = MagicMock()
+    fake_page.search.side_effect = RuntimeError("boom")
+    assert search_page_span(fake_page, "any quote at all") == []
+
+
 def test_page_image_bboxes_extracts_image_rects():
     fake_page = MagicMock()
     fake_page.images = [
@@ -274,6 +344,47 @@ def test_render_terms_wash_still_works():
 
     assert any(px != (255, 255, 255) for px in out.getdata())
     assert fake_page.search.called
+
+
+def test_render_with_cited_spans_draws_solid_box_from_quote_search():
+    """S43 generation→bbox wiring: the cited quote is located on the page and
+    drawn as the solid CITED box."""
+    pdf_render.render_page_with_bbox.cache_clear()
+    fake_pdf, fake_page = _fake_pdf_one_page()
+    fake_page.search.return_value = [
+        {"chars": [{"x0": 100.0, "top": 200.0, "x1": 400.0, "bottom": 215.0}]}
+    ]
+
+    with patch.object(pdf_render, "_download_pdf", return_value=b"%PDF\n%%EOF"), \
+         patch("pdfplumber.open", return_value=fake_pdf):
+        out = render_page_with_bbox(
+            "https://example.test/span.pdf", page=1,
+            bbox=(0.0, 0.0, 0.0, 0.0), dpi=72,
+            cited_spans=("the engine lost power",),
+        )
+
+    assert fake_page.search.called
+    # Solid box drawn in the quote's band → non-white pixels there.
+    px = list(out.getdata())
+    w = out.width
+    band = px[w * 198: w * 217]
+    assert any(p != (255, 255, 255) for p in band)
+
+
+def test_render_cited_spans_skipped_when_draw_bbox_false():
+    pdf_render.render_page_with_bbox.cache_clear()
+    fake_pdf, fake_page = _fake_pdf_one_page()
+
+    with patch.object(pdf_render, "_download_pdf", return_value=b"%PDF\n%%EOF"), \
+         patch("pdfplumber.open", return_value=fake_pdf):
+        out = render_page_with_bbox(
+            "https://example.test/span-off.pdf", page=1,
+            bbox=(0.0, 0.0, 0.0, 0.0), dpi=72, draw_bbox=False,
+            cited_spans=("the engine lost power",),
+        )
+
+    fake_page.search.assert_not_called()
+    assert all(px == (255, 255, 255) for px in out.getdata())
 
 
 def test_render_page_out_of_range_raises():
