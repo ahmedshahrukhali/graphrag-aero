@@ -5,12 +5,13 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 ---
 
 ## Session 43 — 2026-06-10 — fable-5
-**Commits:** `bc61f7a`
+**Commits:** `bc61f7a`, `ea08b10`, `de62c19`
 **Achieved:**
-- Space 503 (graphrag-aero-cocko.loca.lt) was just both pm2 apps stopped — `pm2 start ecosystem.config.js`, live-verified public `/healthz` → 200 all-green. (Not a recurrence of the S41 `/c` bug.)
-- New `scripts/tray/` (force-added past `scripts/` gitignore): AHK v2 tray controller wrapping pm2 + docker compose, hidden terminal. Green/amber/gray/blue, 15s poll, double-click toggle, Exit = stop stack, `--no-start` monitor mode, `make_icons.ps1` generates gitignored icons. Live-verified both detections (partial→on flip).
-- Tray left running on the user's machine (green). README covers `shell:startup` autostart.
-**Left:** P9 docs refresh (unchanged from S42). User may want the startup shortcut created.
+- Space 503 = both pm2 apps stopped — `pm2 start`, live-verified public `/healthz` 200. New `scripts/tray/` AHK v2 tray controller (pm2 + docker compose, hidden terminal, 15s poll, Exit = stop stack); live-verified partial→on detection; left running green.
+- **Generation→bbox wiring (`de62c19`):** quotes from `_parse_citations`/fuzzy fallback were computed but never reached the renderer. New `search_page_span` (first hit, per-line boxes, `\W+`-robust, 8-word fallback windows) + `cited_spans` param → solid CITED box. Live-verified in-container on a10a0032 p.2 (3-line wrapped quote boxed exactly; invented quote correctly → no box).
+- **Multi-turn citations:** gallery replaces per turn (unbounded re-render would blow up); `_append_turn_links` keeps per-turn cited-doc hyperlink trail (cap 8) above the gallery.
+- Fixed stale gradio-skipped test (asserted S42-disabled region path, fake lacked `doc_id`/`.save`). 90 in-container / 62 local pass.
+**Left:** P9 docs refresh (unchanged). **hf-space container still runs pre-de62c19 code — user restart needed to see new UI.** Space repo (huggingface remote) now 5 commits behind local main.
 
 ## Session 42 — 2026-06-10 — opus-4.8
 **Commits:** `09de9c6`, `218579a`, (this log)
