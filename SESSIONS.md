@@ -4,6 +4,15 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 
 ---
 
+## Session 41 — 2026-06-10 — fable-5
+**Commits:** `d666dc7`, `707eca8`, `a5d0063`
+**Achieved:**
+- Root-caused Space "backend unreachable (503)": pm2 `interpreter: "cmd"` without `/c` never ran the localtunnel bat → loca.lt had no client and 503'd. Fixed; live-verified public `/healthz` → 200 through loca.lt → wake-proxy → backend.
+- Verified + completed the uncommitted multi-turn chat-history feature (UI → API → agent state → LLM). `on_ask` was missing the `chat` input param and `api_history` derivation it referenced — would have crashed on first ask. Fakes updated; forward-history test added.
+- Repaired two backend tests 422-stale since `148ceda` (string → list lang/source).
+- Pushed `main` to the HF Space remote (full-mirror deploy; triggers rebuild).
+**Left:** S41 highlight-draw bug (unchanged, see MANIFEST pointer). Pre-existing failure `eval/tests/test_run.py::test_main_drives_real_pipeline_with_stubs` (recall 0.0) reproduces on clean HEAD — env/dep drift, undiagnosed.
+
 ## Session 40 — 2026-06-08 — antigravity
 **Commits:** `ded9596`, `e296212`
 **Achieved:**
