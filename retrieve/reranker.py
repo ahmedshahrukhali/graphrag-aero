@@ -55,6 +55,7 @@ class BGE_RerankerV2M3:
         max_length: int = DEFAULT_MAX_LENGTH,
         normalize: bool = True,
         device: str | None = None,
+        batch_size: int | None = None,
     ) -> None:
         from FlagEmbedding import FlagReranker  # type: ignore
 
@@ -73,7 +74,21 @@ class BGE_RerankerV2M3:
         if (device or "").lower() == "cpu":
             use_fp16 = False
         
-        logger.info("loading reranker (%s, fp16=%s, device=%s)", name, use_fp16, device or "auto")
+        # Bound the cross-encoder batch. FlagReranker defaults to batch_size=256,
+        # which on the anchored path (rerank ALL chunks of the top-N docs — 300+
+        # pairs for large TC circulars) builds one giant fp16 forward pass that,
+        # stacked on the resident embedder, oversubscribes the 8 GB 3060Ti into
+        # WDDM paging: 308 pairs took 292 s at 8192 MiB. Capping to 32 keeps peak
+        # VRAM ~5.5 GB and the same pool reranks in ~14 s (identical scores — this
+        # only chunks the work, it doesn't change results). RERANK_BATCH_SIZE
+        # overrides; raise it on a bigger card.
+        self._batch_size = batch_size if batch_size is not None else int(
+            os.environ.get("RERANK_BATCH_SIZE", "32")
+        )
+        logger.info(
+            "loading reranker (%s, fp16=%s, device=%s, batch_size=%d)",
+            name, use_fp16, device or "auto", self._batch_size,
+        )
         self._model = FlagReranker(name, use_fp16=use_fp16, devices=device)
         self._max_length = max_length
         self._normalize = normalize
@@ -84,6 +99,7 @@ class BGE_RerankerV2M3:
         pairs = [[query, p] for p in passages]
         out = self._model.compute_score(
             pairs, max_length=self._max_length, normalize=self._normalize,
+            batch_size=self._batch_size,
         )
         # FlagReranker returns a float for a single pair, list[float] otherwise.
         if isinstance(out, (int, float)):

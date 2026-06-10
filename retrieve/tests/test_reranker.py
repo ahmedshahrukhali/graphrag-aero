@@ -89,3 +89,58 @@ def test_scored_chunk_final_score_falls_back_to_ann():
     assert sc.final_score == 0.42
     sc2 = ScoredChunk(_record("a"), ann_score=0.42, rerank_score=0.91)
     assert sc2.final_score == 0.91
+
+
+# ── batch_size wiring ────────────────────────────────────────────────────────
+# BGE_RerankerV2M3 bounds the cross-encoder batch so the anchored path's 300+
+# pair pool can't oversubscribe the 8 GB GPU into WDDM paging (292 s → 14 s).
+# Fake FlagEmbedding so these run offline with no weight load.
+
+def _install_fake_flagreranker(monkeypatch, captured):
+    import sys
+    import types
+
+    class FakeFlagReranker:
+        def __init__(self, name, use_fp16=True, devices=None):
+            captured["init"] = {"name": name, "use_fp16": use_fp16, "devices": devices}
+
+        def compute_score(self, pairs, **kw):
+            captured["kw"] = kw
+            return [0.5 for _ in pairs]
+
+    fake = types.ModuleType("FlagEmbedding")
+    fake.FlagReranker = FakeFlagReranker
+    monkeypatch.setitem(sys.modules, "FlagEmbedding", fake)
+
+
+def test_reranker_defaults_batch_size_to_32(monkeypatch):
+    monkeypatch.delenv("RERANK_BATCH_SIZE", raising=False)
+    captured: dict = {}
+    _install_fake_flagreranker(monkeypatch, captured)
+    from retrieve.reranker import BGE_RerankerV2M3
+
+    rk = BGE_RerankerV2M3(device="cpu")
+    rk.score("q", ["a", "b", "c"])
+    assert captured["kw"]["batch_size"] == 32
+
+
+def test_reranker_batch_size_env_overrides(monkeypatch):
+    monkeypatch.setenv("RERANK_BATCH_SIZE", "8")
+    captured: dict = {}
+    _install_fake_flagreranker(monkeypatch, captured)
+    from retrieve.reranker import BGE_RerankerV2M3
+
+    rk = BGE_RerankerV2M3(device="cpu")
+    rk.score("q", ["a", "b"])
+    assert captured["kw"]["batch_size"] == 8
+
+
+def test_reranker_batch_size_explicit_arg_wins(monkeypatch):
+    monkeypatch.setenv("RERANK_BATCH_SIZE", "8")
+    captured: dict = {}
+    _install_fake_flagreranker(monkeypatch, captured)
+    from retrieve.reranker import BGE_RerankerV2M3
+
+    rk = BGE_RerankerV2M3(device="cpu", batch_size=4)
+    rk.score("q", ["a"])
+    assert captured["kw"]["batch_size"] == 4
