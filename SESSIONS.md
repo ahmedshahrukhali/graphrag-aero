@@ -4,6 +4,14 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 
 ---
 
+## Session 42 — 2026-06-10 — opus-4.8
+**Commits:** `09de9c6`, `218579a`, (this log)
+**Achieved:**
+- Root-caused turn-2 "200s retrieval" as **query-dependent, NOT multi-turn**: `anchored_retrieve` reranks ALL chunks of the top-N anchor docs uncapped; broad queries anchor to large TC circulars (308-chunk pool) → FlagReranker default batch=256 → 8 GB 3060Ti WDDM-pages → 292 s. Fix `RERANK_BATCH_SIZE` (default 32): live faithful repro 292 s→14 s, peak VRAM 8192→5468 MiB, identical scores. (First hypothesis "Ollama stays resident" was disproven by the GPU trace — kept measuring.)
+- Fixed multi-turn UI "starts a new chat": `on_ask` now carries the transcript forward with per-turn thought ids (avoids Gradio nesting); `_adopt_prior()` strips Gradio's `metadata=None` (was crashing `'NoneType'.get`).
+- Tests green offline (retrieve+hf_space+agent); +6 new. Both fixes live-verified by user (turn-2 ~26 s, both turns shown, no crash).
+**Left:** S41 highlight-draw bug (unchanged). P9 docs. User testing deployed HF Space.
+
 ## Session 41 — 2026-06-10 — fable-5
 **Commits:** `d666dc7`, `707eca8`, `a5d0063`
 **Achieved:**
