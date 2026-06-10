@@ -17,7 +17,7 @@ def test_retrieve_returns_ranked_chunks(make_client):
 def test_retrieve_lang_filter(make_client):
     client = make_client()
     r = client.post("/retrieve", json={
-        "query": "carburant", "lang": "fr", "top_k": 3, "ann_k": 3,
+        "query": "carburant", "lang": ["fr"], "top_k": 3, "ann_k": 3,
     })
     assert r.status_code == 200
     docs = [c["doc_id"] for c in r.json()["results"]]

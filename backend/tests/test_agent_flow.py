@@ -107,13 +107,13 @@ def test_query_stream_applies_source_filter(make_client):
     client = make_client()
 
     r_tc = client.post("/query/stream", json={
-        "query": "fuel", "thread_id": "tcf", "max_hops": 1, "source": "tc",
+        "query": "fuel", "thread_id": "tcf", "max_hops": 1, "source": ["tc"],
     })
     assert r_tc.status_code == 200, r_tc.text
     assert _sources_payload(r_tc.text) == [], "tc filter should exclude the tsb-only corpus"
 
     r_tsb = client.post("/query/stream", json={
-        "query": "fuel", "thread_id": "tsbf", "max_hops": 1, "source": "tsb",
+        "query": "fuel", "thread_id": "tsbf", "max_hops": 1, "source": ["tsb"],
     })
     assert r_tsb.status_code == 200, r_tsb.text
     assert _sources_payload(r_tsb.text), "tsb filter should keep the tsb corpus"
