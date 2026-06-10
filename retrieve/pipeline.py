@@ -35,8 +35,8 @@ def retrieve_and_rerank(
     collection: str,
     ann_k: int = DEFAULT_ANN_K,
     top_k: int = DEFAULT_TOP_K,
-    lang: list[str] | None = None,
-    source: list[str] | None = None,
+    lang: str | list[str] | None = None,
+    source: str | list[str] | None = None,
     exclude_hashes: list[str] | None = None,
 ) -> list[ScoredChunk]:
     """Embed ``query``, ANN-search the dense collection, rerank, return top-K.
@@ -72,8 +72,8 @@ def hybrid_retrieve_and_rerank(
     collection: str,
     ann_k: int = DEFAULT_ANN_K,
     top_k: int = DEFAULT_TOP_K,
-    lang: str | None = None,
-    source: list[str] | None = None,
+    lang: str | list[str] | None = None,
+    source: str | list[str] | None = None,
     exclude_hashes: list[str] | None = None,
     rrf_k: int = 60,
 ) -> list[ScoredChunk]:
@@ -139,8 +139,8 @@ def anchored_retrieve(
     top_k: int = DEFAULT_TOP_K,
     top_n_docs: int = DEFAULT_TOP_N_DOCS,
     char_budget: int = DEFAULT_CHAR_BUDGET,
-    lang: list[str] | None = None,
-    source: list[str] | None = None,
+    lang: str | list[str] | None = None,
+    source: str | list[str] | None = None,
     exclude_hashes: list[str] | None = None,
 ) -> list[ScoredChunk]:
     """Document-anchored retrieval.
@@ -173,11 +173,11 @@ def anchored_retrieve(
     # Without a lang filter, the synthesiser would receive a bilingual
     # mash. Fall back to the dominant lang of the top seed chunks so
     # "Any" means "stick with whichever language matched best", not "mix".
-    effective_lang = lang
-    if effective_lang is None:
-        effective_lang = seed[0].record.lang
-    if effective_lang is not None:
-        pool = [c for c in pool if c.record.lang == effective_lang]
+    effective_lang = [lang] if isinstance(lang, str) else lang
+    if effective_lang is None and seed[0].record.lang is not None:
+        effective_lang = [seed[0].record.lang]
+    if effective_lang:
+        pool = [c for c in pool if c.record.lang in effective_lang]
     if not pool:
         return seed
     ranked = rerank(query, pool, reranker)  # full pool, no top_k cap

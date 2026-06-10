@@ -30,12 +30,18 @@ logger = logging.getLogger(__name__)
 
 def _build_filter(
     *,
-    lang: list[str] | None,
-    source: list[str] | None,
+    lang: str | list[str] | None,
+    source: str | list[str] | None,
     exclude_hashes: list[str] | None = None,
 ) -> qm.Filter | None:
+    # A bare string is a single-value filter; without normalization it would
+    # be iterated char-by-char ("en" → "e", "n") and match nothing.
+    if isinstance(lang, str):
+        lang = [lang]
+    if isinstance(source, str):
+        source = [source]
     must: list[qm.Condition] = []
-    
+
     if lang is not None and len(lang) > 0:
         if len(lang) == 1:
             must.append(qm.FieldCondition(key="lang", match=qm.MatchValue(value=lang[0])))
@@ -74,8 +80,8 @@ def dense_search(
     query_vector: Sequence[float],
     *,
     k: int = 50,
-    lang: list[str] | None = None,
-    source: list[str] | None = None,
+    lang: str | list[str] | None = None,
+    source: str | list[str] | None = None,
     exclude_hashes: list[str] | None = None,
 ) -> list[ScoredChunk]:
     """Top-``k`` ANN over ``collection`` with optional payload filters."""
@@ -106,8 +112,8 @@ def sparse_search(
     query_values: list[float],
     *,
     k: int = 50,
-    lang: list[str] | None = None,
-    source: list[str] | None = None,
+    lang: str | list[str] | None = None,
+    source: str | list[str] | None = None,
     exclude_hashes: list[str] | None = None,
 ) -> list[ScoredChunk]:
     """Top-``k`` sparse ANN over the named "sparse" vector with optional filters.
