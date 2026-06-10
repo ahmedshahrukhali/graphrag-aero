@@ -139,9 +139,9 @@ services:
       QDRANT_HOST: "qdrant"
       NEO4J_URI: "bolt://neo4j:7687"
       OLLAMA_HOST: "http://ollama:11434"
-      # Keep the cross-encoder off the 8 GB GPU: co-residency with the fp16
-      # embedder + desktop VRAM oversubscribes and WDDM-pages (~85 s/passage).
-      RERANK_DEVICE: "cpu"
+      # Reranker runs on GPU in fp16 (~1.1 GB; locked VRAM plan) and unloads
+      # before generation. CPU rerank was tried 2026-06-10: minutes per query.
+      # Set RERANK_DEVICE=cpu only as an emergency fallback.
       # Synthesize prompts run >13k tokens; at 8192 Ollama drops the system
       # prompt (keep=4 head tokens) and qwen3:4b returns empty drafts.
       OLLAMA_NUM_CTX: "16384"

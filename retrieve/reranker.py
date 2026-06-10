@@ -65,9 +65,13 @@ class BGE_RerankerV2M3:
         if device is None:
             device = os.environ.get("RERANK_DEVICE") or None
         
-        # Disable fp16 globally to prevent the 'expected scalar type Float but found Half' PyTorch bug
-        # that occurs when model.half() is called inside FlagReranker on specific Transformers versions.
-        use_fp16 = False
+        # fp16 is required to fit the locked VRAM plan (~0.5 GB GPU reranker);
+        # it's only invalid on CPU. (A blanket use_fp16=False here previously
+        # forced fp32 — 2.24 GB — which oversubscribed the 8 GB card into WDDM
+        # paging at ~85 s/passage. The 'Float but found Half' bug it guarded
+        # against is stale per MANIFEST, from transformers circa 2026-05-27.)
+        if (device or "").lower() == "cpu":
+            use_fp16 = False
         
         logger.info("loading reranker (%s, fp16=%s, device=%s)", name, use_fp16, device or "auto")
         self._model = FlagReranker(name, use_fp16=use_fp16, devices=device)
