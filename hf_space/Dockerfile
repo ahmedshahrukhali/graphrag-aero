@@ -1,10 +1,11 @@
-# P8 HuggingFace Space image. The Space SDK is set to "docker" in the
-# README's YAML frontmatter; HF will build this Dockerfile and expose
-# port 7860. Locally, ``docker compose --profile hf-space up`` runs the
-# same image against the local backend.
+# Local-dev image for the `hf-space` compose service (CPU-only Gradio shell).
 #
-# Single-process, CPU-only — the Space loads NO ML models. All inference
-# goes to the FastAPI backend at $BACKEND_URL.
+# NOTE: this builds the LOCAL Gradio shell only — it is NOT what the HF Space runs.
+# The Space uses the gradio SDK (see hf_space/space_root/README.md) and is deployed
+# via scripts/deploy_space.ps1 (HfApi upload). ``docker compose --profile hf-space up``
+# builds this image to reproduce the Space UI against the local backend. Never deployed.
+#
+# Single-process, CPU-only — loads NO ML models. All inference goes to $BACKEND_URL.
 
 FROM python:3.11-slim AS base
 

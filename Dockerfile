@@ -1,10 +1,12 @@
-# P8 HuggingFace Space image. The Space SDK is set to "docker" in the
-# README's YAML frontmatter; HF will build this Dockerfile and expose
-# port 7860. Locally, ``docker compose --profile hf-space up`` runs the
-# same image against the local backend.
+# LEGACY — build file for the old docker-SDK HF Space (now retired).
 #
-# Single-process, CPU-only — the Space loads NO ML models. All inference
-# goes to the FastAPI backend at $BACKEND_URL.
+# The HF Space migrated to the **gradio SDK** (see hf_space/space_root/README.md)
+# and is deployed via scripts/deploy_space.ps1 (HfApi upload — not a Docker build),
+# so this root Dockerfile no longer runs anywhere: no compose service references it
+# (the local `hf-space` service builds hf_space/Dockerfile), and it is never in the
+# deploy whitelist. Kept for reference/history; safe to remove.
+#
+# Single-process, CPU-only — loads NO ML models. All inference goes to $BACKEND_URL.
 
 FROM python:3.11-slim AS base
 
