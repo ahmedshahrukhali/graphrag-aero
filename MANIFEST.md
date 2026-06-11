@@ -401,11 +401,21 @@ Space boot download? (anchored retrieval uses dense only; sparse is a follow-up)
 backend health every request instead of trusting the in-memory `is_awake` flag (fixed
 tray/manual start-stop desync). Needs a wake_proxy process restart (host) to take effect.
 
-**Resume pointer:** `S44` ☑ (artifacts built + parity-verified, not uploaded). **Next: S45 —
-in-Space engine** (`hf_space/graph_local.py` + `hf_space/zerogpu_engine.py`, offline-testable;
-pure-Python port of `recurring_context_for_occurrences`). Pause for review per per-phase HITL.
-(Deferred, still open: `P9` docs refresh — README/ARCHITECTURE/DEPLOYMENT drifted from qwen3:4b +
-HF fallback + `RERANK_BATCH_SIZE` + multi-turn; do after the ZeroGPU track or as filler.)
+**Resume pointer:** `S45` repo-side ☑ (by opus-4.8, `d9bfc7c` + deploy-auth fix) — gradio-SDK
+`hf_space/space_root/` (guarded `import spaces` shim → `hf_space.app:main`; thin
+`-r hf_space/requirements.txt`; README `sdk: gradio`, `sdk_version 5.49.1`, `app_file app.py`,
+py3.12). `scripts/deploy_space.ps1` rewritten git-force-push → `HfApi.upload_folder` (staged
+whitelist, no git client/force). Both Dockerfile headers corrected (root = retired docker-SDK
+Space build, orphaned; `hf_space/Dockerfile` = local `hf-space` image). `huggingface` git remote
++ `main` upstream removed. Space already recreated by user (gradio, NO_APP_FILE, `zero-a10g`).
+**⛔ BLOCKED on user — live public deploy:** auto-mode classifier blocks the agent from publishing
+to the public Space (twice). **User runs:** `scripts\deploy_space.ps1` (already `hf auth`'d as
+ahmedsali; needs WRITE scope — `hf auth login` with the new token if it 403s). Then I live-verify
+RUNNING + chat. **Also fix the `BACKEND_URL` secret typo:** `.loca.it` → `https://graphrag-aero-cocko.loca.lt`.
+**Next after deploy: S46 — in-Space engine** (`hf_space/graph_local.py` + `hf_space/zerogpu_engine.py`,
+offline-testable; pure-Python port of `recurring_context_for_occurrences`), then S47 toggle/fallback,
+S48 ZeroGPU deploy. `S44b` artifact upload (HF_TOKEN) still pending.
+(Deferred: `P9` docs refresh — README/ARCHITECTURE/DEPLOYMENT drift.)
 
 **Queued for Haiku (mechanical, no logic authoring).** Run top-to-bottom — each block depends on the previous.
 

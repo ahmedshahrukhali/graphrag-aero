@@ -27,9 +27,9 @@ $ErrorActionPreference = "Stop"
 $spaceId = "ahmedsali/graphaero-rag"
 $repo = (git rev-parse --show-toplevel).Trim()
 
-if (-not $DryRun -and -not $env:HF_TOKEN) {
-    throw "HF_TOKEN env var not set (write token required for the HfApi upload)."
-}
+# Auth: HfApi resolves the write token from $env:HF_TOKEN OR a cached `hf auth
+# login`. We never put the token on a command line (it would leak into shell
+# history / logs). Run `hf auth login` once, or set HF_TOKEN in your own shell.
 
 $staging = Join-Path ([IO.Path]::GetTempPath()) ("space_deploy_" + [IO.Path]::GetRandomFileName())
 $helper  = Join-Path ([IO.Path]::GetTempPath()) ("space_upload_" + [IO.Path]::GetRandomFileName() + ".py")
@@ -67,7 +67,8 @@ try {
     @'
 import os, sys
 from huggingface_hub import HfApi
-api = HfApi(token=os.environ["HF_TOKEN"])
+# token=None -> huggingface_hub uses $HF_TOKEN or the cached `hf auth login`.
+api = HfApi(token=os.environ.get("HF_TOKEN"))
 info = api.upload_folder(
     repo_id="ahmedsali/graphaero-rag",
     repo_type="space",

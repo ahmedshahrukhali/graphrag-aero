@@ -4,6 +4,15 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 
 ---
 
+## Session 45 — 2026-06-11 — opus-4.8
+**Commits:** `d9bfc7c`, (this wrap)
+**Achieved:**
+- **S45 repo-side (PLAN_ZEROGPU thin shell):** new `hf_space/space_root/` — guarded `import spaces` shim → `hf_space.app:main`; thin `-r hf_space/requirements.txt`; README `sdk: gradio`, `sdk_version 5.49.1` (latest stable 5.x; our pin caps `<6`; template defaulted to 6.17.3), `app_file app.py`, py3.12. User had already recreated the Space (gradio, NO_APP_FILE, `zero-a10g` requested) + rotated the token.
+- **Deploy doctrine:** rewrote `scripts/deploy_space.ps1` git-force-push → `HfApi.upload_folder` over a staged whitelist (26 files; guard rejects tunnel tooling/Dockerfile/.env; dry-run clean). Auth via cached `hf` login / `HF_TOKEN` env — never inline. Removed `huggingface` git remote + `main` upstream.
+- **Corrected a plan assumption (grounding):** root `Dockerfile` is the *retired* docker-SDK Space build — orphaned, **no compose service references it**; `hf_space/Dockerfile` is the local `hf-space` image. Fixed both stale "sdk: docker" headers.
+- 64 passed, 1 skipped (hf_space).
+**Left:** **Live deploy is user-gated** — the auto-mode classifier blocked the agent from publishing to the public Space (twice, even with cached auth + plan approval). User runs `scripts\deploy_space.ps1` (write-scope token), then I live-verify RUNNING + chat. Fix `BACKEND_URL` typo `.loca.it`→`.loca.lt`. Then S46 in-Space engine; S44b artifact upload still pending.
+
 ## Session 44 — 2026-06-11 — opus-4.8
 **Commits:** (pending — not yet committed)
 **Achieved:**
