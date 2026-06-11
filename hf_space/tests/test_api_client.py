@@ -83,6 +83,30 @@ def test_non_2xx_raises_apierror_with_detail():
     assert exc_info.value.detail == {"detail": "ann_k must be >= top_k"}
 
 
+def test_read_timeout_becomes_apierror_504():
+    """A transport read timeout must surface as ApiError, not a raw httpx
+    exception — otherwise it bypasses every `except ApiError` handler and
+    crashes the Gradio event loop (corpus_tab.do_search regression)."""
+    def handler(req: httpx.Request) -> httpx.Response:
+        raise httpx.ReadTimeout("read timed out", request=req)
+
+    api = make_client("http://api.test", transport=httpx.MockTransport(handler))
+    with pytest.raises(ApiError) as exc_info:
+        api.retrieve("q")
+    assert exc_info.value.status == 504
+
+
+def test_connect_error_becomes_apierror_503():
+    """Tunnel drops / refused connections surface as ApiError(503)."""
+    def handler(req: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("connection refused", request=req)
+
+    api = make_client("http://api.test", transport=httpx.MockTransport(handler))
+    with pytest.raises(ApiError) as exc_info:
+        api.retrieve("q")
+    assert exc_info.value.status == 503
+
+
 def test_healthz_uses_get_and_parses_components():
     def handler(req: httpx.Request) -> httpx.Response:
         assert req.method == "GET"

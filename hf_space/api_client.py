@@ -17,6 +17,10 @@ import httpx
 
 DEFAULT_BACKEND_URL = "http://localhost:8080"
 DEFAULT_TIMEOUT = 60.0
+# Read timeout for non-stream calls (e.g. /retrieve). The reranker can cold-load
+# under VRAM contention, and the loca.lt tunnel adds a hop, so give the body a
+# more generous budget than connect. Override via BACKEND_READ_TIMEOUT.
+DEFAULT_READ_TIMEOUT = 120.0
 
 
 class ApiError(RuntimeError):
@@ -144,15 +148,28 @@ class HealthResponse:
 class ApiClient:
     base_url: str = field(default_factory=lambda: os.environ.get("BACKEND_URL", DEFAULT_BACKEND_URL))
     timeout: float = DEFAULT_TIMEOUT
+    read_timeout: float = field(
+        default_factory=lambda: float(os.environ.get("BACKEND_READ_TIMEOUT", DEFAULT_READ_TIMEOUT))
+    )
     client: httpx.Client | None = None
 
     def _http(self) -> httpx.Client:
         if self.client is None:
-            self.client = httpx.Client(base_url=self.base_url, timeout=self.timeout)
+            # connect/write/pool from `timeout`; read gets the more generous
+            # `read_timeout` so a cold reranker doesn't trip a false timeout.
+            timeout = httpx.Timeout(self.timeout, read=self.read_timeout)
+            self.client = httpx.Client(base_url=self.base_url, timeout=timeout)
         return self.client
 
     def _request(self, method: str, path: str, json: dict | None = None) -> dict:
-        r = self._http().request(method, path, json=json)
+        try:
+            r = self._http().request(method, path, json=json)
+        except httpx.TimeoutException as e:
+            raise ApiError(504, f"{method} {path} → backend timed out", str(e)) from e
+        except httpx.RequestError as e:
+            raise ApiError(
+                503, f"{method} {path} → backend unreachable ({type(e).__name__})", str(e)
+            ) from e
         if r.status_code // 100 != 2:
             detail: Any = None
             try:
@@ -207,30 +224,37 @@ class ApiClient:
         # short timeout that doesn't suit long generations.
         timeout = httpx.Timeout(self.timeout, read=None)
         with httpx.Client(base_url=self.base_url, timeout=timeout) as c:
-            with c.stream("POST", "/query/stream", json=body) as r:
-                if r.status_code // 100 != 2:
-                    try:
-                        detail = r.read().decode("utf-8", errors="replace")
-                    except Exception:  # noqa: BLE001
-                        detail = None
-                    raise ApiError(r.status_code, f"POST /query/stream → {r.status_code}", detail)
-                event: str | None = None
-                data_buf: list[str] = []
-                for raw in r.iter_lines():
-                    if raw is None:
-                        continue
-                    if raw == "":
-                        if event and data_buf:
-                            try:
-                                yield {"event": event, "data": json.loads("\n".join(data_buf))}
-                            except json.JSONDecodeError:
-                                pass
-                        event, data_buf = None, []
-                        continue
-                    if raw.startswith("event:"):
-                        event = raw[len("event:"):].strip()
-                    elif raw.startswith("data:"):
-                        data_buf.append(raw[len("data:"):].lstrip())
+            try:
+                with c.stream("POST", "/query/stream", json=body) as r:
+                    if r.status_code // 100 != 2:
+                        try:
+                            detail = r.read().decode("utf-8", errors="replace")
+                        except Exception:  # noqa: BLE001
+                            detail = None
+                        raise ApiError(r.status_code, f"POST /query/stream → {r.status_code}", detail)
+                    event: str | None = None
+                    data_buf: list[str] = []
+                    for raw in r.iter_lines():
+                        if raw is None:
+                            continue
+                        if raw == "":
+                            if event and data_buf:
+                                try:
+                                    yield {"event": event, "data": json.loads("\n".join(data_buf))}
+                                except json.JSONDecodeError:
+                                    pass
+                            event, data_buf = None, []
+                            continue
+                        if raw.startswith("event:"):
+                            event = raw[len("event:"):].strip()
+                        elif raw.startswith("data:"):
+                            data_buf.append(raw[len("data:"):].lstrip())
+            except httpx.TimeoutException as e:
+                raise ApiError(504, "POST /query/stream → backend timed out", str(e)) from e
+            except httpx.RequestError as e:
+                raise ApiError(
+                    503, f"POST /query/stream → backend unreachable ({type(e).__name__})", str(e)
+                ) from e
 
     def resume(self, thread_id: str, *, draft: str | None = None) -> ResumeResponse:
         body: dict = {} if draft is None else {"draft": draft}
