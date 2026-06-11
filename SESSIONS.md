@@ -4,6 +4,14 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 
 ---
 
+## Session 44 — 2026-06-11 — opus-4.8
+**Commits:** (pending — not yet committed)
+**Achieved:**
+- **S44 ZeroGPU artifact export** — new `scripts/export_space_artifacts.py`. Live vs Docker stack: copied all **77,179** pts (dense+named-sparse, verbatim id/vector/payload) into a qdrant-client local-mode dir → exact count parity (local==server). Dumped `graph_context.json` (1,199 occ, reuses live traversal) + `cites_edges.json` (877 edges / 409 regs / 367 occ; S45 port inputs). Built-in parity (5 multilingual q, server-HNSW vs local-exact top-10): **4/5 byte-identical, 1 boundary swap → PASS**. Artifacts in `data/space_index/v1/` (tar **764 MB**). NOT uploaded.
+- Caught+fixed a set-vs-multiset bug in my **own** parity metric (first run falsely flagged `parity_ok=False`; the exported data was always faithful — count parity + byte-identical top-10 prove it).
+- Hardened `scripts/wake_proxy.py`: `ensure_awake` now verifies real backend health each request instead of trusting the in-memory `is_awake` flag (fixes tray/manual start-stop desync). Needs a wake_proxy process restart (host) to take effect.
+**Left:** GATED before S45 — (a) upload artifacts to dataset repo `space_index/v1/` (764 MB; not the live Space); (b) dense-only re-export to shrink the Space boot download? Then **S45 in-Space engine** (`graph_local.py` + `zerogpu_engine.py`). Commit S44 + wake_proxy (force-add the gitignored script; `Model: opus-4.8`).
+
 ## Session 43 — 2026-06-10 — fable-5
 **Commits:** `bc61f7a`, `ea08b10`, `de62c19`
 **Achieved:**

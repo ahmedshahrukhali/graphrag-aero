@@ -36,28 +36,41 @@ async def check_backend_healthy() -> bool:
         return False
 
 async def ensure_awake():
-    """Ensure the Docker containers are running before forwarding."""
+    """Ensure the backend is actually reachable before forwarding.
+
+    Verifies *real* backend health every request rather than trusting the
+    in-memory ``is_awake`` flag. That flag drifts out of sync whenever the
+    stack is started/stopped out of band — e.g. via the tray controller or a
+    container crash — which previously left the proxy forwarding to a dead
+    backend (flag says awake, containers aren't) or needlessly re-running
+    ``docker compose up`` (flag says asleep, containers are up). A health probe
+    against localhost:8081 is cheap (fast ConnectError when down), so it's the
+    authoritative signal.
+    """
     global is_awake
-    if not is_awake:
-        logger.info("Containers are asleep. Waking them up...")
-        # Start the backend and hf-space explicitly (brings up all default services)
-        subprocess.run(
-            ["docker", "compose", "up", "-d"], 
-            cwd=DOCKER_CWD, 
-            check=False
-        )
-        
-        # Wait for the backend to be healthy
-        logger.info("Waiting for backend to become healthy...")
-        for i in range(60):
-            if await check_backend_healthy():
-                logger.info("Backend is fully awake and ready!")
-                is_awake = True
-                return
-            await asyncio.sleep(1)
-        
-        logger.warning("Backend did not become healthy within 60 seconds. Proceeding anyway...")
+    if await check_backend_healthy():
         is_awake = True
+        return
+
+    logger.info("Backend not healthy. Waking containers up...")
+    # Start the backend and hf-space explicitly (brings up all default services)
+    subprocess.run(
+        ["docker", "compose", "up", "-d"],
+        cwd=DOCKER_CWD,
+        check=False,
+    )
+
+    # Wait for the backend to become healthy
+    logger.info("Waiting for backend to become healthy...")
+    for i in range(60):
+        if await check_backend_healthy():
+            logger.info("Backend is fully awake and ready!")
+            is_awake = True
+            return
+        await asyncio.sleep(1)
+
+    logger.warning("Backend did not become healthy within 60 seconds. Proceeding anyway...")
+    is_awake = True
 
 async def sleep_monitor():
     """Background task to stop containers after inactivity."""

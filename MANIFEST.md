@@ -378,7 +378,34 @@ the hop. Stack **stopped** this session to free CPU/RAM — resume with
 
 **S42 (2026-06-10, opus-4.8) DONE:** multi-turn chat now persists across turns in the UI (`on_ask` carries the transcript; `_adopt_prior` survives Gradio's `metadata=None`); retrieval no longer WDDM-pages on broad queries (`RERANK_BATCH_SIZE`, default 32, bounds the anchored-pool rerank — 292 s→14 s). Both live-verified. See SESSIONS S42.
 
-**Resume pointer:** `S41` ✅ RESOLVED (vision-verified, S42 — see top of file). **Next: refresh `P9` docs** — `README.md` / `docs/ARCHITECTURE.md` / `docs/DEPLOYMENT.md` are ☑ but drifted from as-built reality (predate qwen3:4b generation, the dual-backend HF-Inference fallback, `RERANK_BATCH_SIZE`, and multi-turn chat). Update them to match.
+**═══ ACTIVE TRACK: ZeroGPU self-contained Space (S44–S47) ═══**
+Plan: toggle (default ON) runs the full Ask pipeline in-Space on ZeroGPU (Qwen3-14B),
+falling back to the local backend when quota's out / toggle OFF. New Space `graphrag-aero`
+(old `ahmedsali/graphaero-rag` will point to it); existing demo stays untouched until proven.
+
+**☑ S44 DONE (build+verify, opus-4.8, 2026-06-11) — artifacts NOT yet uploaded.**
+New `scripts/export_space_artifacts.py` (gitignored dir → force-add at commit). Live run vs
+Docker stack: copied all **77,179** points (dense+named-sparse, verbatim id/vector/payload)
+into a qdrant-client local-mode dir — **exact count parity (local==server==77,179)**. Dumped
+`graph_context.json` (1,199 occ, reuses live `graph_context_for_occurrences`) + `cites_edges.json`
+(877 edges, 409 regs, 367 occ — inputs for the S45 recurring-context port). Built-in parity
+check (5 multilingual queries, server-HNSW vs local-exact top-10): **4/5 byte-identical, 1 single
+boundary swap** → PASS. (First run's `parity_ok=False` was a set-vs-multiset bug in my own metric,
+not the export — fixed; data was always faithful.) Artifacts in `data/space_index/v1/`:
+`qdrant_local.tar.gz` **764 MB**, graph_context 6 MB, cites_edges 0.07 MB.
+⮕ **GATED decisions before S45:** (a) upload to dataset repo `ahmedsali/graphaero-corpus`
+`space_index/v1/` (764 MB; safe — NOT the live Space); (b) dense-only re-export to shrink the
+Space boot download? (anchored retrieval uses dense only; sparse is a follow-up).
+
+**Also this session:** hardened `scripts/wake_proxy.py` — `ensure_awake` now verifies real
+backend health every request instead of trusting the in-memory `is_awake` flag (fixed
+tray/manual start-stop desync). Needs a wake_proxy process restart (host) to take effect.
+
+**Resume pointer:** `S44` ☑ (artifacts built + parity-verified, not uploaded). **Next: S45 —
+in-Space engine** (`hf_space/graph_local.py` + `hf_space/zerogpu_engine.py`, offline-testable;
+pure-Python port of `recurring_context_for_occurrences`). Pause for review per per-phase HITL.
+(Deferred, still open: `P9` docs refresh — README/ARCHITECTURE/DEPLOYMENT drifted from qwen3:4b +
+HF fallback + `RERANK_BATCH_SIZE` + multi-turn; do after the ZeroGPU track or as filler.)
 
 **Queued for Haiku (mechanical, no logic authoring).** Run top-to-bottom — each block depends on the previous.
 
