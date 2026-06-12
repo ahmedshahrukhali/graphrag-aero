@@ -10,9 +10,11 @@
 #   - Any HF acknowledgement / terms error → resolve in the web UI, re-run this script.
 #     Never escalate to force.
 #
-# Whitelist (S45 thin shell):
+# Whitelist (S45 thin shell + S49 engine closure):
 #   hf_space/space_root/*  -> staging ROOT   (README.md, app.py, requirements.txt)
 #   hf_space/              -> staging/hf_space  (minus __pycache__ and space_root)
+#   engine module closure  -> staging/{embed,retrieve,agent}/  (explicit .py list below —
+#     zerogpu_engine.py imports these; whole dirs are NOT staged)
 # NEVER staged: tunnel tooling (run_localtunnel.bat, wake_proxy.py, ecosystem.config.js,
 #   scripts/tray), root Dockerfile, scripts/, data/, .env, other phases' tests.
 #
@@ -61,6 +63,21 @@ try {
     # The gradio SDK ignores Dockerfiles; never ship one (deploy doctrine).
     Remove-Item -Path (Join-Path $dst "Dockerfile") -Force -ErrorAction SilentlyContinue
 
+    # S49: zerogpu_engine.py imports first-party modules. Stage the minimal import
+    # closure only — explicit files, never whole dirs (tests + other phases stay home).
+    $engineClosure = @(
+        "embed\__init__.py", "embed\bge_m3.py", "embed\ids.py", "embed\jsonl.py", "embed\qdrant.py",
+        "retrieve\__init__.py", "retrieve\pipeline.py", "retrieve\reranker.py", "retrieve\search.py",
+        "agent\__init__.py", "agent\prompts.py", "agent\state.py"
+    )
+    foreach ($rel in $engineClosure) {
+        $srcFile = Join-Path $repo $rel
+        if (-not (Test-Path $srcFile)) { throw "Engine closure file missing: '$rel'" }
+        $dstFile = Join-Path $staging $rel
+        New-Item -ItemType Directory -Force -Path (Split-Path $dstFile) | Out-Null
+        Copy-Item -Path $srcFile -Destination $dstFile -Force
+    }
+
     # Guard: assert no forbidden artifact slipped into the whitelist.
     $forbidden = @("run_localtunnel", "wake_proxy", "ecosystem.config", "\.env$",
                    "[/\\]Dockerfile$", "[/\\]tray[/\\]")
@@ -92,7 +109,7 @@ info = api.upload_folder(
     repo_id="ahmedsali/graphaero-rag",
     repo_type="space",
     folder_path=sys.argv[1],
-    commit_message="deploy: thin Gradio shell (S45) via HfApi",
+    commit_message="deploy: ZeroGPU engine deps + first-party closure (S49)",
     delete_patterns=["*"],
 )
 print("upload OK:", getattr(info, "commit_url", info))

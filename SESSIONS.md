@@ -4,6 +4,15 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 
 ---
 
+## Session 47 — 2026-06-12 — fable-5
+**Commits:** (this wrap)
+**Achieved:**
+- **S49 ZeroGPU hotfix:** live Space died `ModuleNotFoundError: qdrant_client` on first offline query. Root cause = S48 skipped both halves of its own deploy plan: heavy pip block never appended (`space_root/requirements.txt` still said "S48 — NOT yet") AND whitelist never shipped the engine's first-party imports (`embed/retrieve/agent` — the next crash one line later).
+- Fix: heavy block appended (qdrant-client, FlagEmbedding, transformers>=4.51,<5, accelerate; torch/spaces ZeroGPU-injected); `deploy_space.ps1` stages an explicit 12-file import closure. Dry-run verified (42 files staged).
+- `.gitignore` `data/space_index/` line was UTF-16-appended (NUL bytes = dead pattern, 764 MB dir showed untracked) → rewritten UTF-8.
+- User redeployed + confirmed: **Space answers fully offline on ZeroGPU.** Active track S44–S49 complete.
+**Left:** nothing on this track. Toggle-OFF backend fallback still depends on host pm2 tunnel processes.
+
 ## Session 46 — 2026-06-11 — antigravity
 **Commits:** (this wrap)
 **Achieved:**

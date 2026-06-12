@@ -6,7 +6,16 @@
 # at stage time (expands the `-r` line into hf_space/requirements.txt's contents), so
 # the deployed file is self-contained while staying single-sourced.
 #
-# The heavy ZeroGPU block (transformers, accelerate, FlagEmbedding, qdrant-client;
-# spaces + torch are auto-injected by HF on ZeroGPU hardware) is appended here in
-# S48 — NOT yet.
+# The heavy ZeroGPU block lives below the `-r` line (S49 — S48 deployed the engine
+# but forgot this block → ModuleNotFoundError: qdrant_client on the live Space).
+# spaces + torch are auto-injected by HF on ZeroGPU hardware — do NOT pin torch here.
 -r hf_space/requirements.txt
+
+# --- ZeroGPU offline engine (hf_space/zerogpu_engine.py) ---
+# Pins mirror embed/requirements.txt + retrieve/requirements.txt (proven locally).
+qdrant-client>=1.7,<2
+FlagEmbedding>=1.2.5,<2
+# Qwen3 support needs >=4.51; transformers 5.x breaks BGE-M3 (see embed/requirements.txt).
+transformers>=4.51,<5
+# device_map="auto" in zerogpu_engine._load_models requires accelerate.
+accelerate>=0.26
