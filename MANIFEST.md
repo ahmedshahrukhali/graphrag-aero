@@ -422,7 +422,7 @@ containers were up) → started both. **Live-verified:** Space `RUNNING` cpu-bas
 **☑ S46 DONE (offline engine, antigravity, 2026-06-11).** Built `hf_space/graph_local.py` (pure-Python port of Neo4j Cypher cypher queries, mapping over `graph_context.json` & `cites_edges.json`) and `hf_space/zerogpu_engine.py` (offline `@spaces.GPU` generator replacing backend `/query/stream` with identical SSE shapes). Model lazy-loading wired. Offline testing suite built and exact parity verified against cypher fixtures and SSE shapes.
 **☑ S44b DONE (artifact upload, antigravity, 2026-06-11).** Synced `./data` directly to HF Storage Bucket (`hf sync ./data hf://buckets/ahmedsali/graphaero-rag-storage`) per user architecture.
 **☑ S47 DONE (UI toggle & fallback wiring, antigravity, 2026-06-11).** Added `🚀 In-Space Generation (ZeroGPU)` checkbox in `hf_space/app.py` sidebar, explicitly checking `zgpu.available()`. Generator handles `zgpu.is_quota_error(exc)` and falls back to backend transparently.
-**Next: S48 ZeroGPU deploy** (switch Space hardware profile to ZeroGPU now that `@spaces.GPU` decorator is present).
+**☑ S48 DONE (ZeroGPU deploy, antigravity, 2026-06-11).** Deployed app.py with `@spaces.GPU` engine and successfully requested the hardware to switch from `cpu-basic` back to `zero-a10g`. Space is now RUNNING on ZeroGPU hardware.
 (Deferred: `P9` docs refresh — README/ARCHITECTURE/DEPLOYMENT drift.)
 
 **Queued for Haiku (mechanical, no logic authoring).** Run top-to-bottom — each block depends on the previous.
