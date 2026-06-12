@@ -38,6 +38,20 @@ try {
     # space_root/* -> staging root (README.md, app.py, requirements.txt)
     Copy-Item -Path (Join-Path $repo "hf_space\space_root\*") -Destination $staging -Recurse -Force
 
+    # HF's gradio build mounts ONLY the root requirements.txt (source=requirements.txt);
+    # the repo tree is absent at pip time, so a nested `-r hf_space/requirements.txt`
+    # fails ("No such file: /tmp/hf_space/requirements.txt"). Flatten it: expand that
+    # line into the canonical shared file's contents — self-contained deploy file, one
+    # source of truth (hf_space/requirements.txt).
+    $reqPath = Join-Path $staging "requirements.txt"
+    if (Test-Path $reqPath) {
+        $shared = Get-Content (Join-Path $repo "hf_space\requirements.txt")
+        $flat = foreach ($line in Get-Content $reqPath) {
+            if ($line -match '^\s*-r\s+hf_space/requirements\.txt\s*$') { $shared } else { $line }
+        }
+        Set-Content -Path $reqPath -Value $flat -Encoding utf8
+    }
+
     # hf_space/ -> staging\hf_space, then strip __pycache__ and the nested space_root copy
     $dst = Join-Path $staging "hf_space"
     Copy-Item -Path (Join-Path $repo "hf_space") -Destination $dst -Recurse -Force
@@ -61,7 +75,12 @@ try {
     Write-Host "Staged $($staged.Count) files for $spaceId :"
     $staged | Sort-Object | ForEach-Object { Write-Host "  $_" }
 
-    if ($DryRun) { Write-Host "`n[DryRun] No upload performed."; return }
+    if ($DryRun) {
+        Write-Host "`n--- staged requirements.txt (flattened) ---"
+        Get-Content $reqPath | ForEach-Object { Write-Host "  $_" }
+        Write-Host "`n[DryRun] No upload performed."
+        return
+    }
 
     # Upload via HfApi (token from env; never embedded anywhere).
     @'

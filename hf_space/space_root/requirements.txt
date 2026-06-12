@@ -1,10 +1,12 @@
 # HF Space root requirements (gradio SDK installs these atop the pinned sdk_version).
 #
-# Thin shell: just the shared hf_space deps — single source of truth, no gradio
-# drift vs. the local compose `hf-space` container. pip resolves the nested `-r`
-# relative to THIS file's dir, i.e. the deployed staging root, where `hf_space/`
-# is present.
+# Thin shell: the shared hf_space deps. Canonical source = hf_space/requirements.txt.
+# NOTE: HF's gradio build mounts ONLY this root requirements.txt (not the repo tree),
+# so the `-r` below CANNOT resolve at build time. scripts/deploy_space.ps1 FLATTENS it
+# at stage time (expands the `-r` line into hf_space/requirements.txt's contents), so
+# the deployed file is self-contained while staying single-sourced.
 #
-# The heavy ZeroGPU block (spaces, torch, transformers, accelerate, FlagEmbedding,
-# qdrant-client) is appended here in S48 — NOT yet.
+# The heavy ZeroGPU block (transformers, accelerate, FlagEmbedding, qdrant-client;
+# spaces + torch are auto-injected by HF on ZeroGPU hardware) is appended here in
+# S48 — NOT yet.
 -r hf_space/requirements.txt
