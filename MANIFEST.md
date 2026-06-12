@@ -419,10 +419,8 @@ containers were up) → started both. **Live-verified:** Space `RUNNING` cpu-bas
 (gradio 5.49.1); tunnel `/healthz` all-green; `POST /query/stream` streams `status`→`sources`
 (a03q0109, page+bbox) end-to-end. `BACKEND_URL` corrected to `https://graphrag-aero-cocko.loca.lt`.
 (Demo depends on the host tunnel staying up — pm2 `localtunnel`+`wake-proxy`.)
-**Next after deploy: S46 — in-Space engine** (`hf_space/graph_local.py` + `hf_space/zerogpu_engine.py`,
-offline-testable; pure-Python port of `recurring_context_for_occurrences` — artifact shapes confirmed:
-`graph_context.json` = `{occ_id:row}`, `cites_edges.json` = `{occ_cites,reg_occs,occ_url}`; `doc_lookup`
-mirrors backend `/graph/{doc_id}` = one prefix-stripped row). Then S47 toggle/fallback, S48 ZeroGPU
+**☑ S46 DONE (offline engine, antigravity, 2026-06-11).** Built `hf_space/graph_local.py` (pure-Python port of Neo4j Cypher cypher queries, mapping over `graph_context.json` & `cites_edges.json`) and `hf_space/zerogpu_engine.py` (offline `@spaces.GPU` generator replacing backend `/query/stream` with identical SSE shapes). Model lazy-loading wired. Offline testing suite built and exact parity verified against cypher fixtures and SSE shapes.
+**Next: S47 toggle/fallback** (connect engine to Gradio sidebar toggle, fallback on quota error), S48 ZeroGPU
 deploy (adds the `@spaces.GPU` engine → ZeroGPU becomes valid). `S44b` artifact upload (HF_TOKEN) pending.
 (Deferred: `P9` docs refresh — README/ARCHITECTURE/DEPLOYMENT drift.)
 

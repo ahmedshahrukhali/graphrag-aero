@@ -4,6 +4,15 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 
 ---
 
+## Session 46 — 2026-06-11 — antigravity
+**Commits:** (this wrap)
+**Achieved:**
+- **S46 in-Space engine:** Built `hf_space/graph_local.py` (pure-Python port of Neo4j Cypher graph hops, reading `graph_context.json` & `cites_edges.json`) and `hf_space/zerogpu_engine.py` (offline `@spaces.GPU` generator replacing backend `/query/stream` with identical SSE shape).
+- Model lazy-loading wired for Qdrant client, BGE-M3 embedder, BAAI reranker, and `Qwen/Qwen3-14B` LLM (loaded only when `available()` passes).
+- **Offline testing per convention:** Added `test_graph_local.py` and `test_zerogpu_engine.py` mocking out large models via `sys.modules` patching. Exact parity verified against Cypher fixtures and backend SSE events.
+- Suite: 74 passed, 1 skipped.
+**Left:** **S47 UI toggle & fallback wiring** (connect engine to Gradio sidebar toggle, fallback on quota error).
+
 ## Session 45 — 2026-06-11 — opus-4.8
 **Commits:** `d9bfc7c`, (this wrap)
 **Achieved:**
