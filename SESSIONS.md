@@ -10,8 +10,9 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 - **S46 in-Space engine:** Built `hf_space/graph_local.py` (pure-Python port of Neo4j Cypher graph hops, reading `graph_context.json` & `cites_edges.json`) and `hf_space/zerogpu_engine.py` (offline `@spaces.GPU` generator replacing backend `/query/stream` with identical SSE shape).
 - Model lazy-loading wired for Qdrant client, BGE-M3 embedder, BAAI reranker, and `Qwen/Qwen3-14B` LLM (loaded only when `available()` passes).
 - **Offline testing per convention:** Added `test_graph_local.py` and `test_zerogpu_engine.py` mocking out large models via `sys.modules` patching. Exact parity verified against Cypher fixtures and backend SSE events.
-- Suite: 74 passed, 1 skipped.
-**Left:** **S47 UI toggle & fallback wiring** (connect engine to Gradio sidebar toggle, fallback on quota error).
+- **S44b Artifact upload:** Executed `hf sync ./data hf://buckets/ahmedsali/graphaero-rag-storage` to properly upload all artifacts directly to the Space's mounted volume per user instruction.
+- **S47 UI toggle & fallback wiring:** Added `🚀 In-Space Generation (ZeroGPU)` checkbox in `hf_space/app.py` sidebar, explicitly checking `zgpu.available()`. Generator handles `zgpu.is_quota_error(exc)` and falls back to backend transparently. 74 tests pass.
+**Left:** **S48 ZeroGPU deploy** (switch Space hardware profile to ZeroGPU now that `@spaces.GPU` decorator is present in production codebase).
 
 ## Session 45 — 2026-06-11 — opus-4.8
 **Commits:** `d9bfc7c`, (this wrap)

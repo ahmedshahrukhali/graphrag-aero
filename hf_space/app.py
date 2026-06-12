@@ -29,6 +29,7 @@ import gradio as gr
 from hf_space.api_client import ApiClient, ApiError, RetrievedChunk, RetrieveResponse, make_client
 from hf_space.pdf_render import PdfRenderError, render_page_with_bbox
 from hf_space import corpus_tab, graph_tab, eval_tab, embedding_tab, about_tab
+import hf_space.zerogpu_engine as zgpu
 
 
 logger = logging.getLogger(__name__)
@@ -511,6 +512,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
         source_v: str,
         max_hops_v: int,
         show_bbox_v: bool,
+        use_zgpu_v: bool,
         history: list[dict] | None,
         sess: dict,
         artifacts: dict,
@@ -567,12 +569,30 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
         sources_done = False
         artifacts = dict(artifacts)
 
-        try:
-            for ev in client.query_stream(
+        def _do_stream():
+            if use_zgpu_v and zgpu.available():
+                try:
+                    for e in zgpu.answer_stream(
+                        q, lang=_lang_param(lang_v), source=_source_param(source_v), history=api_history
+                    ):
+                        yield e
+                    return
+                except Exception as e:
+                    if zgpu.is_quota_error(e):
+                        logger.warning("ZeroGPU quota error, falling back to local backend: %s", e)
+                        yield {"event": "status", "data": {"node": "fallback", "msg": "GPU Quota exceeded, falling back to backend…"}}
+                    else:
+                        raise e
+
+            for e in client.query_stream(
                 q, thread_id, max_hops=max_hops_v,
                 lang=_lang_param(lang_v), source=_source_param(source_v),
                 history=api_history,
             ):
+                yield e
+
+        try:
+            for ev in _do_stream():
                 et, data = ev.get("event"), ev.get("data") or {}
                 duration = int(time.time() - start_time)
 
@@ -920,6 +940,11 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
         with gr.Sidebar(position="left", open=True, width=352):
             gr.Markdown("## 🛩️ GraphRAG Aero")
             new_btn = gr.Button("＋ New chat", variant="primary")
+            use_zgpu = gr.Checkbox(
+                value=zgpu.available(),
+                label="🚀 In-Space Generation (ZeroGPU)",
+                interactive=zgpu.available()
+            )
             gr.HTML("<hr>")
             gr.Markdown("### Recent")
             recent = gr.Dataset(
@@ -1005,7 +1030,7 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
 
         # ── wiring ────────────────────────────────────────────────────────
         ask_outputs = [chat, sess, artifacts, history, recent, query]
-        ask_inputs = [query, lang, source, max_hops, show_bbox, history, sess, artifacts, chat]
+        ask_inputs = [query, lang, source, max_hops, show_bbox, use_zgpu, history, sess, artifacts, chat]
         pages_out = [pages_gallery, gallery_links, chat]
         clear_pages = (lambda: (gr.update(value=[]), gr.update(value=""), gr.update()))
 
