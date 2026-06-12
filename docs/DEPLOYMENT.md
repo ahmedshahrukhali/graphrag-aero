@@ -75,17 +75,15 @@ curl -s -X POST http://localhost:8080/retrieve \
 
 ## HuggingFace Space (Gradio)
 
-The Space is a **shell** — it loads no models. Every model call goes
-over HTTP to a reachable backend. This is the only way to fit a real
-GraphRAG demo on the free HF Spaces tier.
+The Space operates as a **Dual-Engine** app. By default, it loads `Qwen/Qwen3-14B`, `BGE-M3`, and the reranker into the Hugging Face `zero-a10g` hardware. If the ZeroGPU quota is exceeded, it transparently falls back to operating as a **shell**, forwarding requests over HTTP to your local reachable backend.
 
 ### Push the Space
 
-```bash
-# the hf_space/README.md has the YAML frontmatter HF needs
-cd hf_space/
-huggingface-cli login
-huggingface-cli upload <your-username>/graphrag-aero . . --repo-type=space
+```powershell
+# We enforce a strict whitelist deploy script that strips DevMode artifacts.
+# Do NOT use `git push` or you risk leaking credentials or getting flagged by abuse scanners.
+$env:HF_TOKEN = "<your_write_token>"
+scripts\deploy_space.ps1
 ```
 
 ### Configure
@@ -93,12 +91,16 @@ huggingface-cli upload <your-username>/graphrag-aero . . --repo-type=space
 In the Space's **Settings → Variables and secrets**, set:
 
 - `BACKEND_URL` (secret): the publicly-reachable URL of your FastAPI
-  backend. You'll need to deploy the backend somewhere — your own
-  server, an HF Inference Endpoint, a Modal app, etc.
+  backend (e.g. `https://graphrag-aero-you.loca.lt`). Used for fallback if ZeroGPU quota is hit.
+- `SPACE_INDEX_DIR` (variable): Set this to `/data/space_index/v1` to point the offline engine to your Storage Volume.
+
+In the Space's **Settings → Storage**, attach a Bucket (e.g. `your-user/graphaero-rag-storage`) to the mount path `/data`. You populate this bucket from your local machine using:
+```bash
+hf sync ./data hf://buckets/<your_username>/graphaero-rag-storage
+```
 
 The Space's `Dockerfile` exposes port 7860 (the HF default); the YAML
-frontmatter in `hf_space/README.md` uses `sdk: docker` so HF builds it
-verbatim.
+frontmatter in `hf_space/README.md` uses `sdk: gradio` and specifies `zero-a10g` hardware.
 
 ### Local Space testing
 

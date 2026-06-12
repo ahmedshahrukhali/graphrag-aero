@@ -17,8 +17,8 @@ rerank → Neo4j knowledge graph → LangGraph multi-hop agent with a
 Human-in-the-Loop gate → FastAPI backend with OpenTelemetry tracing →
 Gradio HuggingFace Space with PDF citation highlighting.
 
-All inference is local: BGE-M3 dense embeddings + `bge-reranker-v2-m3`
-cross-encoder + `qwen3:4b` via Ollama + `Qwen2.5-VL` for figures. The model budget is sequenced
+All inference is local or in-Space: BGE-M3 dense embeddings + `bge-reranker-v2-m3`
+cross-encoder + `qwen3:4b` via Ollama (Local) or `Qwen/Qwen3-14B` (Space ZeroGPU) + `Qwen2.5-VL` for figures. The model budget is sequenced
 for an 8GB GPU (3060Ti); see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Status
@@ -27,8 +27,8 @@ The project is built phase-by-phase per [MANIFEST.md](MANIFEST.md). All
 nine phases land here; see the manifest for the per-phase narrative and
 current test counts.
 
-- **221 tests** offline (Python + TypeScript), no model weights or
-  network calls required.
+- **295 tests** offline (Python + TypeScript), no model weights or
+  network calls required (221 backend + 74 Space engine tests).
 - Each phase ships a self-contained module with its own README and
   Dockerfile.
 
@@ -82,7 +82,7 @@ The full deployment guide — including the Hugging Face Space — is in
 | [agent/](agent/) | P4 | LangGraph multi-hop agent; PostgresSaver; HITL `interrupt_before("finalize")` |
 | [eval/](eval/) | P5 | Recall@k / MRR / nDCG@k over a curated JSONL dataset |
 | [backend/](backend/) | P6 | FastAPI app; `/retrieve`, `/query`, `/resume`, `/healthz`; OpenTelemetry |
-| [hf_space/](hf_space/) | P8 | Gradio shell over the backend; server-side PDF rendering |
+| [hf_space/](hf_space/) | P8 | Gradio shell; ZeroGPU offline engine (S46-48); proxy backend fallback |
 | [docs/](docs/) | P9 | [Architecture](docs/ARCHITECTURE.md), [Deployment](docs/DEPLOYMENT.md) |
 | [otel/](otel/) | — | OpenTelemetry collector config |
 | [data/corpus/](data/) | — | source PDFs (gitignored) |
@@ -107,7 +107,7 @@ downloads, no live HTTP, no GPU required.
 | Chunking | 512 tokens, 64 overlap; carries `doc_id, section_title, page, bbox` |
 | Graph | Neo4j 5 |
 | Agent framework | LangGraph + PostgresSaver |
-| LLM | `qwen3:4b` Q4_K_M via Ollama |
+| LLM | `Qwen/Qwen3-14B` (Space ZeroGPU) / `qwen3:4b` Q4_K_M (Local) |
 | Languages | English + French + Chinese |
 | Tracing | OpenTelemetry (OTLP gRPC) |
 

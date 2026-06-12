@@ -38,11 +38,13 @@ flowchart LR
 
     BE -->|"OTLP gRPC"| OTC[("otel-collector")]
 
-    subgraph "UI"
+    subgraph "UI (Dual Engine)"
         HF["Gradio HF Space<br/>(pdfplumber server-side render + citation highlighting)"]
+        ZGPU["ZeroGPU Engine<br/>@spaces.GPU (Qwen3-14B)"]
     end
 
-    HF -->|"HTTP"| BE
+    HF -->|"Primary"| ZGPU
+    HF -->|"Fallback / HTTP"| BE
 ```
 
 ## Data flow per request
@@ -84,6 +86,16 @@ A single `/query` HTTP call traces through the system as follows:
 Every node appends a `{node, elapsed_ms, ...}` entry to `state["trace"]`
 as it runs; the HF Space UI renders this as a timeline and OTel manual
 spans wrap the same boundaries for distributed-trace correlation.
+
+## In-Space ZeroGPU Dual Engine (S46-S48)
+
+To operate independently of the local machine and fully utilize the Hugging Face free tier, the Space UI employs a dual-engine architecture:
+
+1. **ZeroGPU Offline Engine (`hf_space/zerogpu_engine.py`)**: A self-contained replica of the backend's `/query` endpoint that yields identical SSE-shaped dictionaries. It lazy-loads its own Qdrant client, `bge-m3` embedder, `bge-reranker-v2-m3` reranker, and `Qwen/Qwen3-14B` LLM pipeline exclusively when the `@spaces.GPU` context is active.
+2. **Local Graph Port (`hf_space/graph_local.py`)**: Rather than requiring a dedicated Neo4j server, the Space performs graph traversals via pure-Python set operations over an exported `cites_edges.json` and `graph_context.json`. 
+
+**The Fallback Mechanism:** 
+A UI toggle allows users to explicitly target the ZeroGPU engine. If the query triggers a quota error (`is_quota_error(exc)`) because the ZeroGPU hardware (`zero-a10g`) is congested, the Gradio event handler intercepts the exception and seamlessly falls back to streaming the answer from the proxy `backend` (the local PM2 tunnel).
 
 ## Sequential VRAM discipline
 
