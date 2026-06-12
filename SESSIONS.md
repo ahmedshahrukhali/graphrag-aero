@@ -13,7 +13,7 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 - **S44b Artifact upload:** Executed `hf sync ./data hf://buckets/ahmedsali/graphaero-rag-storage` to properly upload all artifacts directly to the Space's mounted volume per user instruction.
 - **S47 UI toggle & fallback wiring:** Added `🚀 In-Space Generation (ZeroGPU)` checkbox in `hf_space/app.py` sidebar, explicitly checking `zgpu.available()`. Generator handles `zgpu.is_quota_error(exc)` and falls back to backend transparently. 74 tests pass.
 - **S48 ZeroGPU deploy:** Executed `scripts/deploy_space.ps1` to upload the ZeroGPU offline engine via `HfApi.upload_folder` and subsequently set the space hardware to `zero-a10g` using `HfApi().request_space_hardware`. The space is officially running entirely on the Hugging Face ZeroGPU infrastructure.
-**Left:** (Deferred: `P9` docs refresh — README/ARCHITECTURE/DEPLOYMENT drift).
+- **P9 Docs refresh:** Rewrote `README.md`, `docs/ARCHITECTURE.md`, and `docs/DEPLOYMENT.md` to document the new ZeroGPU Dual-Engine setup, storage bucket syncing (`hf sync`), and the sequential quota fallback mechanism. Test count synced to 295.
 
 ## Session 45 — 2026-06-11 — opus-4.8
 **Commits:** `d9bfc7c`, (this wrap)
