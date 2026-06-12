@@ -408,16 +408,17 @@ py3.12). `scripts/deploy_space.ps1` rewritten git-force-push → `HfApi.upload_f
 whitelist, no git client/force). Both Dockerfile headers corrected (root = retired docker-SDK
 Space build, orphaned; `hf_space/Dockerfile` = local `hf-space` image). `huggingface` git remote
 + `main` upstream removed. Space already recreated by user (gradio, NO_APP_FILE, `zero-a10g`).
-**Deploy history:** user ran `scripts\deploy_space.ps1` (agent is classifier-blocked from the live
-public deploy). Two issues found+fixed: (1) build failed on nested `-r hf_space/requirements.txt`
-(HF mounts only root requirements.txt) → deploy script now FLATTENS it (`286b913`); (2) build then
-succeeded but RUNTIME failed: **`No @spaces.GPU function detected during startup`** — **ZeroGPU
-hardware mandates a `@spaces.GPU` function; a thin shell has none.** Thin-shell-on-ZeroGPU is
-impossible until the engine exists.
-**⛔ BLOCKED on user — 2 settings changes (no redeploy/code change):** (a) **Space hardware → CPU
-basic** (free) so the deployed thin shell boots (flip back to ZeroGPU at S48 once the `@spaces.GPU`
-engine ships); (b) **fix `BACKEND_URL` secret typo** `.loca.it` → `https://graphrag-aero-cocko.loca.lt`.
-Then I live-verify RUNNING + chat.
+**✅ S45 DONE — demo restored + live-verified (2026-06-11/12).** User deployed the thin shell via
+`scripts\deploy_space.ps1` (agent classifier-blocked from the live public deploy). Three issues
+found+fixed: (1) build failed on nested `-r hf_space/requirements.txt` (HF mounts only the root
+requirements.txt) → deploy script FLATTENS it (`286b913`); (2) build passed but RUNTIME died —
+**`No @spaces.GPU function detected during startup`**: ZeroGPU mandates a `@spaces.GPU` function, a
+thin shell has none → **user switched hardware to `cpu-basic`** (flip back to ZeroGPU at S48); (3)
+UI unresponsive = backend tunnel 503 (`localtunnel`+`wake-proxy` pm2 processes were stopped, backend
+containers were up) → started both. **Live-verified:** Space `RUNNING` cpu-basic, `/config` 75 comps
+(gradio 5.49.1); tunnel `/healthz` all-green; `POST /query/stream` streams `status`→`sources`
+(a03q0109, page+bbox) end-to-end. `BACKEND_URL` corrected to `https://graphrag-aero-cocko.loca.lt`.
+(Demo depends on the host tunnel staying up — pm2 `localtunnel`+`wake-proxy`.)
 **Next after deploy: S46 — in-Space engine** (`hf_space/graph_local.py` + `hf_space/zerogpu_engine.py`,
 offline-testable; pure-Python port of `recurring_context_for_occurrences` — artifact shapes confirmed:
 `graph_context.json` = `{occ_id:row}`, `cites_edges.json` = `{occ_cites,reg_occs,occ_url}`; `doc_lookup`
