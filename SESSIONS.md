@@ -11,7 +11,8 @@ One entry per conversation. Most recent at top. Keep each entry under 10 lines.
 - Fix: heavy block appended (qdrant-client, FlagEmbedding, transformers>=4.51,<5, accelerate; torch/spaces ZeroGPU-injected); `deploy_space.ps1` stages an explicit 12-file import closure. Dry-run verified (42 files staged).
 - `.gitignore` `data/space_index/` line was UTF-16-appended (NUL bytes = dead pattern, 764 MB dir showed untracked) → rewritten UTF-8.
 - User redeployed + confirmed: **Space answers fully offline on ZeroGPU.** Active track S44–S49 complete.
-**Left:** nothing on this track. Toggle-OFF backend fallback still depends on host pm2 tunnel processes.
+- **S50 reverse fallback (code):** new gradio-free `hf_space/engine_router.py` — backend ApiError 5xx before first event → falls back to the in-Space engine (mirror of the S47 quota fallback); mid-stream drops/4xx still raise; quota+backend-down = friendly dead-end message. `_do_stream` closure replaced. 11 new tests; 85 passed, 1 skipped.
+**Left:** S50 deploy = user runs `scripts\deploy_space.ps1`; verify with toggle OFF + tunnel down (expect in-Space fallback answer).
 
 ## Session 46 — 2026-06-11 — antigravity
 **Commits:** (this wrap)

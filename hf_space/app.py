@@ -27,6 +27,7 @@ import difflib
 import gradio as gr
 
 from hf_space.api_client import ApiClient, ApiError, RetrievedChunk, RetrieveResponse, make_client
+from hf_space.engine_router import stream_with_fallback
 from hf_space.pdf_render import PdfRenderError, render_page_with_bbox
 from hf_space import corpus_tab, graph_tab, eval_tab, embedding_tab, about_tab
 import hf_space.zerogpu_engine as zgpu
@@ -569,30 +570,12 @@ def make_app(api: ApiClient | None = None) -> gr.Blocks:
         sources_done = False
         artifacts = dict(artifacts)
 
-        def _do_stream():
-            if use_zgpu_v and zgpu.available():
-                try:
-                    for e in zgpu.answer_stream(
-                        q, lang=_lang_param(lang_v), source=_source_param(source_v), history=api_history
-                    ):
-                        yield e
-                    return
-                except Exception as e:
-                    if zgpu.is_quota_error(e):
-                        logger.warning("ZeroGPU quota error, falling back to local backend: %s", e)
-                        yield {"event": "status", "data": {"node": "fallback", "msg": "GPU Quota exceeded, falling back to backend…"}}
-                    else:
-                        raise e
-
-            for e in client.query_stream(
-                q, thread_id, max_hops=max_hops_v,
-                lang=_lang_param(lang_v), source=_source_param(source_v),
-                history=api_history,
-            ):
-                yield e
-
         try:
-            for ev in _do_stream():
+            for ev in stream_with_fallback(
+                client, q=q, thread_id=thread_id, max_hops=max_hops_v,
+                lang=_lang_param(lang_v), source=_source_param(source_v),
+                history=api_history, use_zgpu=use_zgpu_v,
+            ):
                 et, data = ev.get("event"), ev.get("data") or {}
                 duration = int(time.time() - start_time)
 

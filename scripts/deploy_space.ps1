@@ -109,7 +109,7 @@ info = api.upload_folder(
     repo_id="ahmedsali/graphaero-rag",
     repo_type="space",
     folder_path=sys.argv[1],
-    commit_message="deploy: ZeroGPU engine deps + first-party closure (S49)",
+    commit_message="deploy: reverse fallback backend->in-Space engine (S50)",
     delete_patterns=["*"],
 )
 print("upload OK:", getattr(info, "commit_url", info))
