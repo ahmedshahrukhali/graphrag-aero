@@ -45,7 +45,7 @@ def _load_models():
 
     from qdrant_client import QdrantClient
     from embed.bge_m3 import BGE_M3Embedder
-    from retrieve.reranker import CrossEncoderReranker
+    from retrieve.reranker import get_reranker
     from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
     import torch
     from hf_space.graph_local import GraphArtifacts
@@ -56,7 +56,7 @@ def _load_models():
 
     logger.info("Loading embedder and reranker")
     _embedder = BGE_M3Embedder()
-    _reranker = CrossEncoderReranker(model_name="BAAI/bge-reranker-v2-m3", batch_size=32)
+    _reranker = get_reranker(model_name="BAAI/bge-reranker-v2-m3", batch_size=32)
 
     logger.info("Loading generator %s", GENERATION_MODEL)
     tokenizer = AutoTokenizer.from_pretrained(GENERATION_MODEL)
